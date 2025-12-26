@@ -47,10 +47,12 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
     { name: 'Clientes', page: 'Clients', icon: Users },
     { name: 'Agendamentos', page: 'Appointments', icon: Calendar },
+    { name: 'Profissionais', page: 'Professionals', icon: Users },
     { name: 'Estoque', page: 'Inventory', icon: Package },
     { name: 'Orçamentos', page: 'Quotes', icon: FileText },
     { name: 'Vendas', page: 'Sales', icon: ShoppingCart },
     { name: 'Contratos', page: 'Contracts', icon: FileSignature },
+    { name: 'Relatórios', page: 'Reports', icon: FileText },
   ];
 
   const userRoleLabels = {
