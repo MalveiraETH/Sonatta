@@ -272,6 +272,9 @@ export default function Sales() {
                         <p className="text-xs text-slate-500">
                           {format(new Date(sale.created_date), "dd/MM/yyyy", { locale: ptBR })}
                         </p>
+                        {sale.nota_fiscal && (
+                          <p className="text-xs text-emerald-600 font-medium">NF: {sale.nota_fiscal}</p>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

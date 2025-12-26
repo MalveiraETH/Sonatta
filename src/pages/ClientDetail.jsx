@@ -9,6 +9,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ClientForm from '@/components/clients/ClientForm';
 import AppointmentForm from '@/components/appointments/AppointmentForm';
 import QuoteForm from '@/components/quotes/QuoteForm';
+import TestDeviceForm from '@/components/clients/TestDeviceForm';
 import {
   ArrowLeft,
   Edit,
@@ -21,7 +22,8 @@ import {
   ShoppingCart,
   User,
   Clock,
-  Plus
+  Plus,
+  Ear
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,6 +38,7 @@ export default function ClientDetail() {
   const [formOpen, setFormOpen] = useState(false);
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
+  const [testDeviceOpen, setTestDeviceOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -140,10 +143,18 @@ export default function ClientDetail() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={sendWhatsApp}>
             <MessageCircle className="h-4 w-4 mr-2" />
             WhatsApp
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setTestDeviceOpen(true)}
+            className="border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227]/10"
+          >
+            <Ear className="h-4 w-4 mr-2" />
+            Testar Aparelho
           </Button>
           <Button
             onClick={() => setFormOpen(true)}
@@ -345,22 +356,57 @@ export default function ClientDetail() {
               {history.length > 0 ? (
                 <div className="space-y-3">
                   {history.map((item) => (
-                    <div key={item.id} className="p-4 rounded-lg bg-slate-50">
+                    <div key={item.id} className="p-4 rounded-lg bg-slate-50 border-l-4 border-[#c9a227]">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">{typeLabels[item.type]}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#c9a227]/20 text-[#c9a227]">
+                            {typeLabels[item.type]}
+                          </span>
+                          {item.professional_name && (
+                            <span className="text-sm text-slate-500">por {item.professional_name}</span>
+                          )}
+                        </div>
                         <span className="text-sm text-slate-500">
-                          {format(new Date(item.created_date), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(new Date(item.created_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         </span>
                       </div>
-                      <p className="text-slate-600">{item.description}</p>
+                      <p className="text-slate-700 whitespace-pre-line mb-2">{item.description}</p>
+                      
+                      {item.products_tested && item.products_tested.length > 0 && (
+                        <div className="mt-3 p-3 bg-white rounded-lg">
+                          <p className="text-xs font-medium text-slate-500 mb-2">Produtos Testados:</p>
+                          <div className="space-y-1">
+                            {item.products_tested.map((product, idx) => (
+                              <div key={idx} className="flex items-center gap-2 text-sm">
+                                <Ear className="h-3 w-3 text-[#1e3a5f]" />
+                                <span>{product.product_name}</span>
+                                {product.serial_number && (
+                                  <span className="text-xs text-slate-500">({product.serial_number})</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       {item.observations && (
-                        <p className="text-sm text-slate-500 mt-2">{item.observations}</p>
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                          <p className="text-xs font-medium text-blue-900 mb-1">Observações:</p>
+                          <p className="text-sm text-blue-800">{item.observations}</p>
+                        </div>
+                      )}
+                      
+                      {item.next_steps && (
+                        <div className="mt-3 p-3 bg-amber-50 rounded-lg">
+                          <p className="text-xs font-medium text-amber-900 mb-1">Próximos Passos:</p>
+                          <p className="text-sm text-amber-800">{item.next_steps}</p>
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-slate-500 py-4">Nenhum histórico</p>
+                <p className="text-center text-slate-500 py-4">Nenhum histórico de atendimento registrado</p>
               )}
             </CardContent>
           </Card>
@@ -385,6 +431,13 @@ export default function ClientDetail() {
         open={quoteFormOpen}
         onOpenChange={setQuoteFormOpen}
         preselectedClient={client}
+        onSuccess={loadData}
+      />
+
+      <TestDeviceForm
+        open={testDeviceOpen}
+        onOpenChange={setTestDeviceOpen}
+        client={client}
         onSuccess={loadData}
       />
     </div>

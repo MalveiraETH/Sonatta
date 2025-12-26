@@ -44,7 +44,8 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
     seller_name: '',
     status: 'pendente',
     notes: '',
-    quote_id: ''
+    quote_id: '',
+    nota_fiscal: ''
   });
 
   useEffect(() => {
@@ -73,7 +74,8 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
         installments: quote.installments || 1,
         installment_value: quote.installment_value || quote.total,
         seller_id: currentUser?.id || '',
-        seller_name: currentUser?.full_name || ''
+        seller_name: currentUser?.full_name || '',
+        nota_fiscal: ''
       });
     } else {
       setFormData({
@@ -94,7 +96,8 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
         seller_name: currentUser?.full_name || '',
         status: 'pendente',
         notes: '',
-        quote_id: ''
+        quote_id: '',
+        nota_fiscal: ''
       });
     }
   }, [sale, quote, open, currentUser]);
@@ -448,7 +451,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 10, 12].map((n) => (
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((n) => (
                       <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
                     ))}
                   </SelectContent>
@@ -465,6 +468,17 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
               </div>
             </div>
           </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Número da Nota Fiscal</Label>
+              <Input
+                value={formData.nota_fiscal}
+                onChange={(e) => setFormData({ ...formData, nota_fiscal: e.target.value })}
+                placeholder="Número da NF (opcional)"
+              />
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label>Observações</Label>
