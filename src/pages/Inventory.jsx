@@ -202,8 +202,9 @@ export default function Inventory() {
     bateria: 'Bateria'
   };
 
-  const lowStockCount = products.filter(p => p.quantity <= (p.min_stock || 5) && p.quantity > 0).length;
-  const outOfStockCount = products.filter(p => p.quantity <= 0).length;
+  const availableCount = products.filter(p => p.status === 'disponivel').length;
+  const soldCount = products.filter(p => p.status === 'vendido').length;
+  const reservedCount = products.filter(p => p.status === 'reservado').length;
   const totalValue = products.reduce((sum, p) => sum + ((p.quantity || 0) * (p.cost_price || 0)), 0);
 
   if (loading) {
@@ -234,8 +235,19 @@ export default function Inventory() {
               <Package className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Total de Itens</p>
-              <p className="text-xl font-bold">{products.reduce((sum, p) => sum + (p.quantity || 0), 0)}</p>
+              <p className="text-sm text-slate-500">Total de Produtos</p>
+              <p className="text-xl font-bold">{products.length}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 border-0 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+              <Package className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">Disponíveis</p>
+              <p className="text-xl font-bold text-emerald-600">{availableCount}</p>
             </div>
           </div>
         </Card>
@@ -245,8 +257,8 @@ export default function Inventory() {
               <AlertTriangle className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Estoque Baixo</p>
-              <p className="text-xl font-bold text-amber-600">{lowStockCount}</p>
+              <p className="text-sm text-slate-500">Reservados</p>
+              <p className="text-xl font-bold text-amber-600">{reservedCount}</p>
             </div>
           </div>
         </Card>
@@ -256,19 +268,8 @@ export default function Inventory() {
               <Package className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Esgotados</p>
-              <p className="text-xl font-bold text-red-600">{outOfStockCount}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Valor em Estoque</p>
-              <p className="text-xl font-bold">{formatCurrency(totalValue)}</p>
+              <p className="text-sm text-slate-500">Vendidos</p>
+              <p className="text-xl font-bold text-red-600">{soldCount}</p>
             </div>
           </div>
         </Card>
@@ -313,10 +314,9 @@ export default function Inventory() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50">
-                    <TableHead>Produto</TableHead>
+                    <TableHead>Produto / Série</TableHead>
                     <TableHead className="hidden md:table-cell">Categoria</TableHead>
                     <TableHead className="hidden lg:table-cell">Marca/Modelo</TableHead>
-                    <TableHead className="text-center">Qtd</TableHead>
                     <TableHead className="hidden md:table-cell text-right">Preço Venda</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-12"></TableHead>
@@ -340,15 +340,6 @@ export default function Inventory() {
                         <TableCell className="hidden lg:table-cell">
                           {product.brand} {product.model}
                         </TableCell>
-                        <TableCell className="text-center">
-                          <span className={
-                            product.quantity <= 0 ? 'text-red-600 font-bold' :
-                            product.quantity <= (product.min_stock || 5) ? 'text-amber-600 font-bold' :
-                            'font-medium'
-                          }>
-                            {product.quantity}
-                          </span>
-                        </TableCell>
                         <TableCell className="hidden md:table-cell text-right">
                           {formatCurrency(product.sale_price)}
                         </TableCell>
@@ -363,14 +354,6 @@ export default function Inventory() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openMovement(product, 'entrada')}>
-                                <Plus className="h-4 w-4 mr-2 text-emerald-600" />
-                                Entrada
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openMovement(product, 'saida')}>
-                                <Minus className="h-4 w-4 mr-2 text-red-600" />
-                                Saída
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleEdit(product)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
@@ -391,7 +374,7 @@ export default function Inventory() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                         Nenhum produto encontrado
                       </TableCell>
                     </TableRow>

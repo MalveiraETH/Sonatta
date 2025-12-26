@@ -143,7 +143,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { product_id: '', product_name: '', serial_number: '', quantity: 1, unit_price: 0, total: 0 }]
+      items: [...formData.items, { product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0 }]
     });
   };
 
@@ -159,10 +159,19 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
     if (field === 'product_id') {
       const product = products.find(p => p.id === value);
       if (product) {
+        // Verificar se o produto já foi vendido
+        if (product.status === 'vendido') {
+          toast.error(`O produto ${product.name} (${product.serial_number}) já foi vendido!`);
+          return;
+        }
+        
         newItems[index].product_name = product.name;
+        newItems[index].brand = product.brand || '';
+        newItems[index].model = product.model || '';
         newItems[index].unit_price = product.sale_price;
         newItems[index].serial_number = product.serial_number || '';
-        newItems[index].total = product.sale_price * newItems[index].quantity;
+        newItems[index].quantity = 1;
+        newItems[index].total = product.sale_price;
       }
     }
 
@@ -219,11 +228,11 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
       return;
     }
 
-    // Verificar estoque
+    // Verificar se produtos já foram vendidos
     for (const item of formData.items) {
       const product = products.find(p => p.id === item.product_id);
-      if (product && product.quantity < item.quantity) {
-        toast.error(`Estoque insuficiente para ${product.name}`);
+      if (product && product.status === 'vendido') {
+        toast.error(`O produto ${product.name} (${product.serial_number}) já foi vendido!`);
         return;
       }
     }
@@ -242,14 +251,12 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
         // Criar venda
         await base44.entities.Sale.create(dataToSave);
 
-        // Atualizar estoque
+        // Atualizar estoque - marcar como vendido
         for (const item of formData.items) {
           const product = products.find(p => p.id === item.product_id);
           if (product) {
-            const newQuantity = product.quantity - item.quantity;
             await base44.entities.Product.update(product.id, {
-              quantity: newQuantity,
-              status: newQuantity <= 0 ? 'esgotado' : 'disponivel'
+              status: 'vendido'
             });
 
             // Registrar movimentação
@@ -257,7 +264,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
               product_id: product.id,
               product_name: product.name,
               type: 'saida',
-              quantity: item.quantity,
+              quantity: 1,
               reason: `Venda ${dataToSave.sale_number}`
             });
           }
@@ -346,62 +353,56 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
 
             {formData.items.map((item, index) => (
               <Card key={index} className="p-4">
-                <div className="grid grid-cols-12 gap-3 items-end">
-                  <div className="col-span-5">
-                    <Label className="text-xs">Produto</Label>
-                    <Select
-                      value={item.product_id}
-                      onValueChange={(value) => updateItem(index, 'product_id', value)}
-                      disabled={!!quote}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products.filter(p => p.quantity > 0).map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name} ({product.quantity} disp.)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-12 gap-3 items-end">
+                    <div className="col-span-11">
+                      <Label className="text-xs">Produto (Número de Série)</Label>
+                      <Select
+                        value={item.product_id}
+                        onValueChange={(value) => updateItem(index, 'product_id', value)}
+                        disabled={!!quote}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione pelo número de série" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.filter(p => p.status === 'disponivel').map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.serial_number} - {product.name} ({product.brand} {product.model})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(index)}
+                        className="text-red-500 hover:text-red-700"
+                        disabled={!!quote}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Qtd</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                      disabled={!!quote}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Valor Unit.</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={item.unit_price}
-                      onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                      disabled={!!quote}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Total</Label>
-                    <Input value={formatCurrency(item.total)} readOnly className="bg-slate-50" />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(index)}
-                      className="text-red-500 hover:text-red-700"
-                      disabled={!!quote}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {item.product_id && (
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <span className="text-slate-500">Marca/Modelo:</span>
+                        <p className="font-medium">{item.brand} {item.model}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Série:</span>
+                        <p className="font-medium">{item.serial_number}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Valor:</span>
+                        <p className="font-bold text-[#1e3a5f]">{formatCurrency(item.unit_price)}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
             ))}

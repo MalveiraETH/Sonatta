@@ -27,11 +27,13 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
     brand: '',
     model: '',
     serial_number: '',
-    quantity: 0,
+    quantity: 1,
     cost_price: 0,
     sale_price: 0,
     status: 'disponivel',
-    min_stock: 5
+    min_stock: 1,
+    nota_fiscal_entrada: '',
+    entry_date: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -42,11 +44,13 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
         brand: product.brand || '',
         model: product.model || '',
         serial_number: product.serial_number || '',
-        quantity: product.quantity || 0,
+        quantity: product.quantity || 1,
         cost_price: product.cost_price || 0,
         sale_price: product.sale_price || 0,
         status: product.status || 'disponivel',
-        min_stock: product.min_stock || 5
+        min_stock: product.min_stock || 1,
+        nota_fiscal_entrada: product.nota_fiscal_entrada || '',
+        entry_date: product.entry_date || new Date().toISOString().split('T')[0]
       });
     } else {
       setFormData({
@@ -55,19 +59,21 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
         brand: '',
         model: '',
         serial_number: '',
-        quantity: 0,
+        quantity: 1,
         cost_price: 0,
         sale_price: 0,
         status: 'disponivel',
-        min_stock: 5
+        min_stock: 1,
+        nota_fiscal_entrada: '',
+        entry_date: new Date().toISOString().split('T')[0]
       });
     }
   }, [product, open]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.sale_price) {
-      toast.error('Preencha os campos obrigatórios');
+    if (!formData.name || !formData.sale_price || !formData.serial_number) {
+      toast.error('Preencha os campos obrigatórios (Nome, Série, Valor de Venda)');
       return;
     }
 
@@ -75,11 +81,10 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
     try {
       const dataToSave = {
         ...formData,
-        quantity: Number(formData.quantity),
+        quantity: 1,
         cost_price: Number(formData.cost_price),
         sale_price: Number(formData.sale_price),
-        min_stock: Number(formData.min_stock),
-        status: Number(formData.quantity) <= 0 ? 'esgotado' : formData.status
+        min_stock: 1
       };
 
       if (product) {
@@ -163,25 +168,35 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
               />
             </div>
             <div className="space-y-2">
-              <Label>Nº de Série</Label>
+              <Label>Nº de Série *</Label>
               <Input
                 value={formData.serial_number}
                 onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                placeholder="Número de série"
+                placeholder="Número de série único"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Quantidade</Label>
+              <Label>NF de Entrada</Label>
               <Input
-                type="number"
-                min="0"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                value={formData.nota_fiscal_entrada}
+                onChange={(e) => setFormData({ ...formData, nota_fiscal_entrada: e.target.value })}
+                placeholder="Número da NF"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Data de Entrada</Label>
+              <Input
+                type="date"
+                value={formData.entry_date}
+                onChange={(e) => setFormData({ ...formData, entry_date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Custo (R$)</Label>
               <Input
@@ -204,32 +219,21 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="disponivel">Disponível</SelectItem>
-                  <SelectItem value="reservado">Reservado</SelectItem>
-                  <SelectItem value="esgotado">Esgotado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Estoque Mínimo</Label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.min_stock}
-                onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value) => setFormData({ ...formData, status: value })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="disponivel">Disponível</SelectItem>
+                <SelectItem value="reservado">Reservado</SelectItem>
+                <SelectItem value="vendido">Vendido</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
