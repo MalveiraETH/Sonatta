@@ -83,14 +83,12 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
 
   const loadData = async () => {
     try {
-      const [clientsData, usersData] = await Promise.all([
+      const [clientsData, professionalsData] = await Promise.all([
         base44.entities.Client.list(),
-        base44.entities.User.list()
+        base44.entities.Professional.list()
       ]);
       setClients(clientsData);
-      setProfessionals(usersData.filter(u => 
-        u.user_role === 'fonoaudiologo' || u.user_role === 'admin'
-      ));
+      setProfessionals(professionalsData);
     } catch (e) {
       console.error(e);
     }
