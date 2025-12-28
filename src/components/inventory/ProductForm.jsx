@@ -156,11 +156,18 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
             </div>
             <div className="space-y-2">
               <Label>Marca</Label>
-              <Input
+              <Select
                 value={formData.brand}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                placeholder="Marca"
-              />
+                onValueChange={(value) => setFormData({ ...formData, brand: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a marca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PHONAK">PHONAK</SelectItem>
+                  <SelectItem value="ARGOSY">ARGOSY</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
