@@ -24,6 +24,7 @@ export default function Reports() {
   const [products, setProducts] = useState([]);
   const [clients, setClients] = useState([]);
   const [sales, setSales] = useState([]);
+  const [professionals, setProfessionals] = useState([]);
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
 
@@ -33,14 +34,16 @@ export default function Reports() {
 
   const loadData = async () => {
     try {
-      const [productsData, clientsData, salesData] = await Promise.all([
+      const [productsData, clientsData, salesData, professionalsData] = await Promise.all([
         base44.entities.Product.list(),
         base44.entities.Client.list(),
-        base44.entities.Sale.list('-created_date')
+        base44.entities.Sale.list('-created_date'),
+        base44.entities.Professional.list()
       ]);
       setProducts(productsData);
       setClients(clientsData);
       setSales(salesData);
+      setProfessionals(professionalsData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -142,17 +145,48 @@ export default function Reports() {
   };
 
   const exportSalesReport = () => {
-    const data = filteredSales.map(s => ({
-      'Número': s.sale_number,
-      'Cliente': s.client_name,
-      'Valor': s.total,
-      'Pagamento': s.payment_method,
-      'Parcelas': s.installments,
-      'Status': s.status,
-      'NF': s.nota_fiscal || '',
-      'Data': format(new Date(s.created_date), 'dd/MM/yyyy')
-    }));
+    const data = filteredSales.map(s => {
+      const client = clients.find(c => c.id === s.client_id);
+      const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
+      const profResponsavel = professionals.find(p => p.id === client?.responsible_professional);
+      
+      return {
+        'Número': s.sale_number,
+        'Cliente': s.client_name,
+        'Prof. Indicação': profIndicacao?.full_name || '',
+        'Prof. Responsável': profResponsavel?.full_name || '',
+        'Valor': s.total,
+        'Pagamento': s.payment_method,
+        'Parcelas': s.installments,
+        'Status': s.status,
+        'NF': s.nota_fiscal || '',
+        'Data': format(new Date(s.created_date), 'dd/MM/yyyy')
+      };
+    });
     exportToCSV(data, 'relatorio_vendas');
+  };
+
+  const exportReferralReport = () => {
+    const referralData = [];
+    
+    filteredSales.forEach(sale => {
+      const client = clients.find(c => c.id === sale.client_id);
+      if (client?.referral_professional) {
+        const prof = professionals.find(p => p.id === client.referral_professional);
+        if (prof) {
+          referralData.push({
+            'Profissional': prof.full_name,
+            'Especialidade': prof.specialty,
+            'Paciente': sale.client_name,
+            'Data Venda': format(new Date(sale.created_date), 'dd/MM/yyyy'),
+            'Valor Total': sale.total,
+            'Repasse 10%': (sale.total * 0.10).toFixed(2)
+          });
+        }
+      }
+    });
+    
+    exportToCSV(referralData, 'relatorio_repasse_indicacao');
   };
 
   if (loading) {
@@ -176,6 +210,7 @@ export default function Reports() {
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="clients">Clientes</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
+          <TabsTrigger value="referral">Repasse Indicação</TabsTrigger>
         </TabsList>
 
         {/* ESTOQUE */}
@@ -372,6 +407,8 @@ export default function Reports() {
                     <TableRow className="bg-slate-50">
                       <TableHead>Número</TableHead>
                       <TableHead>Cliente</TableHead>
+                      <TableHead>Prof. Indicação</TableHead>
+                      <TableHead>Prof. Responsável</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Pagamento</TableHead>
@@ -379,18 +416,109 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSales.map(sale => (
-                      <TableRow key={sale.id}>
-                        <TableCell className="font-medium">{sale.sale_number}</TableCell>
-                        <TableCell>{sale.client_name}</TableCell>
-                        <TableCell>{format(new Date(sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(sale.total)}</TableCell>
-                        <TableCell className="text-sm">
-                          {sale.payment_method} {sale.installments > 1 && `(${sale.installments}x)`}
-                        </TableCell>
-                        <TableCell><StatusBadge status={sale.status} /></TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredSales.map(sale => {
+                      const client = clients.find(c => c.id === sale.client_id);
+                      const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
+                      const profResponsavel = professionals.find(p => p.id === client?.responsible_professional);
+                      
+                      return (
+                        <TableRow key={sale.id}>
+                          <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                          <TableCell>{sale.client_name}</TableCell>
+                          <TableCell className="text-sm">{profIndicacao?.full_name || '-'}</TableCell>
+                          <TableCell className="text-sm">{profResponsavel?.full_name || '-'}</TableCell>
+                          <TableCell>{format(new Date(sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(sale.total)}</TableCell>
+                          <TableCell className="text-sm">
+                            {sale.payment_method} {sale.installments > 1 && `(${sale.installments}x)`}
+                          </TableCell>
+                          <TableCell><StatusBadge status={sale.status} /></TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* REPASSE INDICAÇÃO */}
+        <TabsContent value="referral" className="space-y-6">
+          <Card className="p-4 border-0 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => setDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Fim</Label>
+                <Input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setDateStart('');
+                    setDateEnd('');
+                  }}
+                >
+                  Limpar Filtro
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Repasse de Indicação (10%)</CardTitle>
+              <Button onClick={exportReferralReport} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Profissional</TableHead>
+                      <TableHead>Especialidade</TableHead>
+                      <TableHead>Paciente</TableHead>
+                      <TableHead>Data Venda</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead className="text-right">Repasse 10%</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSales.map(sale => {
+                      const client = clients.find(c => c.id === sale.client_id);
+                      if (!client?.referral_professional) return null;
+                      
+                      const prof = professionals.find(p => p.id === client.referral_professional);
+                      if (!prof) return null;
+                      
+                      return (
+                        <TableRow key={sale.id}>
+                          <TableCell className="font-medium">{prof.full_name}</TableCell>
+                          <TableCell className="capitalize">{prof.specialty}</TableCell>
+                          <TableCell>{sale.client_name}</TableCell>
+                          <TableCell>{format(new Date(sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(sale.total)}</TableCell>
+                          <TableCell className="text-right font-bold text-[#A4D233]">
+                            {formatCurrency(sale.total * 0.10)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }).filter(Boolean)}
                   </TableBody>
                 </Table>
               </div>

@@ -4,10 +4,10 @@ import Clients from './pages/Clients';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
-import Quotes from './pages/Quotes';
-import Sales from './pages/Sales';
 import Professionals from './pages/Professionals';
+import Quotes from './pages/Quotes';
 import Reports from './pages/Reports';
+import Sales from './pages/Sales';
 import __Layout from './Layout.jsx';
 
 
@@ -18,10 +18,10 @@ export const PAGES = {
     "Contracts": Contracts,
     "Dashboard": Dashboard,
     "Inventory": Inventory,
-    "Quotes": Quotes,
-    "Sales": Sales,
     "Professionals": Professionals,
+    "Quotes": Quotes,
     "Reports": Reports,
+    "Sales": Sales,
 }
 
 export const pagesConfig = {

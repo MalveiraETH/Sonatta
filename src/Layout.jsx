@@ -193,7 +193,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0">
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
         <div className="p-4 lg:p-8">
           {children}
         </div>
