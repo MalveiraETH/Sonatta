@@ -269,22 +269,33 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
               <Card key={index} className="p-4">
                 <div className="grid grid-cols-12 gap-3 items-end">
                   <div className="col-span-5">
-                    <Label className="text-xs">Produto</Label>
-                    <Select
-                      value={item.product_id}
-                      onValueChange={(value) => updateItem(index, 'product_id', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name} - {formatCurrency(product.sale_price)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-xs">Buscar Produto por Modelo</Label>
+                    <Input
+                      placeholder="Digite o modelo..."
+                      value={item.product_name || ''}
+                      onChange={(e) => {
+                        const searchTerm = e.target.value.toLowerCase();
+                        const foundProduct = products.find(p => 
+                          p.model?.toLowerCase().includes(searchTerm) ||
+                          p.name?.toLowerCase().includes(searchTerm)
+                        );
+                        if (foundProduct && searchTerm.length > 2) {
+                          updateItem(index, 'product_id', foundProduct.id);
+                        } else {
+                          const newItems = [...formData.items];
+                          newItems[index].product_name = e.target.value;
+                          setFormData({ ...formData, items: newItems });
+                        }
+                      }}
+                      list={`model-list-${index}`}
+                    />
+                    <datalist id={`model-list-${index}`}>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.model || product.name}>
+                          {product.name} - {product.brand} {product.model}
+                        </option>
+                      ))}
+                    </datalist>
                   </div>
                   <div className="col-span-2">
                     <Label className="text-xs">Qtd</Label>
