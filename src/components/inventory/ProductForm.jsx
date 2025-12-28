@@ -33,7 +33,9 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
     status: 'disponivel',
     min_stock: 1,
     nota_fiscal_entrada: '',
-    entry_date: new Date().toISOString().split('T')[0]
+    entry_date: new Date().toISOString().split('T')[0],
+    warranty_years: 2,
+    power_type: 'pilha'
   });
 
   useEffect(() => {
@@ -50,7 +52,9 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
         status: product.status || 'disponivel',
         min_stock: product.min_stock || 1,
         nota_fiscal_entrada: product.nota_fiscal_entrada || '',
-        entry_date: product.entry_date || new Date().toISOString().split('T')[0]
+        entry_date: product.entry_date || new Date().toISOString().split('T')[0],
+        warranty_years: product.warranty_years || 2,
+        power_type: product.power_type || 'pilha'
       });
     } else {
       setFormData({
@@ -65,7 +69,9 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
         status: 'disponivel',
         min_stock: 1,
         nota_fiscal_entrada: '',
-        entry_date: new Date().toISOString().split('T')[0]
+        entry_date: new Date().toISOString().split('T')[0],
+        warranty_years: 2,
+        power_type: 'pilha'
       });
     }
   }, [product, open]);
@@ -219,21 +225,54 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => setFormData({ ...formData, status: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="disponivel">Disponível</SelectItem>
-                <SelectItem value="reservado">Reservado</SelectItem>
-                <SelectItem value="vendido">Vendido</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="disponivel">Disponível</SelectItem>
+                  <SelectItem value="reservado">Reservado</SelectItem>
+                  <SelectItem value="vendido">Vendido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Garantia</Label>
+              <Select
+                value={String(formData.warranty_years)}
+                onValueChange={(value) => setFormData({ ...formData, warranty_years: Number(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 anos</SelectItem>
+                  <SelectItem value="3">3 anos</SelectItem>
+                  <SelectItem value="4">4 anos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Funcionamento</Label>
+              <Select
+                value={formData.power_type}
+                onValueChange={(value) => setFormData({ ...formData, power_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pilha">Pilha</SelectItem>
+                  <SelectItem value="bateria_recarregavel">Bateria Recarregável</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">

@@ -196,12 +196,13 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
     });
   };
 
-  const updateDiscount = (discount) => {
-    const total = formData.subtotal - discount;
+  const updateDiscount = (discountPercent) => {
+    const discountValue = (formData.subtotal * discountPercent) / 100;
+    const total = formData.subtotal - discountValue;
     const installment_value = total / formData.installments;
     setFormData({
       ...formData,
-      discount,
+      discount: discountValue,
       total,
       installment_value
     });
@@ -356,23 +357,34 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
                 <div className="grid grid-cols-1 gap-3">
                   <div className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-11">
-                      <Label className="text-xs">Produto (Número de Série)</Label>
-                      <Select
-                        value={item.product_id}
-                        onValueChange={(value) => updateItem(index, 'product_id', value)}
+                      <Label className="text-xs">Buscar por Número de Série</Label>
+                      <Input
+                        placeholder="Digite o número de série..."
+                        value={item.serial_number || ''}
+                        onChange={(e) => {
+                          const searchTerm = e.target.value.toLowerCase();
+                          const foundProduct = products.find(p => 
+                            p.serial_number?.toLowerCase().includes(searchTerm) && 
+                            p.status === 'disponivel'
+                          );
+                          if (foundProduct && searchTerm.length > 2) {
+                            updateItem(index, 'product_id', foundProduct.id);
+                          } else {
+                            const newItems = [...formData.items];
+                            newItems[index].serial_number = e.target.value;
+                            setFormData({ ...formData, items: newItems });
+                          }
+                        }}
                         disabled={!!quote}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione pelo número de série" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.filter(p => p.status === 'disponivel').map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.serial_number} - {product.name} ({product.brand} {product.model})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        list={`serial-list-${index}`}
+                      />
+                      <datalist id={`serial-list-${index}`}>
+                        {products.filter(p => p.status === 'disponivel').map((product) => (
+                          <option key={product.id} value={product.serial_number}>
+                            {product.name} ({product.brand} {product.model})
+                          </option>
+                        ))}
+                      </datalist>
                     </div>
                     <div className="col-span-1">
                       <Button
@@ -388,14 +400,14 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
                     </div>
                   </div>
                   {item.product_id && (
-                    <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div className="grid grid-cols-3 gap-3 text-sm bg-slate-50 p-3 rounded-lg">
+                      <div>
+                        <span className="text-slate-500">Produto:</span>
+                        <p className="font-medium">{item.product_name}</p>
+                      </div>
                       <div>
                         <span className="text-slate-500">Marca/Modelo:</span>
                         <p className="font-medium">{item.brand} {item.model}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Série:</span>
-                        <p className="font-medium">{item.serial_number}</p>
                       </div>
                       <div>
                         <span className="text-slate-500">Valor:</span>
@@ -416,14 +428,16 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
                 <p className="text-lg font-semibold">{formatCurrency(formData.subtotal)}</p>
               </div>
               <div>
-                <Label className="text-xs">Desconto</Label>
+                <Label className="text-xs">Desconto (%)</Label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.discount}
+                  max="100"
+                  value={formData.subtotal > 0 ? ((formData.discount / formData.subtotal) * 100).toFixed(2) : 0}
                   onChange={(e) => updateDiscount(Number(e.target.value))}
                   disabled={!!quote}
+                  placeholder="0"
                 />
               </div>
               <div>

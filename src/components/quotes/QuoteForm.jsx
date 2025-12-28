@@ -162,12 +162,13 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     });
   };
 
-  const updateDiscount = (discount) => {
-    const total = formData.subtotal - discount;
+  const updateDiscount = (discountPercent) => {
+    const discountValue = (formData.subtotal * discountPercent) / 100;
+    const total = formData.subtotal - discountValue;
     const installment_value = total / formData.installments;
     setFormData({
       ...formData,
-      discount,
+      discount: discountValue,
       total,
       installment_value
     });
@@ -331,13 +332,15 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                 <p className="text-lg font-semibold">{formatCurrency(formData.subtotal)}</p>
               </div>
               <div>
-                <Label className="text-xs">Desconto (R$)</Label>
+                <Label className="text-xs">Desconto (%)</Label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.discount}
+                  max="100"
+                  value={formData.subtotal > 0 ? ((formData.discount / formData.subtotal) * 100).toFixed(2) : 0}
                   onChange={(e) => updateDiscount(Number(e.target.value))}
+                  placeholder="0"
                 />
               </div>
               <div>
