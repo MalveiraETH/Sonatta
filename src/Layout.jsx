@@ -53,6 +53,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Vendas', page: 'Sales', icon: ShoppingCart },
     { name: 'Contratos', page: 'Contracts', icon: FileSignature },
     { name: 'Relatórios', page: 'Reports', icon: FileText },
+    { name: 'Configurações', page: 'Settings', icon: Bell },
   ];
 
   const userRoleLabels = {

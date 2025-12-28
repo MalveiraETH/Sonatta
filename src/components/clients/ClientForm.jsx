@@ -34,10 +34,6 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
   });
 
   useEffect(() => {
-    loadProfessionals();
-  }, []);
-
-  useEffect(() => {
     if (client) {
       setFormData({
         full_name: client.full_name || '',
@@ -46,8 +42,6 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         email: client.email || '',
         address: client.address || '',
         birth_date: client.birth_date || '',
-        referral_professional: client.referral_professional || '',
-        responsible_professional: client.responsible_professional || '',
         status: client.status || 'lead',
         notes: client.notes || ''
       });
@@ -64,17 +58,6 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       });
     }
   }, [client, open]);
-
-  const loadProfessionals = async () => {
-    try {
-      const users = await base44.entities.User.list();
-      setProfessionals(users.filter(u => 
-        u.user_role === 'fonoaudiologo' || u.user_role === 'admin'
-      ));
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const formatCPF = (value) => {
     const numbers = value.replace(/\D/g, '');
@@ -190,35 +173,6 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Endereço completo"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="referral">Profissional Indicação</Label>
-              <Input
-                id="referral"
-                value={formData.referral_professional}
-                onChange={(e) => setFormData({ ...formData, referral_professional: e.target.value })}
-                placeholder="Quem indicou"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="responsible">Profissional Responsável</Label>
-              <Select
-                value={formData.responsible_professional}
-                onValueChange={(value) => setFormData({ ...formData, responsible_professional: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {professionals.map((prof) => (
-                    <SelectItem key={prof.id} value={prof.full_name}>
-                      {prof.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
