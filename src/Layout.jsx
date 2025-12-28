@@ -66,15 +66,15 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-slate-50">
       <style>{`
         :root {
-          --primary: #1e3a5f;
-          --primary-light: #2d5a8a;
-          --accent: #c9a227;
-          --accent-light: #dbb84a;
+          --primary: #6B3FA0;
+          --primary-light: #834CB8;
+          --accent: #A4D233;
+          --accent-light: #B8E047;
         }
       `}</style>
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#1e3a5f] z-50 flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#6B3FA0] z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -85,9 +85,11 @@ export default function Layout({ children, currentPageName }) {
             {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#c9a227] flex items-center justify-center">
-              <Ear className="h-5 w-5 text-white" />
-            </div>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png" 
+              alt="Sonatta"
+              className="w-8 h-8 object-contain"
+            />
             <span className="text-white font-semibold">Sonatta</span>
           </div>
         </div>
@@ -111,16 +113,18 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed top-0 left-0 h-full w-64 bg-[#1e3a5f] z-40 transform transition-transform duration-300 ease-in-out",
+        "fixed top-0 left-0 h-full w-64 bg-[#6B3FA0] z-40 transform transition-transform duration-300 ease-in-out",
         "lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Logo */}
         <div className="h-20 flex items-center justify-center border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#c9a227] flex items-center justify-center">
-              <Ear className="h-6 w-6 text-white" />
-            </div>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png" 
+              alt="Sonatta"
+              className="w-10 h-10 object-contain"
+            />
             <div>
               <h1 className="text-white font-bold text-lg tracking-wide">SONATTA</h1>
               <p className="text-white/60 text-xs">Soluções Auditivas</p>
@@ -141,8 +145,8 @@ export default function Layout({ children, currentPageName }) {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
                   isActive
-                    ? "bg-[#c9a227] text-white shadow-lg shadow-[#c9a227]/30"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                    ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
+                    : "text-white/80 hover:bg-white/10 hover:text-white"
                 )}
               >
                 <Icon className="h-5 w-5" />
