@@ -22,7 +22,6 @@ import { toast } from 'sonner';
 
 export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState([]);
   const [formData, setFormData] = useState({
     full_name: '',
     cpf: '',
@@ -30,8 +29,6 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
     email: '',
     address: '',
     birth_date: '',
-    referral_professional: '',
-    responsible_professional: '',
     status: 'lead',
     notes: ''
   });
@@ -62,8 +59,6 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         email: '',
         address: '',
         birth_date: '',
-        referral_professional: '',
-        responsible_professional: '',
         status: 'lead',
         notes: ''
       });

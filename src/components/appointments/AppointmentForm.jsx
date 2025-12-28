@@ -29,6 +29,8 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
     client_name: '',
     professional_id: '',
     professional_name: '',
+    test_referral_id: '',
+    test_referral_name: '',
     date: '',
     time: '',
     type: 'avaliacao',
@@ -49,6 +51,8 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
         client_name: appointment.client_name || '',
         professional_id: appointment.professional_id || '',
         professional_name: appointment.professional_name || '',
+        test_referral_id: appointment.test_referral_id || '',
+        test_referral_name: appointment.test_referral_name || '',
         date: appointment.date || '',
         time: appointment.time || '',
         type: appointment.type || 'avaliacao',
@@ -60,6 +64,8 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
         ...prev,
         client_id: preselectedClient.id,
         client_name: preselectedClient.full_name,
+        test_referral_id: '',
+        test_referral_name: '',
         date: '',
         time: '',
         type: 'avaliacao',
@@ -72,6 +78,8 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
         client_name: '',
         professional_id: '',
         professional_name: '',
+        test_referral_id: '',
+        test_referral_name: '',
         date: '',
         time: '',
         type: 'avaliacao',
@@ -94,6 +102,22 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
     }
   };
 
+  const checkTimeConflict = async (date, time) => {
+    try {
+      const allAppointments = await base44.entities.Appointment.list();
+      const conflict = allAppointments.find(apt => 
+        apt.date === date && 
+        apt.time === time && 
+        apt.status !== 'cancelado' &&
+        apt.id !== appointment?.id
+      );
+      return !!conflict;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  };
+
   const handleClientChange = (clientId) => {
     const client = clients.find(c => c.id === clientId);
     setFormData({
@@ -112,10 +136,26 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
     });
   };
 
+  const handleTestReferralChange = (profId) => {
+    const prof = professionals.find(p => p.id === profId);
+    setFormData({
+      ...formData,
+      test_referral_id: profId,
+      test_referral_name: prof?.full_name || ''
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.client_id || !formData.date || !formData.time || !formData.type) {
       toast.error('Preencha os campos obrigatórios');
+      return;
+    }
+
+    // Verificar conflito de horário
+    const hasConflict = await checkTimeConflict(formData.date, formData.time);
+    if (hasConflict) {
+      toast.error('Já existe um agendamento para este dia e horário');
       return;
     }
 
@@ -174,23 +214,44 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Profissional</Label>
-            <Select
-              value={formData.professional_id}
-              onValueChange={handleProfessionalChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o profissional" />
-              </SelectTrigger>
-              <SelectContent>
-                {professionals.map((prof) => (
-                  <SelectItem key={prof.id} value={prof.id}>
-                    {prof.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Profissional</Label>
+              <Select
+                value={formData.professional_id}
+                onValueChange={handleProfessionalChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {professionals.map((prof) => (
+                    <SelectItem key={prof.id} value={prof.id}>
+                      {prof.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Indicação Teste</Label>
+              <Select
+                value={formData.test_referral_id}
+                onValueChange={handleTestReferralChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {professionals.map((prof) => (
+                    <SelectItem key={prof.id} value={prof.id}>
+                      {prof.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
