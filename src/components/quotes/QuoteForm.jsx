@@ -148,39 +148,39 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     recalculateTotals(newItems);
   };
 
-  const recalculateTotals = (items) => {
+  const recalculateTotals = (items, currentDiscount = formData.discount) => {
     const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const total = subtotal - formData.discount;
+    const total = subtotal - currentDiscount;
     const installment_value = total / formData.installments;
 
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       items,
       subtotal,
       total,
       installment_value
-    });
+    }));
   };
 
   const updateDiscount = (discountPercent) => {
     const discountValue = (formData.subtotal * discountPercent) / 100;
     const total = formData.subtotal - discountValue;
     const installment_value = total / formData.installments;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       discount: discountValue,
       total,
       installment_value
-    });
+    }));
   };
 
   const updateInstallments = (installments) => {
     const installment_value = formData.total / installments;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       installments,
       installment_value
-    });
+    }));
   };
 
   const generateQuoteNumber = () => {
