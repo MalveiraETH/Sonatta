@@ -92,10 +92,11 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         await base44.entities.Client.create(formData);
         toast.success('Cliente cadastrado com sucesso!');
       }
-      onSuccess();
+      await onSuccess();
       onOpenChange(false);
     } catch (error) {
-      toast.error('Erro ao salvar cliente');
+      console.error('Error saving client:', error);
+      toast.error(`Erro ao salvar cliente: ${error.message || 'Tente novamente'}`);
     } finally {
       setLoading(false);
     }
