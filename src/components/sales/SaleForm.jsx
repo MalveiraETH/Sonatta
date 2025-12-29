@@ -26,6 +26,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [discountPercent, setDiscountPercent] = useState(0);
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -57,6 +58,12 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
   useEffect(() => {
     if (sale) {
       setFormData({ ...sale });
+      // Calcular percentual inicial se houver desconto
+      if (sale.subtotal > 0 && sale.discount > 0) {
+        setDiscountPercent(((sale.discount / sale.subtotal) * 100).toFixed(2));
+      } else {
+        setDiscountPercent(0);
+      }
     } else if (quote) {
       // Converter orçamento em venda
       setFormData({
@@ -77,6 +84,12 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
         seller_name: currentUser?.full_name || '',
         nota_fiscal: ''
       });
+      // Calcular percentual do orçamento
+      if (quote.subtotal > 0 && quote.discount > 0) {
+        setDiscountPercent(((quote.discount / quote.subtotal) * 100).toFixed(2));
+      } else {
+        setDiscountPercent(0);
+      }
     } else {
       setFormData({
         client_id: '',
@@ -99,6 +112,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
         quote_id: '',
         nota_fiscal: ''
       });
+      setDiscountPercent(0);
     }
   }, [sale, quote, open, currentUser]);
 
@@ -182,22 +196,25 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
     recalculateTotals(newItems);
   };
 
-  const recalculateTotals = (items, currentDiscount = formData.discount) => {
+  const recalculateTotals = (items) => {
     const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const total = subtotal - currentDiscount;
+    const discountValue = (subtotal * discountPercent) / 100;
+    const total = subtotal - discountValue;
     const installment_value = total / formData.installments;
 
     setFormData(prev => ({
       ...prev,
       items,
       subtotal,
+      discount: discountValue,
       total,
       installment_value
     }));
   };
 
-  const updateDiscount = (discountPercent) => {
-    const discountValue = (formData.subtotal * discountPercent) / 100;
+  const updateDiscount = (percent) => {
+    setDiscountPercent(percent);
+    const discountValue = (formData.subtotal * percent) / 100;
     const total = formData.subtotal - discountValue;
     const installment_value = total / formData.installments;
     setFormData(prev => ({
@@ -434,7 +451,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
                   step="0.01"
                   min="0"
                   max="100"
-                  value={formData.subtotal > 0 ? ((formData.discount / formData.subtotal) * 100).toFixed(2) : 0}
+                  value={discountPercent}
                   onChange={(e) => updateDiscount(Number(e.target.value))}
                   disabled={!!quote}
                   placeholder="0"

@@ -25,6 +25,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
+  const [discountPercent, setDiscountPercent] = useState(0);
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -54,6 +55,12 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         ...quote,
         items: quote.items || []
       });
+      // Calcular percentual inicial se houver desconto
+      if (quote.subtotal > 0 && quote.discount > 0) {
+        setDiscountPercent(((quote.discount / quote.subtotal) * 100).toFixed(2));
+      } else {
+        setDiscountPercent(0);
+      }
     } else if (preselectedClient) {
       setFormData(prev => ({
         ...prev,
@@ -69,6 +76,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         installments: 1,
         installment_value: 0
       }));
+      setDiscountPercent(0);
     } else {
       setFormData({
         client_id: '',
@@ -86,6 +94,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         status: 'rascunho',
         notes: ''
       });
+      setDiscountPercent(0);
     }
   }, [quote, preselectedClient, open]);
 
@@ -148,22 +157,25 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     recalculateTotals(newItems);
   };
 
-  const recalculateTotals = (items, currentDiscount = formData.discount) => {
+  const recalculateTotals = (items) => {
     const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const total = subtotal - currentDiscount;
+    const discountValue = (subtotal * discountPercent) / 100;
+    const total = subtotal - discountValue;
     const installment_value = total / formData.installments;
 
     setFormData(prev => ({
       ...prev,
       items,
       subtotal,
+      discount: discountValue,
       total,
       installment_value
     }));
   };
 
-  const updateDiscount = (discountPercent) => {
-    const discountValue = (formData.subtotal * discountPercent) / 100;
+  const updateDiscount = (percent) => {
+    setDiscountPercent(percent);
+    const discountValue = (formData.subtotal * percent) / 100;
     const total = formData.subtotal - discountValue;
     const installment_value = total / formData.installments;
     setFormData(prev => ({
@@ -349,7 +361,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                   step="0.01"
                   min="0"
                   max="100"
-                  value={formData.subtotal > 0 ? ((formData.discount / formData.subtotal) * 100).toFixed(2) : 0}
+                  value={discountPercent}
                   onChange={(e) => updateDiscount(Number(e.target.value))}
                   placeholder="0"
                 />
