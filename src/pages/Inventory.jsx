@@ -27,27 +27,22 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
-import ProductForm from '@/components/inventory/ProductForm';
+import InventoryDashboard from '@/components/inventory/InventoryDashboard';
+import SerializedProductForm from '@/components/inventory/SerializedProductForm';
+import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
+import StockMovementDialog from '@/components/inventory/StockMovementDialog';
 import {
   Search,
   MoreHorizontal,
   Edit,
   Trash2,
-  Package,
-  AlertTriangle,
   TrendingUp,
   TrendingDown,
   Plus,
-  Minus
+  Minus,
+  Package
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 
 export default function Inventory() {
   const [loading, setLoading] = useState(true);
@@ -56,15 +51,12 @@ export default function Inventory() {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [formOpen, setFormOpen] = useState(false);
+  const [stockTypeFilter, setStockTypeFilter] = useState('all');
+  const [serializedFormOpen, setSerializedFormOpen] = useState(false);
+  const [nonSerializedFormOpen, setNonSerializedFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [movementOpen, setMovementOpen] = useState(false);
-  const [movementData, setMovementData] = useState({
-    product_id: '',
-    type: 'entrada',
-    quantity: 1,
-    reason: ''
-  });
+  const [movementType, setMovementType] = useState('entrada');
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
@@ -73,20 +65,20 @@ export default function Inventory() {
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, categoryFilter]);
+  }, [products, searchTerm, categoryFilter, stockTypeFilter]);
 
   const loadData = async () => {
     try {
       const [productsData, movementsData, user] = await Promise.all([
-        base44.entities.Product.list(),
-        base44.entities.StockMovement.list('-created_date', 50),
+        base44.entities.Product.list('-created_date'),
+        base44.entities.StockMovement.list('-created_date', 100),
         base44.auth.me()
       ]);
       setProducts(productsData);
       setMovements(movementsData);
       setCurrentUser(user);
     } catch (error) {
-      console.error(error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -109,83 +101,48 @@ export default function Inventory() {
       filtered = filtered.filter(p => p.category === categoryFilter);
     }
 
+    if (stockTypeFilter !== 'all') {
+      filtered = filtered.filter(p => p.stock_type === stockTypeFilter);
+    }
+
     setFilteredProducts(filtered);
   };
 
   const handleEdit = (product) => {
     setSelectedProduct(product);
-    setFormOpen(true);
+    if (product.stock_type === 'serializado') {
+      setSerializedFormOpen(true);
+    } else {
+      setNonSerializedFormOpen(true);
+    }
   };
 
   const handleDelete = async (product) => {
-    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+    if (!confirm(`Tem certeza que deseja excluir "${product.name}"?`)) return;
     
     if (currentUser?.user_role !== 'admin') {
-      toast.error('Apenas administradores podem excluir registros');
+      toast.error('Apenas administradores podem excluir produtos');
       return;
     }
 
     try {
       await base44.entities.Product.delete(product.id);
-      toast.success('Produto excluído');
+      toast.success('Produto excluído com sucesso');
       loadData();
     } catch (error) {
-      toast.error('Erro ao excluir produto');
+      console.error('Error:', error);
+      toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
     }
   };
 
   const openMovement = (product, type) => {
-    setMovementData({
-      product_id: product.id,
-      type,
-      quantity: 1,
-      reason: ''
-    });
-    setSelectedProduct(product);
-    setMovementOpen(true);
-  };
-
-  const handleMovement = async () => {
-    if (!movementData.quantity || movementData.quantity <= 0) {
-      toast.error('Informe uma quantidade válida');
+    if (product.stock_type === 'serializado') {
+      toast.error('Produtos serializados não podem ter movimentações manuais de quantidade');
       return;
     }
-
-    try {
-      const product = selectedProduct;
-      let newQuantity = product.quantity;
-
-      if (movementData.type === 'entrada') {
-        newQuantity += movementData.quantity;
-      } else {
-        if (movementData.quantity > product.quantity) {
-          toast.error('Quantidade insuficiente em estoque');
-          return;
-        }
-        newQuantity -= movementData.quantity;
-      }
-
-      // Atualizar estoque
-      await base44.entities.Product.update(product.id, {
-        quantity: newQuantity,
-        status: newQuantity <= 0 ? 'esgotado' : 'disponivel'
-      });
-
-      // Registrar movimentação
-      await base44.entities.StockMovement.create({
-        product_id: product.id,
-        product_name: product.name,
-        type: movementData.type,
-        quantity: movementData.quantity,
-        reason: movementData.reason || (movementData.type === 'entrada' ? 'Entrada manual' : 'Saída manual')
-      });
-
-      toast.success('Movimentação registrada');
-      setMovementOpen(false);
-      loadData();
-    } catch (error) {
-      toast.error('Erro ao registrar movimentação');
-    }
+    setSelectedProduct(product);
+    setMovementType(type);
+    setMovementOpen(true);
   };
 
   const formatCurrency = (value) => {
@@ -197,20 +154,24 @@ export default function Inventory() {
 
   const categoryLabels = {
     aparelho_auditivo: 'Aparelho Auditivo',
+    carregador: 'Carregador',
+    umidificador: 'Umidificador',
+    microfone: 'Microfone',
+    bateria: 'Bateria',
+    receptor: 'Receptor',
+    gaveta: 'Gaveta',
+    cerustop: 'Cerustop',
+    gancho: 'Gancho',
+    tubo_molde: 'Tubo de Molde',
+    oliva: 'Oliva',
     acessorio: 'Acessório',
-    molde: 'Molde',
-    bateria: 'Bateria'
+    molde: 'Molde'
   };
-
-  const availableCount = products.filter(p => p.status === 'disponivel').length;
-  const soldCount = products.filter(p => p.status === 'vendido').length;
-  const reservedCount = products.filter(p => p.status === 'reservado').length;
-  const totalValue = products.reduce((sum, p) => sum + ((p.quantity || 0) * (p.cost_price || 0)), 0);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3a5f]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B3FA0]"></div>
       </div>
     );
   }
@@ -218,71 +179,39 @@ export default function Inventory() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Estoque"
-        description={`${products.length} produtos cadastrados`}
-        action={() => {
-          setSelectedProduct(null);
-          setFormOpen(true);
-        }}
-        actionLabel="Novo Produto"
+        title="Gestão de Estoque"
+        description="Controle completo de produtos serializados e não serializados"
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-              <Package className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Total de Produtos</p>
-              <p className="text-xl font-bold">{products.length}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-              <Package className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Disponíveis</p>
-              <p className="text-xl font-bold text-emerald-600">{availableCount}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Reservados</p>
-              <p className="text-xl font-bold text-amber-600">{reservedCount}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-              <Package className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">Vendidos</p>
-              <p className="text-xl font-bold text-red-600">{soldCount}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="products">
+      <Tabs defaultValue="dashboard" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="products">Produtos</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="serialized">Produtos Únicos (A)</TabsTrigger>
+          <TabsTrigger value="non-serialized">Produtos por Quantidade (B)</TabsTrigger>
           <TabsTrigger value="movements">Movimentações</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="products" className="mt-4 space-y-4">
-          {/* Filters */}
+        <TabsContent value="dashboard">
+          <InventoryDashboard products={products} sales={[]} />
+        </TabsContent>
+
+        <TabsContent value="serialized" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-slate-600">
+              Produtos com controle unitário (número de série único)
+            </p>
+            <Button 
+              onClick={() => {
+                setSelectedProduct(null);
+                setSerializedFormOpen(true);
+              }}
+              className="bg-[#A4D233] hover:bg-[#B8E047] text-slate-900"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Produto Único
+            </Button>
+          </div>
+
           <Card className="p-4 border-0 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
@@ -300,78 +229,70 @@ export default function Inventory() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
-                  {Object.entries(categoryLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
+                  <SelectItem value="aparelho_auditivo">Aparelho Auditivo</SelectItem>
+                  <SelectItem value="carregador">Carregador</SelectItem>
+                  <SelectItem value="umidificador">Umidificador</SelectItem>
+                  <SelectItem value="microfone">Microfone</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </Card>
 
-          {/* Table */}
           <Card className="border-0 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead>Produto / Série</TableHead>
-                    <TableHead className="hidden md:table-cell">Categoria</TableHead>
-                    <TableHead className="hidden lg:table-cell">Marca/Modelo</TableHead>
-                    <TableHead className="hidden md:table-cell text-right">Preço Venda</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Marca/Modelo</TableHead>
+                    <TableHead className="text-right">Preço</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((product) => (
-                      <TableRow key={product.id} className="hover:bg-slate-50">
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-slate-800">{product.name}</p>
-                            {product.serial_number && (
-                              <p className="text-xs text-slate-500">Série: {product.serial_number}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {categoryLabels[product.category]}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          {product.brand} {product.model}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-right">
-                          {formatCurrency(product.sale_price)}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={product.status} />
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(product)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              {currentUser?.user_role === 'admin' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleDelete(product)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir
+                  {filteredProducts.filter(p => p.stock_type === 'serializado').length > 0 ? (
+                    filteredProducts
+                      .filter(p => p.stock_type === 'serializado')
+                      .map((product) => (
+                        <TableRow key={product.id} className="hover:bg-slate-50">
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-slate-800">{product.name}</p>
+                              <p className="text-xs text-slate-500">NS: {product.serial_number}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{categoryLabels[product.category]}</TableCell>
+                          <TableCell>{product.brand} {product.model}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
+                          <TableCell><StatusBadge status={product.status} /></TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
                                 </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                                {currentUser?.user_role === 'admin' && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(product)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-slate-500">
@@ -385,23 +306,168 @@ export default function Inventory() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="movements" className="mt-4">
+        <TabsContent value="non-serialized" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p className="text-sm text-slate-600">
+              Produtos com controle por quantidade
+            </p>
+            <Button 
+              onClick={() => {
+                setSelectedProduct(null);
+                setNonSerializedFormOpen(true);
+              }}
+              className="bg-[#A4D233] hover:bg-[#B8E047] text-slate-900"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Produto (Quantidade)
+            </Button>
+          </div>
+
+          <Card className="p-4 border-0 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar por nome, marca ou modelo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="bateria">Bateria</SelectItem>
+                  <SelectItem value="receptor">Receptor</SelectItem>
+                  <SelectItem value="gaveta">Gaveta</SelectItem>
+                  <SelectItem value="cerustop">Cerustop</SelectItem>
+                  <SelectItem value="gancho">Gancho</SelectItem>
+                  <SelectItem value="tubo_molde">Tubo de Molde</SelectItem>
+                  <SelectItem value="oliva">Oliva</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
           <Card className="border-0 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead>Produto</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Marca/Modelo</TableHead>
+                    <TableHead className="text-center">Quantidade</TableHead>
+                    <TableHead className="text-right">Preço Unit.</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.filter(p => p.stock_type === 'nao_serializado').length > 0 ? (
+                    filteredProducts
+                      .filter(p => p.stock_type === 'nao_serializado')
+                      .map((product) => (
+                        <TableRow key={product.id} className="hover:bg-slate-50">
+                          <TableCell>
+                            <p className="font-medium text-slate-800">{product.name}</p>
+                          </TableCell>
+                          <TableCell>{categoryLabels[product.category]}</TableCell>
+                          <TableCell>{product.brand} {product.model}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => openMovement(product, 'saida')}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="font-semibold min-w-[40px] text-center">
+                                {product.quantity}
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => openMovement(product, 'entrada')}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
+                          <TableCell>
+                            {product.quantity <= product.min_stock ? (
+                              <StatusBadge status="baixo_estoque" />
+                            ) : (
+                              <StatusBadge status="disponivel" />
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                {currentUser?.user_role === 'admin' && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(product)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                        Nenhum produto encontrado
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="movements" className="space-y-4">
+          <Card className="border-0 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Produto</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead className="text-center">Quantidade</TableHead>
                     <TableHead>Motivo</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Usuário</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {movements.length > 0 ? (
                     movements.map((movement) => (
                       <TableRow key={movement.id}>
+                        <TableCell className="text-slate-500 text-sm">
+                          {new Date(movement.created_date).toLocaleString('pt-BR')}
+                        </TableCell>
                         <TableCell className="font-medium">{movement.product_name}</TableCell>
                         <TableCell>
                           <span className={`flex items-center gap-1 ${
@@ -415,18 +481,16 @@ export default function Inventory() {
                             {movement.type === 'entrada' ? 'Entrada' : 'Saída'}
                           </span>
                         </TableCell>
-                        <TableCell className="text-center font-medium">
+                        <TableCell className="text-center font-semibold">
                           {movement.type === 'entrada' ? '+' : '-'}{movement.quantity}
                         </TableCell>
-                        <TableCell>{movement.reason}</TableCell>
-                        <TableCell className="text-slate-500">
-                          {new Date(movement.created_date).toLocaleDateString('pt-BR')}
-                        </TableCell>
+                        <TableCell className="text-sm">{movement.reason}</TableCell>
+                        <TableCell className="text-sm text-slate-500">{movement.created_by}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                      <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                         Nenhuma movimentação registrada
                       </TableCell>
                     </TableRow>
@@ -438,57 +502,27 @@ export default function Inventory() {
         </TabsContent>
       </Tabs>
 
-      <ProductForm
-        open={formOpen}
-        onOpenChange={setFormOpen}
+      <SerializedProductForm
+        open={serializedFormOpen}
+        onOpenChange={setSerializedFormOpen}
         product={selectedProduct}
         onSuccess={loadData}
       />
 
-      {/* Movement Dialog */}
-      <Dialog open={movementOpen} onOpenChange={setMovementOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {movementData.type === 'entrada' ? 'Entrada de Estoque' : 'Saída de Estoque'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div>
-              <p className="font-medium">{selectedProduct?.name}</p>
-              <p className="text-sm text-slate-500">Estoque atual: {selectedProduct?.quantity}</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Quantidade</Label>
-              <Input
-                type="number"
-                min="1"
-                value={movementData.quantity}
-                onChange={(e) => setMovementData({ ...movementData, quantity: Number(e.target.value) })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Motivo</Label>
-              <Input
-                value={movementData.reason}
-                onChange={(e) => setMovementData({ ...movementData, reason: e.target.value })}
-                placeholder="Motivo da movimentação"
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setMovementOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleMovement}
-                className={movementData.type === 'entrada' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}
-              >
-                Confirmar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <NonSerializedProductForm
+        open={nonSerializedFormOpen}
+        onOpenChange={setNonSerializedFormOpen}
+        product={selectedProduct}
+        onSuccess={loadData}
+      />
+
+      <StockMovementDialog
+        open={movementOpen}
+        onOpenChange={setMovementOpen}
+        product={selectedProduct}
+        type={movementType}
+        onSuccess={loadData}
+      />
     </div>
   );
 }
