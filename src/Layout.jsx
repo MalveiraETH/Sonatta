@@ -72,6 +72,25 @@ export default function Layout({ children, currentPageName }) {
           --accent: #A4D233;
           --accent-light: #B8E047;
         }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .mobile-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          
+          /* Better tap targets */
+          button, a {
+            min-height: 44px;
+            min-width: 44px;
+          }
+          
+          /* Prevent horizontal scroll */
+          body {
+            overflow-x: hidden;
+          }
+        }
       `}</style>
 
       {/* Mobile Header */}

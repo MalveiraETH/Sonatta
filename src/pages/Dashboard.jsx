@@ -73,7 +73,26 @@ export default function Dashboard() {
         return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
       });
       const monthRevenue = monthSalesData.reduce((sum, s) => sum + (s.total || 0), 0);
-      const lowStock = products.filter(p => p.quantity <= (p.min_stock || 5) && p.quantity > 0);
+      const lowStock = products.filter(p => 
+        (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
+        (p.stock_type === 'serializado' && p.status === 'disponivel' && p.quantity <= 1)
+      );
+
+      // Produtos por categoria específica
+      const aparelhos = products.filter(p => p.category === 'aparelho_auditivo' && (p.stock_type === 'serializado' ? p.status === 'disponivel' : p.quantity > 0)).length;
+      const carregadores = products.filter(p => p.category === 'carregador' && (p.stock_type === 'serializado' ? p.status === 'disponivel' : p.quantity > 0)).length;
+      const baterias = products.filter(p => p.category === 'bateria').reduce((sum, p) => sum + (p.quantity || 0), 0);
+      const receptores = products.filter(p => p.category === 'receptor').reduce((sum, p) => sum + (p.quantity || 0), 0);
+      
+      // Valor total em estoque
+      const totalStockValue = products.reduce((sum, p) => {
+        if (p.stock_type === 'serializado' && p.status === 'disponivel') {
+          return sum + (p.cost_price || 0);
+        } else if (p.stock_type === 'nao_serializado') {
+          return sum + ((p.quantity || 0) * (p.cost_price || 0));
+        }
+        return sum;
+      }, 0);
 
       setStats({
         totalClients: clients.length,
@@ -81,7 +100,12 @@ export default function Dashboard() {
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         monthRevenue,
-        lowStockProducts: lowStock.length
+        lowStockProducts: lowStock.length,
+        aparelhos,
+        carregadores,
+        baterias,
+        receptores,
+        totalStockValue
       });
 
       setTodayAppointments(todayAppts.slice(0, 5));
@@ -166,7 +190,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Principais */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Clientes Ativos"
@@ -192,6 +216,69 @@ export default function Dashboard() {
           icon={TrendingUp}
           color="purple"
         />
+      </div>
+
+      {/* Stats Grid - Estoque */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="border-0 shadow-sm p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center mx-auto mb-2">
+              <Ear className="h-6 w-6 text-[#6B3FA0]" />
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{stats.aparelhos || 0}</p>
+            <p className="text-xs text-slate-500">Aparelhos</p>
+          </div>
+        </Card>
+        
+        <Card className="border-0 shadow-sm p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2">
+              <Package className="h-6 w-6 text-blue-600" />
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{stats.carregadores || 0}</p>
+            <p className="text-xs text-slate-500">Carregadores</p>
+          </div>
+        </Card>
+
+        <Card className="border-0 shadow-sm p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+              <Package className="h-6 w-6 text-emerald-600" />
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{stats.baterias || 0}</p>
+            <p className="text-xs text-slate-500">Baterias</p>
+          </div>
+        </Card>
+
+        <Card className="border-0 shadow-sm p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-2">
+              <Package className="h-6 w-6 text-purple-600" />
+            </div>
+            <p className="text-2xl font-bold text-slate-800">{stats.receptores || 0}</p>
+            <p className="text-xs text-slate-500">Receptores</p>
+          </div>
+        </Card>
+
+        <Card className="border-0 shadow-sm p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-2">
+              <AlertTriangle className="h-6 w-6 text-amber-600" />
+            </div>
+            <p className="text-2xl font-bold text-amber-600">{stats.lowStockProducts || 0}</p>
+            <p className="text-xs text-slate-500">Alertas</p>
+          </div>
+        </Card>
+
+        <Card className="border-0 shadow-sm p-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-2">
+              <TrendingUp className="h-6 w-6 text-slate-600" />
+            </div>
+            <p className="text-lg font-bold text-slate-800">{formatCurrency(stats.totalStockValue || 0)}</p>
+            <p className="text-xs text-slate-500">Valor Estoque</p>
+          </div>
+        </Card>
       </div>
 
       {/* Charts and Lists */}

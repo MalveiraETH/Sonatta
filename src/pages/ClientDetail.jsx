@@ -20,8 +20,19 @@ import {
   ShoppingCart,
   User,
   Plus,
-  Ear
+  Ear,
+  Trash2
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -36,6 +47,8 @@ export default function ClientDetail() {
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
   const [saleFormOpen, setSaleFormOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -51,12 +64,13 @@ export default function ClientDetail() {
     }
 
     try {
-      const [clientData, appointmentsData, quotesData, salesData, historyData] = await Promise.all([
+      const [clientData, appointmentsData, quotesData, salesData, historyData, user] = await Promise.all([
         base44.entities.Client.filter({ id: clientId }),
         base44.entities.Appointment.filter({ client_id: clientId }, '-date'),
         base44.entities.Quote.filter({ client_id: clientId }, '-created_date'),
         base44.entities.Sale.filter({ client_id: clientId }, '-created_date'),
-        base44.entities.ServiceHistory.filter({ client_id: clientId }, '-created_date')
+        base44.entities.ServiceHistory.filter({ client_id: clientId }, '-created_date'),
+        base44.auth.me()
       ]);
 
       setClient(clientData[0] || null);
@@ -64,6 +78,7 @@ export default function ClientDetail() {
       setQuotes(quotesData);
       setSales(salesData);
       setHistory(historyData);
+      setCurrentUser(user);
 
       // Extrair aparelhos comprados pelo cliente
       const devices = [];
@@ -179,9 +194,18 @@ export default function ClientDetail() {
             WhatsApp
           </Button>
           <Button onClick={() => setAppointmentFormOpen(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-            <Calendar className="h-4 w-4 mr-2" />
-            Agendar
-          </Button>
+              <Calendar className="h-4 w-4 mr-2" />
+              Agendar
+            </Button>
+            {currentUser?.user_role === 'admin' && (
+              <Button 
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </Button>
+            )}
         </div>
       </div>
 
@@ -483,7 +507,41 @@ export default function ClientDetail() {
         onOpenChange={setSaleFormOpen}
         preselectedClient={client}
         onSuccess={loadData}
-      />
-    </div>
-  );
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o cliente "{client?.full_name}"? Esta ação não pode ser desfeita e removerá todos os dados relacionados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+        </AlertDialog>
+        </div>
+        );
+
+        async function handleDelete() {
+        if (currentUser?.user_role !== 'admin') {
+        toast.error('Apenas administradores podem excluir clientes');
+        return;
+        }
+
+        try {
+        await base44.entities.Client.delete(client.id);
+        toast.success('Cliente excluído com sucesso');
+        window.location.href = createPageUrl('Clients');
+        } catch (error) {
+        console.error('Error:', error);
+        toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
+        }
+        }
 }

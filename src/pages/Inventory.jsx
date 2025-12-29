@@ -420,6 +420,12 @@ export default function Inventory() {
                                   <Edit className="h-4 w-4 mr-2" />
                                   Editar
                                 </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link to={`${createPageUrl('ProductDetail')}?id=${product.id}`} className="flex items-center">
+                                    <Package className="h-4 w-4 mr-2" />
+                                    Detalhes
+                                  </Link>
+                                </DropdownMenuItem>
                                 {currentUser?.user_role === 'admin' && (
                                   <DropdownMenuItem
                                     onClick={() => handleDelete(product)}
