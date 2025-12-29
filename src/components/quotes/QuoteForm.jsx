@@ -221,11 +221,11 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         await base44.entities.Quote.create(dataToSave);
         toast.success('Orçamento criado!');
       }
-      onSuccess();
+      await onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Erro ao salvar orçamento');
+      toast.error(`Erro ao salvar orçamento: ${error.message || 'Tente novamente'}`);
     } finally {
       setLoading(false);
     }

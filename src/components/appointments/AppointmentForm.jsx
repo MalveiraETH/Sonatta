@@ -161,11 +161,11 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
         await base44.entities.Appointment.create(formData);
         toast.success('Agendamento criado com sucesso!');
       }
-      onSuccess();
+      await onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Erro ao salvar agendamento');
+      toast.error(`Erro ao salvar agendamento: ${error.message || 'Tente novamente'}`);
     } finally {
       setLoading(false);
     }

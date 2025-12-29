@@ -325,11 +325,11 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         toast.success('Venda registrada com sucesso!');
       }
       
-      onSuccess();
+      await onSuccess();
       onOpenChange(false);
     } catch (error) {
-      toast.error('Erro ao processar venda');
-      console.error(error);
+      console.error('Error:', error);
+      toast.error(`Erro ao processar venda: ${error.message || 'Tente novamente'}`);
     } finally {
       setLoading(false);
     }
