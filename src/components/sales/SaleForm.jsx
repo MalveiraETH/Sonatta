@@ -21,7 +21,7 @@ import { Card } from '@/components/ui/card';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess }) {
+export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
@@ -90,6 +90,29 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
       } else {
         setDiscountPercent(0);
       }
+    } else if (preselectedClient) {
+      setFormData({
+        client_id: preselectedClient.id,
+        client_name: preselectedClient.full_name,
+        client_cpf: preselectedClient.cpf || '',
+        client_phone: preselectedClient.phone || '',
+        client_email: preselectedClient.email || '',
+        client_address: preselectedClient.address || '',
+        items: [],
+        subtotal: 0,
+        discount: 0,
+        total: 0,
+        payment_method: 'pix',
+        installments: 1,
+        installment_value: 0,
+        seller_id: currentUser?.id || '',
+        seller_name: currentUser?.full_name || '',
+        status: 'pendente',
+        notes: '',
+        quote_id: '',
+        nota_fiscal: ''
+      });
+      setDiscountPercent(0);
     } else {
       setFormData({
         client_id: '',
@@ -114,7 +137,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess })
       });
       setDiscountPercent(0);
     }
-  }, [sale, quote, open, currentUser]);
+  }, [sale, quote, preselectedClient, open, currentUser]);
 
   const loadData = async () => {
     try {

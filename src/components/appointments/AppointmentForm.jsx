@@ -152,13 +152,6 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
       return;
     }
 
-    // Verificar conflito de horário
-    const hasConflict = await checkTimeConflict(formData.date, formData.time);
-    if (hasConflict) {
-      toast.error('Já existe um agendamento para este dia e horário');
-      return;
-    }
-
     setLoading(true);
     try {
       if (appointment) {
@@ -171,6 +164,7 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
       onSuccess();
       onOpenChange(false);
     } catch (error) {
+      console.error('Error:', error);
       toast.error('Erro ao salvar agendamento');
     } finally {
       setLoading(false);

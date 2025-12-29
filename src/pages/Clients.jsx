@@ -178,85 +178,46 @@ export default function Clients() {
         </div>
       </Card>
 
-      {/* Table */}
-      <Card className="border-0 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Nome</TableHead>
-                <TableHead className="hidden md:table-cell">Telefone</TableHead>
-                <TableHead className="hidden lg:table-cell">E-mail</TableHead>
-                <TableHead className="hidden lg:table-cell">Responsável</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredClients.length > 0 ? (
-                filteredClients.map((client) => (
-                  <TableRow key={client.id} className="hover:bg-slate-50">
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-slate-800">{client.full_name}</p>
-                        <p className="text-sm text-slate-500 md:hidden">{client.phone}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{client.phone}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{client.email || '-'}</TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {client.responsible_professional || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={client.status} />
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(client)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendWhatsApp(client)}>
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            WhatsApp
-                          </DropdownMenuItem>
-                          <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`}>
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Detalhes
-                            </DropdownMenuItem>
-                          </Link>
-                          {currentUser?.user_role === 'admin' && (
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(client)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                    Nenhum cliente encontrado
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredClients.length > 0 ? (
+          filteredClients.map((client) => (
+            <Card key={client.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-slate-800 text-lg">{client.full_name}</h3>
+                    <p className="text-sm text-slate-500">{client.phone}</p>
+                  </div>
+                  <StatusBadge status={client.status} />
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleEdit(client)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                  <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex-1">
+                    <Button variant="default" size="sm" className="w-full bg-[#6B3FA0] hover:bg-[#834CB8]">
+                      <Eye className="h-4 w-4 mr-1" />
+                      Detalhes
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-12">
+            <p className="text-slate-500">Nenhum cliente encontrado</p>
+          </div>
+        )}
+      </div>
 
       <ClientForm
         open={formOpen}

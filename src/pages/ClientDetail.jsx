@@ -6,10 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
-import ClientForm from '@/components/clients/ClientForm';
 import AppointmentForm from '@/components/appointments/AppointmentForm';
 import QuoteForm from '@/components/quotes/QuoteForm';
-import TestDeviceForm from '@/components/clients/TestDeviceForm';
+import SaleForm from '@/components/sales/SaleForm';
 import {
   ArrowLeft,
   Edit,
@@ -36,10 +35,9 @@ export default function ClientDetail() {
   const [sales, setSales] = useState([]);
   const [history, setHistory] = useState([]);
   const [clientDevices, setClientDevices] = useState([]);
-  const [formOpen, setFormOpen] = useState(false);
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
-  const [testDeviceOpen, setTestDeviceOpen] = useState(false);
+  const [saleFormOpen, setSaleFormOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -252,7 +250,6 @@ export default function ClientDetail() {
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="quotes">Orçamentos</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
-          <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="devices">

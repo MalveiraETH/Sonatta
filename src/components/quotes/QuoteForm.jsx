@@ -224,6 +224,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
       onSuccess();
       onOpenChange(false);
     } catch (error) {
+      console.error('Error:', error);
       toast.error('Erro ao salvar orçamento');
     } finally {
       setLoading(false);
