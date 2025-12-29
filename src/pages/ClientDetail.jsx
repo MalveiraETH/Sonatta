@@ -35,6 +35,7 @@ export default function ClientDetail() {
   const [quotes, setQuotes] = useState([]);
   const [sales, setSales] = useState([]);
   const [history, setHistory] = useState([]);
+  const [clientDevices, setClientDevices] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
@@ -67,6 +68,24 @@ export default function ClientDetail() {
       setQuotes(quotesData);
       setSales(salesData);
       setHistory(historyData);
+
+      // Extrair aparelhos comprados pelo cliente
+      const devices = [];
+      for (const sale of salesData) {
+        if (sale.items && Array.isArray(sale.items)) {
+          for (const item of sale.items) {
+            if (item.serial_number) {
+              devices.push({
+                ...item,
+                sale_date: sale.created_date,
+                sale_number: sale.sale_number,
+                warranty_end: calculateWarrantyEnd(sale.created_date, 2) // assumindo 2 anos padrão
+              });
+            }
+          }
+        }
+      }
+      setClientDevices(devices);
     } catch (error) {
       console.error(error);
     } finally {
@@ -90,6 +109,21 @@ export default function ClientDetail() {
       style: 'currency',
       currency: 'BRL'
     }).format(value || 0);
+  };
+
+  const calculateWarrantyEnd = (saleDate, years = 2) => {
+    const date = new Date(saleDate);
+    date.setFullYear(date.getFullYear() + years);
+    return date;
+  };
+
+  const isWarrantyActive = (warrantyEnd) => {
+    return new Date() < new Date(warrantyEnd);
+  };
+
+  const getWarrantyDaysRemaining = (warrantyEnd) => {
+    const diff = new Date(warrantyEnd) - new Date();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
   const typeLabels = {
@@ -212,13 +246,103 @@ export default function ClientDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="appointments" className="space-y-4">
-        <TabsList className="bg-slate-100">
+      <Tabs defaultValue="devices" className="space-y-4">
+        <TabsList className="bg-slate-100 flex-wrap h-auto">
+          <TabsTrigger value="devices">Aparelhos</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="quotes">Orçamentos</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="devices">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Aparelhos do Cliente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {clientDevices.length > 0 ? (
+                <div className="space-y-4">
+                  {clientDevices.map((device, idx) => {
+                    const warrantyDays = getWarrantyDaysRemaining(device.warranty_end);
+                    const warrantyActive = isWarrantyActive(device.warranty_end);
+                    
+                    return (
+                      <div key={idx} className="p-4 rounded-lg border-2 border-slate-200 bg-white">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center">
+                              <Ear className="h-6 w-6 text-[#6B3FA0]" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-slate-800">{device.product_name}</h4>
+                              <p className="text-sm text-slate-500">Série: {device.serial_number}</p>
+                            </div>
+                          </div>
+                          {warrantyActive ? (
+                            warrantyDays <= 60 ? (
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                Garantia: {warrantyDays} dias
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                Em Garantia
+                              </span>
+                            )
+                          ) : (
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                              Garantia Expirada
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-slate-500">Data da Venda:</span>
+                            <p className="font-medium">{format(new Date(device.sale_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Garantia até:</span>
+                            <p className="font-medium">{format(new Date(device.warranty_end), "dd/MM/yyyy", { locale: ptBR })}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Venda:</span>
+                            <p className="font-medium">{device.sale_number}</p>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Valor:</span>
+                            <p className="font-medium">{formatCurrency(device.unit_price)}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Histórico específico do aparelho */}
+                        {history.filter(h => h.products_tested?.some(p => p.serial_number === device.serial_number)).length > 0 && (
+                          <div className="mt-4 pt-4 border-t">
+                            <p className="text-xs font-medium text-slate-500 mb-2">Histórico de Serviços:</p>
+                            <div className="space-y-2">
+                              {history
+                                .filter(h => h.products_tested?.some(p => p.serial_number === device.serial_number))
+                                .slice(0, 3)
+                                .map((h, i) => (
+                                  <div key={i} className="text-sm bg-slate-50 p-2 rounded">
+                                    <span className="font-medium text-[#6B3FA0]">{typeLabels[h.type]}</span>
+                                    <span className="text-slate-500 ml-2">
+                                      {format(new Date(h.created_date), "dd/MM/yyyy", { locale: ptBR })}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-4">Nenhum aparelho comprado ainda</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="appointments">
           <Card className="border-0 shadow-sm">

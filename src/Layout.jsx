@@ -75,13 +75,13 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#6B3FA0] z-50 flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-50 flex items-center justify-between px-4 shadow-sm">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-white hover:bg-white/10"
+            className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10"
           >
             {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
@@ -89,15 +89,15 @@ export default function Layout({ children, currentPageName }) {
             <img 
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png" 
               alt="Sonatta"
-              className="w-8 h-8 object-contain"
+              className="w-10 h-10 object-contain"
             />
-            <span className="text-white font-semibold">Sonatta</span>
+            <span className="text-[#6B3FA0] font-semibold">Sonatta</span>
           </div>
         </div>
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-white hover:bg-white/10">
+              <Button variant="ghost" className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
                 <span className="text-sm">{user.full_name?.split(' ')[0]}</span>
                 <ChevronDown className="h-4 w-4 ml-1" />
               </Button>
@@ -114,27 +114,27 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed top-0 left-0 h-full w-64 bg-[#6B3FA0] z-40 transform transition-transform duration-300 ease-in-out",
+        "fixed top-0 left-0 h-full w-64 bg-[#6B3FA0] z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto",
         "lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Logo */}
-        <div className="h-20 flex items-center justify-center border-b border-white/10">
-          <div className="flex items-center gap-3">
+        <div className="h-24 flex items-center justify-center border-b border-white/10 px-4">
+          <div className="flex flex-col items-center gap-2">
             <img 
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png" 
               alt="Sonatta"
-              className="w-10 h-10 object-contain"
+              className="w-16 h-16 object-contain"
             />
-            <div>
-              <h1 className="text-white font-bold text-lg tracking-wide">SONATTA</h1>
+            <div className="text-center">
+              <h1 className="text-white font-bold text-xl tracking-wide">SONATTA</h1>
               <p className="text-white/60 text-xs">Soluções Auditivas</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 pb-32">
           {menuItems.map((item) => {
             const isActive = currentPageName === item.page;
             const Icon = item.icon;
@@ -195,7 +195,7 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
-        <div className="p-4 lg:p-8">
+        <div className="p-3 sm:p-4 lg:p-8">
           {children}
         </div>
       </main>
