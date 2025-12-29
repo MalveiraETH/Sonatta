@@ -31,6 +31,8 @@ import InventoryDashboard from '@/components/inventory/InventoryDashboard';
 import SerializedProductForm from '@/components/inventory/SerializedProductForm';
 import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
 import StockMovementDialog from '@/components/inventory/StockMovementDialog';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import {
   Search,
   MoreHorizontal,
@@ -275,38 +277,44 @@ export default function Inventory() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEdit(product)}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Editar
-                                </DropdownMenuItem>
-                                {currentUser?.user_role === 'admin' && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleDelete(product)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Excluir
-                                  </DropdownMenuItem>
-                                )}
+                               <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                 <Edit className="h-4 w-4 mr-2" />
+                                 Editar
+                               </DropdownMenuItem>
+                               <DropdownMenuItem asChild>
+                                 <Link to={`${createPageUrl('ProductDetail')}?id=${product.id}`} className="flex items-center">
+                                   <Package className="h-4 w-4 mr-2" />
+                                   Detalhes
+                                 </Link>
+                               </DropdownMenuItem>
+                               {currentUser?.user_role === 'admin' && (
+                                 <DropdownMenuItem
+                                   onClick={() => handleDelete(product)}
+                                   className="text-red-600"
+                                 >
+                                   <Trash2 className="h-4 w-4 mr-2" />
+                                   Excluir
+                                 </DropdownMenuItem>
+                               )}
                               </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                        Nenhum produto encontrado
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
-        </TabsContent>
+                              </DropdownMenu>
+                              </TableCell>
+                              </TableRow>
+                              ))
+                              ) : (
+                              <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                              Nenhum produto encontrado
+                              </TableCell>
+                              </TableRow>
+                              )}
+                              </TableBody>
+                              </Table>
+                              </div>
+                              </Card>
+                              </TabsContent>
 
-        <TabsContent value="non-serialized" className="space-y-4">
+                              <TabsContent value="non-serialized" className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-slate-600">
               Produtos com controle por quantidade
