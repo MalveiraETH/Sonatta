@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/table';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { FileText, Download, Package, Users, ShoppingCart } from 'lucide-react';
+import StatCard from '@/components/ui/StatCard';
+import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -25,6 +26,7 @@ export default function Reports() {
   const [clients, setClients] = useState([]);
   const [sales, setSales] = useState([]);
   const [professionals, setProfessionals] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
 
@@ -34,16 +36,18 @@ export default function Reports() {
 
   const loadData = async () => {
     try {
-      const [productsData, clientsData, salesData, professionalsData] = await Promise.all([
+      const [productsData, clientsData, salesData, professionalsData, appointmentsData] = await Promise.all([
         base44.entities.Product.list(),
         base44.entities.Client.list(),
         base44.entities.Sale.list('-created_date'),
-        base44.entities.Professional.list()
+        base44.entities.Professional.list(),
+        base44.entities.Appointment.list()
       ]);
       setProducts(productsData);
       setClients(clientsData);
       setSales(salesData);
       setProfessionals(professionalsData);
+      setAppointments(appointmentsData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -206,10 +210,11 @@ export default function Reports() {
       />
 
       <Tabs defaultValue="stock">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="clients">Clientes</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="referral">Repasse Indicação</TabsTrigger>
         </TabsList>
 
@@ -438,6 +443,93 @@ export default function Reports() {
                     })}
                   </TableBody>
                 </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PERFORMANCE */}
+        <TabsContent value="performance" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard
+              title="Taxa de Conversão"
+              value={`${clients.length > 0 ? ((sales.length / clients.length) * 100).toFixed(1) : 0}%`}
+              color="blue"
+              icon={TrendingUp}
+            />
+            <StatCard
+              title="Ticket Médio"
+              value={formatCurrency(sales.length > 0 ? sales.reduce((sum, s) => sum + (s.total || 0), 0) / sales.length : 0)}
+              color="green"
+              icon={DollarSign}
+            />
+            <StatCard
+              title="Agendamentos"
+              value={appointments.length}
+              color="purple"
+              icon={Calendar}
+            />
+          </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Vendas por Marca</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {(() => {
+                  const brandSales = {};
+                  sales.forEach(sale => {
+                    sale.items?.forEach(item => {
+                      const brand = item.brand || 'Sem Marca';
+                      if (!brandSales[brand]) {
+                        brandSales[brand] = { count: 0, revenue: 0 };
+                      }
+                      brandSales[brand].count += 1;
+                      brandSales[brand].revenue += item.unit_price || 0;
+                    });
+                  });
+
+                  return Object.entries(brandSales)
+                    .sort((a, b) => b[1].revenue - a[1].revenue)
+                    .map(([brand, data]) => (
+                      <div key={brand} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{brand}</p>
+                          <p className="text-sm text-slate-500">{data.count} unidades vendidas</p>
+                        </div>
+                        <p className="font-semibold text-[#1e3a5f]">{formatCurrency(data.revenue)}</p>
+                      </div>
+                    ));
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Ciclo de Vida dos Clientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { status: 'lead', label: 'Leads', color: 'bg-blue-100 text-blue-700' },
+                  { status: 'em_teste', label: 'Em Teste', color: 'bg-purple-100 text-purple-700' },
+                  { status: 'cliente_ativo', label: 'Ativos', color: 'bg-emerald-100 text-emerald-700' },
+                  { status: 'pos_venda', label: 'Pós-Venda', color: 'bg-amber-100 text-amber-700' }
+                ].map(({ status, label, color }) => {
+                  const count = clients.filter(c => c.status === status).length;
+                  const percentage = clients.length > 0 ? ((count / clients.length) * 100).toFixed(1) : 0;
+                  return (
+                    <div key={status} className="p-4 bg-slate-50 rounded-lg text-center">
+                      <p className="text-sm text-slate-500 mb-1">{label}</p>
+                      <p className="text-2xl font-bold text-slate-800">{count}</p>
+                      <p className={`text-xs font-medium mt-1 px-2 py-1 rounded-full inline-block ${color}`}>
+                        {percentage}%
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

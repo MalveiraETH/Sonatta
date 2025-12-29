@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge from '@/components/ui/StatusBadge';
+import WarrantyAlerts from '@/components/dashboard/WarrantyAlerts';
 import {
   Users,
   Calendar,
@@ -195,6 +196,11 @@ export default function Dashboard() {
 
       {/* Charts and Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Warranty Alerts */}
+        <div className="lg:col-span-2">
+          <WarrantyAlerts />
+        </div>
+
         {/* Today's Appointments */}
         <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
