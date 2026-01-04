@@ -49,6 +49,7 @@ export default function Clients() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {

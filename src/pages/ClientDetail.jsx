@@ -39,6 +39,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function ClientDetail() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [client, setClient] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -549,19 +550,19 @@ export default function ClientDetail() {
         </div>
         );
 
-        async function handleDelete() {
-        if (currentUser?.user_role !== 'admin') {
-        toast.error('Apenas administradores podem excluir clientes');
-        return;
-        }
+  async function handleDelete() {
+    if (currentUser?.user_role !== 'admin') {
+      toast.error('Apenas administradores podem excluir clientes');
+      return;
+    }
 
-        try {
-        await base44.entities.Client.delete(client.id);
-        toast.success('Cliente excluído com sucesso');
-        window.location.href = createPageUrl('Clients');
-        } catch (error) {
-        console.error('Error:', error);
-        toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
-        }
-        }
+    try {
+      await base44.entities.Client.delete(client.id);
+      toast.success('Cliente excluído com sucesso');
+      navigate(createPageUrl('Clients'));
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
+    }
+  }
 }
