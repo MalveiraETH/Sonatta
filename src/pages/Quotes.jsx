@@ -301,103 +301,95 @@ export default function Quotes() {
         </div>
       </Card>
 
-      {/* Table */}
-      <Card className="border-0 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Orçamento</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="hidden md:table-cell">Itens</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="w-12"></TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredQuotes.length > 0 ? (
-                filteredQuotes.map((quote) => (
-                  <TableRow key={quote.id} className="hover:bg-slate-50">
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-slate-800">{quote.quote_number}</p>
-                        <p className="text-xs text-slate-500">
-                          {format(new Date(quote.created_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{quote.client_name}</p>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {quote.items?.length || 0} item(s)
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <p className="font-semibold text-[#1e3a5f]">{formatCurrency(quote.total)}</p>
-                      {quote.payment_details && quote.payment_details.length > 0 && (
-                        <p className="text-xs text-slate-500">
-                          {quote.payment_details.length} forma(s)
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => sendWhatsApp(quote)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      >
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        <span className="hidden sm:inline">WhatsApp</span>
+      {/* Cards Grid */}
+      {filteredQuotes.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredQuotes.map((quote) => (
+            <Card key={quote.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="font-semibold text-lg text-slate-800">{quote.quote_number || '-'}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {format(new Date(quote.created_date), "dd/MM/yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <StatusBadge status={quote.status} />
+                </div>
+              </CardHeader>
+              <div className="px-6 pb-6 space-y-4">
+                {/* Client Info */}
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-900">{quote.client_name}</p>
+                  <p className="text-xs text-slate-500">{quote.client_phone}</p>
+                </div>
+
+                {/* Items & Value */}
+                <div className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="text-xs text-slate-500">Itens</p>
+                    <p className="text-sm font-medium">{quote.items?.length || 0} item(s)</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-500">Valor Total</p>
+                    <p className="text-lg font-bold text-[#6B3FA0]">{formatCurrency(quote.total)}</p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() => sendWhatsApp(quote)}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    size="sm"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" />
+                    WhatsApp
+                  </Button>
+                  {quote.status !== 'convertido' && (
+                    <Button
+                      onClick={() => handleConvertToSale(quote)}
+                      className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8] text-white"
+                      size="sm"
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-1" />
+                      Vender
+                    </Button>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuItem onClick={() => handleEdit(quote)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendEmail(quote)}>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Enviar E-mail
-                          </DropdownMenuItem>
-                          {quote.status !== 'convertido' && (
-                            <DropdownMenuItem onClick={() => handleConvertToSale(quote)}>
-                              <ShoppingCart className="h-4 w-4 mr-2 text-emerald-600" />
-                              Converter em Venda
-                            </DropdownMenuItem>
-                          )}
-                          {currentUser?.role === 'admin' && (
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(quote)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                    Nenhum orçamento encontrado
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(quote)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      {currentUser?.role === 'admin' && (
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(quote)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
-      </Card>
+      ) : (
+        <Card className="border-0 shadow-sm">
+          <div className="text-center py-12 text-slate-500">
+            Nenhum orçamento encontrado
+          </div>
+        </Card>
+      )}
 
       <QuoteForm
         open={formOpen}
