@@ -324,13 +324,15 @@ Equipe Sonatta Soluções Auditivas
                   <Button
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex-1"
                     size="sm"
-                    onClick={async (e) => {
+                    onClick={async () => {
                       if (!quote.client_phone) {
                         toast.error('Cliente não possui telefone cadastrado');
                         return;
                       }
                       const link = await getWhatsAppLink(quote);
-                      window.open(link, '_blank');
+                      if (link) {
+                        window.location.href = link;
+                      }
                     }}
                   >
                     <MessageCircle className="h-4 w-4 mr-1" />
