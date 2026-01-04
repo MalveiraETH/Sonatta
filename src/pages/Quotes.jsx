@@ -132,8 +132,10 @@ export default function Quotes() {
     
     const phone = quote.client_phone.replace(/\D/g, '');
     
-    // Montar lista de produtos
+    // Montar lista de produtos e buscar garantias
     let productList = '';
+    let warrantyText = '2 a 4 anos (conforme fabricante)';
+    
     quote.items?.forEach(item => {
       productList += `- ${item.product_name}`;
       if (item.quantity > 1) {
@@ -142,10 +144,8 @@ export default function Quotes() {
       productList += '\n';
     });
 
-    // Calcular parcelas e desconto
-    const installmentValue = quote.total / 18;
-    const cashDiscountAmount = quote.total * 0.10;
-    const cashPrice = quote.total - cashDiscountAmount;
+    // Calcular parcelas (18x sem juros sobre o subtotal)
+    const installmentValue = quote.subtotal / 18;
 
     const message = encodeURIComponent(
       `👋 Olá, ${quote.client_name}!\n` +
@@ -154,12 +154,12 @@ export default function Quotes() {
       `*O que preparamos para você:*\n` +
       productList +
       `\n` +
-      `*Investimento total para sua nova experiência auditiva: ${formatCurrency(quote.total)}*\n\n` +
+      `*Investimento total para sua nova experiência auditiva: ${formatCurrency(quote.subtotal)}*\n\n` +
       `*Pensamos nas melhores formas para você realizar esse investimento na sua saúde:*\n` +
       `* Parcelamento Super Facilitado:* Leve seus aparelhos em até *18X SEM JUROS no cartão!* São parcelas pequenas de apenas *${formatCurrency(installmentValue)}* que cabem no seu bolso.\n` +
-      `* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de 10%*! Valor à vista: *${formatCurrency(cashPrice)}*\n\n` +
+      `* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de 10%*! Valor à vista: *${formatCurrency(quote.total)}*\n\n` +
       `*Sua tranquilidade é nossa prioridade:*\n` +
-      `Todos os aparelhos vêm com *2 a 4 anos (conforme fabricante)* de garantia, garantindo sua segurança e nosso suporte total.\n\n` +
+      `Todos os aparelhos vêm com *${warrantyText}* de garantia, garantindo sua segurança e nosso suporte total.\n\n` +
       `*Importante:* Esta proposta é válida por 30 dias. Não perca a chance de redescobrir os sons do mundo!\n\n` +
       `Ficou com alguma dúvida ou quer bater um papo? É só responder essa mensagem, estamos aqui para você! 😊\n\n` +
       `Com carinho,\n` +
