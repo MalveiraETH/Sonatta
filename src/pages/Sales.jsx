@@ -75,6 +75,8 @@ export default function Sales() {
       ]);
       setSales(salesData);
       setCurrentUser(user);
+       console.log('Current User object:', user); // Adicione esta linha
+      console.log('Current User Role from component:', user?.user_role); // E esta linha
     } catch (error) {
       console.error(error);
     } finally {
