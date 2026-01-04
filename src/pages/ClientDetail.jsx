@@ -9,6 +9,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import AppointmentForm from '@/components/appointments/AppointmentForm';
 import QuoteForm from '@/components/quotes/QuoteForm';
 import SaleForm from '@/components/sales/SaleForm';
+import NewSaleForm from '@/components/sales/NewSaleForm';
+import InstallmentsControl from '@/components/clients/InstallmentsControl';
 import {
   ArrowLeft,
   MessageCircle,
@@ -47,6 +49,7 @@ export default function ClientDetail() {
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
   const [saleFormOpen, setSaleFormOpen] = useState(false);
+  const [newSaleFormOpen, setNewSaleFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -258,6 +261,7 @@ export default function ClientDetail() {
       <Tabs defaultValue="devices" className="space-y-4">
         <TabsList className="bg-slate-100 flex-wrap h-auto">
           <TabsTrigger value="devices">Aparelhos</TabsTrigger>
+          <TabsTrigger value="installments">Parcelas PIX</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="quotes">Orçamentos</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
@@ -350,6 +354,15 @@ export default function ClientDetail() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="installments">
+          <InstallmentsControl 
+            clientId={client.id}
+            clientName={client.full_name}
+            clientPhone={client.phone}
+            onUpdate={loadData}
+          />
         </TabsContent>
 
         <TabsContent value="appointments">
@@ -446,7 +459,7 @@ export default function ClientDetail() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Vendas Realizadas</CardTitle>
               <Button 
-                onClick={() => setSaleFormOpen(true)}
+                onClick={() => setNewSaleFormOpen(true)}
                 className="bg-[#A4D233] hover:bg-[#B8E047] text-slate-900"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -507,7 +520,14 @@ export default function ClientDetail() {
         onOpenChange={setSaleFormOpen}
         preselectedClient={client}
         onSuccess={loadData}
-        />
+      />
+
+      <NewSaleForm
+        open={newSaleFormOpen}
+        onOpenChange={setNewSaleFormOpen}
+        preselectedClient={client}
+        onSuccess={loadData}
+      />
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
