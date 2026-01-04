@@ -158,12 +158,6 @@ export default function ProductDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={`${createPageUrl('Inventory')}?edit=${product.id}`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Button>
-          </Link>
           {currentUser?.user_role === 'admin' && (
             <Button 
               variant="destructive"
