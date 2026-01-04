@@ -374,15 +374,15 @@ export default function ProductDetail() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Deseja excluir este produto?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o produto "{product.name}"? Esta ação não pode ser desfeita.
+              Esta ação não pode ser desfeita. O produto "{product.name}" será permanentemente excluído.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Não</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Excluir
+              Sim
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
