@@ -18,8 +18,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
@@ -27,6 +31,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
   const [products, setProducts] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [saleDate, setSaleDate] = useState(new Date());
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -38,9 +43,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
     subtotal: 0,
     discount: 0,
     total: 0,
-    payment_method: 'pix',
-    installments: 1,
-    installment_value: 0,
+    payment_details: [],
     seller_id: '',
     seller_name: '',
     status: 'pendente',
@@ -78,12 +81,12 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         subtotal: quote.subtotal,
         discount: quote.discount || 0,
         total: quote.total,
-        installments: quote.installments || 1,
-        installment_value: quote.installment_value || quote.total,
+        payment_details: quote.payment_details || [],
         seller_id: currentUser?.id || '',
         seller_name: currentUser?.full_name || '',
         nota_fiscal: ''
       });
+      setSaleDate(new Date());
       // Calcular percentual do orçamento
       if (quote.subtotal > 0 && quote.discount > 0) {
         setDiscountPercent(((quote.discount / quote.subtotal) * 100).toFixed(2));
@@ -102,9 +105,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         subtotal: 0,
         discount: 0,
         total: 0,
-        payment_method: 'pix',
-        installments: 1,
-        installment_value: 0,
+        payment_details: [],
         seller_id: currentUser?.id || '',
         seller_name: currentUser?.full_name || '',
         status: 'pendente',
@@ -125,9 +126,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         subtotal: 0,
         discount: 0,
         total: 0,
-        payment_method: 'pix',
-        installments: 1,
-        installment_value: 0,
+        payment_details: [],
         seller_id: currentUser?.id || '',
         seller_name: currentUser?.full_name || '',
         status: 'pendente',
@@ -223,15 +222,13 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
     const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
     const discountValue = (subtotal * discountPercent) / 100;
     const total = subtotal - discountValue;
-    const installment_value = total / formData.installments;
 
     setFormData(prev => ({
       ...prev,
       items,
       subtotal,
       discount: discountValue,
-      total,
-      installment_value
+      total
     }));
   };
 
@@ -239,33 +236,46 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
     setDiscountPercent(percent);
     const discountValue = (formData.subtotal * percent) / 100;
     const total = formData.subtotal - discountValue;
-    const installment_value = total / formData.installments;
     setFormData(prev => ({
       ...prev,
       discount: discountValue,
-      total,
-      installment_value
-    }));
-  };
-
-  const updateInstallments = (installments) => {
-    const installment_value = formData.total / installments;
-    setFormData(prev => ({
-      ...prev,
-      installments,
-      installment_value
+      total
     }));
   };
 
   const generateSaleNumber = () => {
-    const date = new Date();
-    return `VND-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+    return `VND-${saleDate.getFullYear()}${String(saleDate.getMonth() + 1).padStart(2, '0')}${String(saleDate.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+  };
+
+  const addPayment = () => {
+    setFormData({
+      ...formData,
+      payment_details: [...formData.payment_details, { method: 'pix', amount: 0, installments: 1, status: 'pendente' }]
+    });
+  };
+
+  const removePayment = (index) => {
+    const newPayments = formData.payment_details.filter((_, i) => i !== index);
+    setFormData({ ...formData, payment_details: newPayments });
+  };
+
+  const updatePayment = (index, field, value) => {
+    const newPayments = [...formData.payment_details];
+    newPayments[index] = { ...newPayments[index], [field]: value };
+    setFormData({ ...formData, payment_details: newPayments });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.client_id || formData.items.length === 0 || !formData.payment_method) {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (!formData.client_id || formData.items.length === 0 || formData.payment_details.length === 0) {
+      toast.error('Preencha todos os campos obrigatórios e adicione pelo menos uma forma de pagamento');
+      return;
+    }
+
+    // Validar soma dos pagamentos
+    const totalPayments = formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0);
+    if (Math.abs(totalPayments - formData.total) > 0.01) {
+      toast.error(`Total dos pagamentos (${formatCurrency(totalPayments)}) não corresponde ao total da venda (${formatCurrency(formData.total)})`);
       return;
     }
 
@@ -344,7 +354,8 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
 
   const paymentMethods = {
     dinheiro: 'Dinheiro',
-    pix: 'PIX',
+    pix: 'PIX à Vista',
+    pix_parcelado: 'PIX Parcelado',
     cartao_credito: 'Cartão de Crédito',
     cartao_debito: 'Cartão de Débito',
     boleto: 'Boleto',
@@ -361,34 +372,59 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          {/* Cliente */}
-          <div className="space-y-2">
-            <Label>Cliente *</Label>
-            <Select
-              value={formData.client_id}
-              onValueChange={handleClientChange}
-              disabled={!!quote}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Data e Cliente */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data da Venda *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(saleDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={saleDate}
+                    onSelect={(date) => setSaleDate(date || new Date())}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Cliente *</Label>
+              <Select
+                value={formData.client_id}
+                onValueChange={handleClientChange}
+                disabled={!!quote}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Itens */}
+          {/* Produtos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Itens da Venda</Label>
+              <Label>Produtos</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem} disabled={!!quote}>
                 <Plus className="h-4 w-4 mr-1" />
-                Adicionar Item
+                Adicionar Produto
               </Button>
             </div>
 
@@ -460,9 +496,9 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
             ))}
           </div>
 
-          {/* Pagamento */}
+          {/* Totais */}
           <Card className="p-4 bg-slate-50">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label className="text-xs text-slate-500">Subtotal</Label>
                 <p className="text-lg font-semibold">{formatCurrency(formData.subtotal)}</p>
@@ -481,48 +517,95 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
                 />
               </div>
               <div>
-                <Label className="text-xs">Pagamento *</Label>
-                <Select
-                  value={formData.payment_method}
-                  onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(paymentMethods).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Parcelas</Label>
-                <Select
-                  value={String(formData.installments)}
-                  onValueChange={(value) => updateInstallments(Number(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
                 <Label className="text-xs text-slate-500">Total</Label>
                 <p className="text-xl font-bold text-[#1e3a5f]">{formatCurrency(formData.total)}</p>
-                {formData.installments > 1 && (
-                  <p className="text-xs text-slate-500">
-                    {formData.installments}x de {formatCurrency(formData.installment_value)}
-                  </p>
-                )}
               </div>
             </div>
           </Card>
+
+          {/* Formas de Pagamento */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Formas de Pagamento *</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addPayment}>
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar Pagamento
+              </Button>
+            </div>
+
+            {formData.payment_details.map((payment, index) => (
+              <Card key={index} className="p-4">
+                <div className="grid grid-cols-12 gap-3 items-end">
+                  <div className="col-span-5">
+                    <Label className="text-xs">Método</Label>
+                    <Select
+                      value={payment.method}
+                      onValueChange={(value) => updatePayment(index, 'method', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(paymentMethods).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-3">
+                    <Label className="text-xs">Valor</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={payment.amount}
+                      onChange={(e) => updatePayment(index, 'amount', Number(e.target.value))}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  {(payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && (
+                    <div className="col-span-3">
+                      <Label className="text-xs">Parcelas</Label>
+                      <Select
+                        value={String(payment.installments)}
+                        onValueChange={(value) => updatePayment(index, 'installments', Number(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((n) => (
+                            <SelectItem key={n} value={String(n)}>{n}x de {formatCurrency(payment.amount / n)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removePayment(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+
+            {formData.payment_details.length > 0 && (
+              <div className="text-sm text-slate-600 bg-blue-50 p-3 rounded">
+                Total pago: {formatCurrency(formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0))} 
+                {Math.abs(formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0) - formData.total) > 0.01 && (
+                  <span className="text-red-600 ml-2 font-medium">
+                    (diferença: {formatCurrency(formData.total - formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0))})
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
