@@ -57,7 +57,8 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     if (quote) {
       setFormData({
         ...quote,
-        items: quote.items || []
+        items: quote.items || [],
+        payment_details: quote.payment_details || []
       });
       // Calcular percentual inicial se houver desconto
       if (quote.subtotal > 0 && quote.discount > 0) {
@@ -425,7 +426,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
               </Button>
             </div>
 
-            {formData.payment_details.map((payment, index) => (
+            {formData.payment_details && formData.payment_details.map((payment, index) => (
               <Card key={index} className="p-4">
                 <div className="grid grid-cols-12 gap-3 items-end">
                   <div className="col-span-5">
