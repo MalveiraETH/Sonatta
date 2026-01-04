@@ -558,6 +558,7 @@ export default function ClientDetail() {
 
       // ADICIONE ESTA LINHA ABAIXO
         console.log('Tentando excluir cliente:', client.id, 'com role:', currentUser?.role);
+        
         try {
         await base44.entities.Client.delete(client.id);
         toast.success('Cliente excluído com sucesso');
