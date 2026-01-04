@@ -18,8 +18,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
-import { Loader2, Plus, Trash2, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
@@ -27,6 +31,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const [products, setProducts] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [saleDate, setSaleDate] = useState(new Date());
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -201,8 +206,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   };
 
   const generateSaleNumber = () => {
-    const date = new Date();
-    return `VND-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+    return `VND-${saleDate.getFullYear()}${String(saleDate.getMonth() + 1).padStart(2, '0')}${String(saleDate.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
   };
 
   const handleSubmit = async (e) => {
@@ -328,33 +332,58 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          {/* Cliente */}
-          <div className="space-y-2">
-            <Label>Cliente *</Label>
-            <Select
-              value={formData.client_id}
-              onValueChange={handleClientChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Data e Cliente */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data da Venda *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(saleDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={saleDate}
+                    onSelect={(date) => setSaleDate(date || new Date())}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Cliente *</Label>
+              <Select
+                value={formData.client_id}
+                onValueChange={handleClientChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Itens */}
+          {/* Produtos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Itens da Venda</Label>
+              <Label>Produtos</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
                 <Plus className="h-4 w-4 mr-1" />
-                Adicionar Item
+                Adicionar Produto
               </Button>
             </div>
 
@@ -515,7 +544,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       onClick={() => removePayment(index)}
                       className="text-red-500 hover:text-red-700"
                     >
-                      <X className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
