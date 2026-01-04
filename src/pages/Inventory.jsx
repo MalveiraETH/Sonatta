@@ -122,7 +122,7 @@ export default function Inventory() {
   const handleDelete = async (product) => {
     if (!confirm(`Tem certeza que deseja excluir "${product.name}"?`)) return;
     
-    if (currentUser?.user_role !== 'admin') {
+    if (currentUser?.role !== 'admin') {
       toast.error('Apenas administradores podem excluir produtos');
       return;
     }
@@ -287,7 +287,7 @@ export default function Inventory() {
                                    Detalhes
                                  </Link>
                                </DropdownMenuItem>
-                               {currentUser?.user_role === 'admin' && (
+                               {currentUser?.role === 'admin' && (
                                  <DropdownMenuItem
                                    onClick={() => handleDelete(product)}
                                    className="text-red-600"
@@ -434,7 +434,7 @@ export default function Inventory() {
                                     Detalhes
                                   </Link>
                                 </DropdownMenuItem>
-                                {currentUser?.user_role === 'admin' && (
+                                {currentUser?.role === 'admin' && (
                                   <DropdownMenuItem
                                     onClick={() => handleDelete(product)}
                                     className="text-red-600"

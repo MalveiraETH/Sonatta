@@ -107,14 +107,20 @@ export default function Quotes() {
   };
 
   const handleDelete = async (quote) => {
-    if (!confirm('Tem certeza que deseja excluir este orçamento?')) return;
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem excluir orçamentos');
+      return;
+    }
+
+    if (!confirm(`Tem certeza que deseja excluir o orçamento "${quote.quote_number}"?`)) return;
 
     try {
       await base44.entities.Quote.delete(quote.id);
-      toast.success('Orçamento excluído');
-      loadData();
+      toast.success('Orçamento excluído com sucesso');
+      await loadData();
     } catch (error) {
-      toast.error('Erro ao excluir orçamento');
+      console.error('Erro ao excluir:', error);
+      toast.error(`Erro ao excluir orçamento: ${error.message || 'Tente novamente'}`);
     }
   };
 
@@ -291,13 +297,15 @@ export default function Quotes() {
                               Converter em Venda
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(quote)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(quote)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
