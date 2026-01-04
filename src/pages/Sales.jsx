@@ -112,19 +112,20 @@ export default function Sales() {
   };
 
   const handleDelete = async (sale) => {
-    if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
-
     if (currentUser?.role !== 'admin') {
       toast.error('Apenas administradores podem excluir vendas');
       return;
     }
 
+    if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
+
     try {
       await base44.entities.Sale.delete(sale.id);
       toast.success('Venda excluída');
-      loadData();
+      await loadData();
     } catch (error) {
-      toast.error('Erro ao excluir venda');
+      console.error('Erro ao excluir:', error);
+      toast.error(`Erro ao excluir venda: ${error.message || 'Tente novamente'}`);
     }
   };
 
