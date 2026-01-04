@@ -342,8 +342,10 @@ export default function Quotes() {
                     </TableCell>
                     <TableCell className="text-right">
                       <p className="font-semibold text-[#1e3a5f]">{formatCurrency(quote.total)}</p>
-                      {quote.installments > 1 && (
-                        <p className="text-xs text-slate-500">{quote.installments}x</p>
+                      {quote.payment_details && quote.payment_details.length > 0 && (
+                        <p className="text-xs text-slate-500">
+                          {quote.payment_details.length} forma(s)
+                        </p>
                       )}
                     </TableCell>
                     <TableCell>
