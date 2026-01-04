@@ -28,6 +28,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import StatCard from '@/components/ui/StatCard';
 import SaleForm from '@/components/sales/SaleForm';
+import NewSaleForm from '@/components/sales/NewSaleForm';
 import ContractGenerator from '@/components/contracts/ContractGenerator';
 import {
   Search,
@@ -53,6 +54,7 @@ export default function Sales() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
+  const [newSaleFormOpen, setNewSaleFormOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -156,7 +158,8 @@ export default function Sales() {
 
   const paymentMethods = {
     dinheiro: 'Dinheiro',
-    pix: 'PIX',
+    pix: 'PIX à Vista',
+    pix_parcelado: 'PIX Parcelado',
     cartao_credito: 'Cartão Crédito',
     cartao_debito: 'Cartão Débito',
     boleto: 'Boleto',
@@ -189,7 +192,7 @@ export default function Sales() {
         description={`${sales.length} vendas registradas`}
         action={() => {
           setSelectedSale(null);
-          setFormOpen(true);
+          setNewSaleFormOpen(true);
         }}
         actionLabel="Nova Venda"
       />
@@ -285,11 +288,24 @@ export default function Sales() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div>
-                        <p>{paymentMethods[sale.payment_method]}</p>
-                        {sale.installments > 1 && (
-                          <p className="text-xs text-slate-500">
-                            {sale.installments}x de {formatCurrency(sale.installment_value)}
-                          </p>
+                        {sale.payment_details && sale.payment_details.length > 0 ? (
+                          <>
+                            {sale.payment_details.map((pd, idx) => (
+                              <p key={idx} className="text-xs">
+                                {paymentMethods[pd.method] || pd.method}
+                                {pd.installments > 1 && ` (${pd.installments}x)`}
+                              </p>
+                            ))}
+                          </>
+                        ) : (
+                          <>
+                            <p>{paymentMethods[sale.payment_method]}</p>
+                            {sale.installments > 1 && (
+                              <p className="text-xs text-slate-500">
+                                {sale.installments}x de {formatCurrency(sale.installment_value)}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
@@ -361,6 +377,12 @@ export default function Sales() {
         open={formOpen}
         onOpenChange={setFormOpen}
         sale={selectedSale}
+        onSuccess={loadData}
+      />
+
+      <NewSaleForm
+        open={newSaleFormOpen}
+        onOpenChange={setNewSaleFormOpen}
         onSuccess={loadData}
       />
 
