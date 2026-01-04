@@ -127,15 +127,13 @@ export default function Quotes() {
     }
   };
 
-  const getWhatsAppLink = (quote) => {
+  const getWhatsAppLink = async (quote) => {
     if (!quote.client_phone) return null;
     
     const phone = quote.client_phone.replace(/\D/g, '');
     
-    // Montar lista de produtos e buscar garantias
+    // Montar lista de produtos
     let productList = '';
-    let warrantyText = '2 a 4 anos (conforme fabricante)';
-    
     quote.items?.forEach(item => {
       productList += `- ${item.product_name}`;
       if (item.quantity > 1) {
@@ -144,30 +142,62 @@ export default function Quotes() {
       productList += '\n';
     });
 
-    // Calcular parcelas (18x sem juros sobre o subtotal)
+    // Calcular valores
     const installmentValue = quote.subtotal / 18;
-
-    const message = encodeURIComponent(
-      `👋 Olá, ${quote.client_name}!\n` +
-      `Temos uma ótima notícia para você: seu orçamento personalizado para redescobrir os sons do mundo está prontinho! ✨\n\n` +
-      `*Orçamento Nº: ${quote.quote_number}*\n\n` +
-      `*O que preparamos para você:*\n` +
-      productList +
-      `\n` +
-      `*Investimento total para sua nova experiência auditiva: ${formatCurrency(quote.subtotal)}*\n\n` +
-      `*Pensamos nas melhores formas para você realizar esse investimento na sua saúde:*\n` +
-      `* Parcelamento Super Facilitado:* Leve seus aparelhos em até *18X SEM JUROS no cartão!* São parcelas pequenas de apenas *${formatCurrency(installmentValue)}* que cabem no seu bolso.\n` +
-      `* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de 10%*! Valor à vista: *${formatCurrency(quote.total)}*\n\n` +
-      `*Sua tranquilidade é nossa prioridade:*\n` +
-      `Todos os aparelhos vêm com *${warrantyText}* de garantia, garantindo sua segurança e nosso suporte total.\n\n` +
-      `*Importante:* Esta proposta é válida por 30 dias. Não perca a chance de redescobrir os sons do mundo!\n\n` +
-      `Ficou com alguma dúvida ou quer bater um papo? É só responder essa mensagem, estamos aqui para você! 😊\n\n` +
-      `Com carinho,\n` +
-      `Equipe Sonatta Soluções Auditivas\n` +
-      `(48) 99999-9999`
-    );
+    const warrantyText = '2 a 4 anos (conforme fabricante)';
     
-    return `https://wa.me/55${phone}?text=${message}`;
+    // Carregar template personalizado
+    let template = `👋 Olá, {{client_name}}!
+Temos uma ótima notícia para você: seu orçamento personalizado para redescobrir os sons do mundo está prontinho! ✨
+
+*Orçamento Nº: {{quote_number}}*
+
+*O que preparamos para você:*
+{{product_list}}
+
+*Investimento total para sua nova experiência auditiva: {{subtotal}}*
+
+*Pensamos nas melhores formas para você realizar esse investimento na sua saúde:*
+* Parcelamento Super Facilitado:* Leve seus aparelhos em até *18X SEM JUROS no cartão!* São parcelas pequenas de apenas *{{installment_value}}* que cabem no seu bolso.
+* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de 10%*! Valor à vista: *{{total}}*
+
+*Sua tranquilidade é nossa prioridade:*
+Todos os aparelhos vêm com *{{warranty}}* de garantia, garantindo sua segurança e nosso suporte total.
+
+*Importante:* Esta proposta é válida por 30 dias. Não perca a chance de redescobrir os sons do mundo!
+
+Ficou com alguma dúvida ou quer bater um papo? É só responder essa mensagem, estamos aqui para você! 😊
+
+Com carinho,
+Equipe Sonatta Soluções Auditivas
+{{contact_phone}}`;
+    
+    let contactPhone = '(48) 99999-9999';
+
+    try {
+      const user = await base44.auth.me();
+      if (user.whatsapp_quote_template) {
+        template = user.whatsapp_quote_template;
+      }
+      if (user.contact_phone) {
+        contactPhone = user.contact_phone;
+      }
+    } catch (error) {
+      console.log('Usando template padrão');
+    }
+
+    // Substituir variáveis
+    const message = template
+      .replace(/{{client_name}}/g, quote.client_name)
+      .replace(/{{quote_number}}/g, quote.quote_number)
+      .replace(/{{product_list}}/g, productList)
+      .replace(/{{subtotal}}/g, formatCurrency(quote.subtotal))
+      .replace(/{{total}}/g, formatCurrency(quote.total))
+      .replace(/{{installment_value}}/g, formatCurrency(installmentValue))
+      .replace(/{{warranty}}/g, warrantyText)
+      .replace(/{{contact_phone}}/g, contactPhone);
+    
+    return `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
   };
 
   const sendEmail = async (quote) => {
@@ -291,26 +321,21 @@ export default function Quotes() {
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
-                  <a
-                    href={getWhatsAppLink(quote)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1"
-                    onClick={(e) => {
+                  <Button
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex-1"
+                    size="sm"
+                    onClick={async (e) => {
                       if (!quote.client_phone) {
-                        e.preventDefault();
                         toast.error('Cliente não possui telefone cadastrado');
+                        return;
                       }
+                      const link = await getWhatsAppLink(quote);
+                      window.open(link, '_blank');
                     }}
                   >
-                    <Button
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                      size="sm"
-                    >
-                      <MessageCircle className="h-4 w-4 mr-1" />
-                      WhatsApp
-                    </Button>
-                  </a>
+                    <MessageCircle className="h-4 w-4 mr-1" />
+                    WhatsApp
+                  </Button>
                   {quote.status !== 'convertido' && (
                     <Button
                       onClick={() => handleConvertToSale(quote)}
