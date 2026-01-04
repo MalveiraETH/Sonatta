@@ -16,7 +16,9 @@ import {
   Clock,
   AlertTriangle,
   ArrowRight,
-  Ear
+  Ear,
+  DollarSign,
+  UserPlus
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,16 +56,27 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products] = await Promise.all([
+      const [clients, appointments, sales, products, installments] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list(),
         base44.entities.Sale.list('-created_date', 100),
-        base44.entities.Product.list()
+        base44.entities.Product.list(),
+        base44.entities.Installment.list()
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
+      const todayDate = new Date();
+      const currentMonth = todayDate.getMonth();
+      const currentYear = todayDate.getFullYear();
+
+      // PIX parcelado atrasado
+      const overduePixInstallments = installments.filter(inst => {
+        const sale = sales.find(s => s.id === inst.sale_id);
+        const hasPixParcelado = sale?.payment_details?.some(p => p.method === 'pix_parcelado');
+        const dueDate = new Date(inst.due_date);
+        return hasPixParcelado && inst.payment_status !== 'pago' && dueDate < todayDate;
+      });
+      const totalOverduePixAmount = overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0);
 
       // Stats
       const activeClients = clients.filter(c => c.status === 'cliente_ativo').length;
@@ -97,6 +110,7 @@ export default function Dashboard() {
       setStats({
         totalClients: clients.length,
         activeClients,
+        leadClients: clients.filter(c => c.status === 'lead').length,
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         monthRevenue,
@@ -105,7 +119,9 @@ export default function Dashboard() {
         carregadores,
         baterias,
         receptores,
-        totalStockValue
+        totalStockValue,
+        overduePixCount: overduePixInstallments.length,
+        overduePixAmount: totalOverduePixAmount
       });
 
       setTodayAppointments(todayAppts.slice(0, 5));
@@ -190,20 +206,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Grid - Principais */}
+      {/* Stats Grid - Vendas e Leads */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Clientes Ativos"
-          value={stats.activeClients}
-          icon={Users}
-          color="blue"
-        />
-        <StatCard
-          title="Agendamentos Hoje"
-          value={stats.todayAppointments}
-          icon={Calendar}
-          color="gold"
-        />
         <StatCard
           title="Vendas do Mês"
           value={stats.monthSales}
@@ -215,6 +219,45 @@ export default function Dashboard() {
           value={formatCurrency(stats.monthRevenue)}
           icon={TrendingUp}
           color="purple"
+        />
+        <StatCard
+          title="Leads"
+          value={stats.leadClients}
+          icon={UserPlus}
+          color="blue"
+        />
+        <StatCard
+          title="Clientes Ativos"
+          value={stats.activeClients}
+          icon={Users}
+          color="gold"
+        />
+      </div>
+
+      {/* Alertas de Pagamento */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <div className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center">
+                <AlertTriangle className="h-7 w-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-red-700 font-medium">PIX Parcelado Atrasado</p>
+                <p className="text-2xl font-bold text-red-900">{stats.overduePixCount || 0}</p>
+                <p className="text-sm text-red-600 font-semibold mt-1">
+                  Total: {formatCurrency(stats.overduePixAmount || 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <StatCard
+          title="Agendamentos Hoje"
+          value={stats.todayAppointments}
+          icon={Calendar}
+          color="blue"
         />
       </div>
 

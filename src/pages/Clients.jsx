@@ -37,7 +37,9 @@ import {
   MessageCircle,
   Calendar,
   FileText,
-  Eye
+  Eye,
+  Grid3x3,
+  List
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,6 +52,7 @@ export default function Clients() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
 
   useEffect(() => {
     loadData();
@@ -175,49 +178,119 @@ export default function Clients() {
               ))}
             </SelectContent>
           </Select>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('cards')}
+              className={viewMode === 'cards' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('table')}
+              className={viewMode === 'table' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </Card>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredClients.length > 0 ? (
-          filteredClients.map((client) => (
-            <Card key={client.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-800 text-lg">{client.full_name}</h3>
-                    <p className="text-sm text-slate-500">{client.phone}</p>
+      {viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredClients.length > 0 ? (
+            filteredClients.map((client) => (
+              <Card key={client.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-slate-800 text-lg">{client.full_name}</h3>
+                      <p className="text-sm text-slate-500">{client.phone}</p>
+                    </div>
+                    <StatusBadge status={client.status} />
                   </div>
-                  <StatusBadge status={client.status} />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleEdit(client)}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
-                  <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex-1">
-                    <Button variant="default" size="sm" className="w-full bg-[#6B3FA0] hover:bg-[#834CB8]">
-                      <Eye className="h-4 w-4 mr-1" />
-                      Detalhes
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleEdit(client)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editar
                     </Button>
-                  </Link>
+                    <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex-1">
+                      <Button variant="default" size="sm" className="w-full bg-[#6B3FA0] hover:bg-[#834CB8]">
+                        <Eye className="h-4 w-4 mr-1" />
+                        Detalhes
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))
-        ) : (
-          <div className="col-span-full text-center py-12">
-            <p className="text-slate-500">Nenhum cliente encontrado</p>
-          </div>
-        )}
-      </div>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-slate-500">Nenhum cliente encontrado</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Card className="border-0 shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredClients.length > 0 ? (
+                filteredClients.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell className="font-medium">{client.full_name}</TableCell>
+                    <TableCell>{client.phone}</TableCell>
+                    <TableCell>{client.email || '-'}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={client.status} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(client)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`}>
+                          <Button variant="default" size="sm" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-slate-500">
+                    Nenhum cliente encontrado
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
 
       <ClientForm
         open={formOpen}
