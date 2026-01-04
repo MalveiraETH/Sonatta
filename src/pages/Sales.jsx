@@ -120,8 +120,27 @@ export default function Sales() {
     if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
 
     try {
+      // Retornar produtos ao estoque
+      for (const item of sale.items) {
+        if (item.product_id) {
+          await base44.entities.Product.update(item.product_id, {
+            status: 'disponivel'
+          });
+
+          // Registrar movimentação de entrada (cancelamento)
+          await base44.entities.StockMovement.create({
+            product_id: item.product_id,
+            product_name: item.product_name,
+            type: 'entrada',
+            quantity: 1,
+            reason: `Cancelamento da venda ${sale.sale_number}`,
+            reference_id: sale.id
+          });
+        }
+      }
+
       await base44.entities.Sale.delete(sale.id);
-      toast.success('Venda excluída');
+      toast.success('Venda excluída e produtos retornados ao estoque');
       await loadData();
     } catch (error) {
       console.error('Erro ao excluir:', error);
