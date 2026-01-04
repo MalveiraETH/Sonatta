@@ -193,7 +193,7 @@ export default function ClientDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={sendWhatsApp}>
+          <Button onClick={sendWhatsApp} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             <MessageCircle className="h-4 w-4 mr-2" />
             WhatsApp
           </Button>
@@ -373,7 +373,7 @@ export default function ClientDetail() {
               <Button
                 size="sm"
                 onClick={() => setAppointmentFormOpen(true)}
-                className="bg-[#1e3a5f] hover:bg-[#2d5a8a]"
+                className="bg-[#6B3FA0] hover:bg-[#834CB8]"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Novo Agendamento
@@ -416,7 +416,7 @@ export default function ClientDetail() {
               <Button
                 size="sm"
                 onClick={() => setQuoteFormOpen(true)}
-                className="bg-[#1e3a5f] hover:bg-[#2d5a8a]"
+                className="bg-[#6B3FA0] hover:bg-[#834CB8]"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Novo Orçamento
@@ -461,7 +461,7 @@ export default function ClientDetail() {
               <CardTitle>Vendas Realizadas</CardTitle>
               <Button 
                 onClick={() => setNewSaleFormOpen(true)}
-                className="bg-[#A4D233] hover:bg-[#B8E047] text-slate-900"
+                className="bg-[#6B3FA0] hover:bg-[#834CB8]"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Venda
