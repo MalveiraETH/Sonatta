@@ -133,65 +133,38 @@ export default function Quotes() {
     const phone = quote.client_phone.replace(/\D/g, '');
     
     // Montar lista de produtos
-    let productDetails = '\n*📦 PRODUTOS INCLUSOS:*\n';
+    let productList = '';
     quote.items?.forEach(item => {
-      productDetails += `\n✓ ${item.product_name}`;
+      productList += `- ${item.product_name}`;
       if (item.quantity > 1) {
-        productDetails += ` (${item.quantity} unid.)`;
+        productList += ` - ${item.quantity} unidade(s)`;
       }
-      productDetails += `\n   Valor: ${formatCurrency(item.unit_price)}`;
+      productList += '\n';
     });
 
-    // Montar formas de pagamento
-    let paymentInfo = '\n\n💳 *CONDIÇÕES DE PAGAMENTO:*\n';
-    if (quote.payment_details && quote.payment_details.length > 0) {
-      quote.payment_details.forEach(payment => {
-        const methodLabel = {
-          dinheiro: 'Dinheiro',
-          pix: 'PIX à Vista',
-          pix_parcelado: 'PIX Parcelado',
-          cartao_credito: 'Cartão de Crédito',
-          cartao_debito: 'Cartão de Débito',
-          boleto: 'Boleto',
-          transferencia: 'Transferência'
-        }[payment.method] || payment.method;
-        
-        paymentInfo += `• ${methodLabel}: ${formatCurrency(payment.amount)}`;
-        if (payment.installments > 1) {
-          paymentInfo += ` (${payment.installments}x de ${formatCurrency(payment.amount / payment.installments)})`;
-        }
-        paymentInfo += '\n';
-      });
-    } else {
-      paymentInfo += `• À vista: ${formatCurrency(quote.total)}\n`;
-    }
-
-    // Calcular desconto
-    let discountInfo = '';
-    if (quote.discount > 0) {
-      const discountPercent = ((quote.discount / quote.subtotal) * 100).toFixed(1);
-      discountInfo = `\n💰 *DESCONTO ESPECIAL:* ${discountPercent}% (economia de ${formatCurrency(quote.discount)}!)`;
-    }
+    // Calcular parcelas e desconto
+    const installmentValue = quote.total / 18;
+    const cashDiscountAmount = quote.total * 0.10;
+    const cashPrice = quote.total - cashDiscountAmount;
 
     const message = encodeURIComponent(
-      `Olá ${quote.client_name}! 👋\n\n` +
-      `Preparamos um orçamento especial para você:\n\n` +
-      `*📋 ORÇAMENTO Nº ${quote.quote_number}*\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      productDetails +
-      `\n━━━━━━━━━━━━━━━━━━━━\n` +
-      `\n*SUBTOTAL:* ${formatCurrency(quote.subtotal)}` +
-      discountInfo +
-      `\n\n*✨ VALOR TOTAL: ${formatCurrency(quote.total)}*` +
-      paymentInfo +
-      `\n\n🛡️ *GARANTIA:* 2 a 4 anos (conforme fabricante)` +
-      `\n\n⏰ *Validade:* ${quote.validity_days} dias` +
-      `\n\n${quote.notes ? `📝 *Observações:*\n${quote.notes}\n\n` : ''}` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `\n🎯 *Aproveite esta oportunidade!*\n` +
-      `Entre em contato para tirar dúvidas ou fechar negócio.\n\n` +
-      `*Sonatta Soluções Auditivas* 🦻\n` +
-      `_Sua melhor escolha em aparelhos auditivos_`
+      `👋 Olá, ${quote.client_name}!\n` +
+      `Temos uma ótima notícia para você: seu orçamento personalizado para redescobrir os sons do mundo está prontinho! ✨\n\n` +
+      `*Orçamento Nº: ${quote.quote_number}*\n\n` +
+      `*O que preparamos para você:*\n` +
+      productList +
+      `\n` +
+      `*Investimento total para sua nova experiência auditiva: ${formatCurrency(quote.total)}*\n\n` +
+      `*Pensamos nas melhores formas para você realizar esse investimento na sua saúde:*\n` +
+      `* Parcelamento Super Facilitado:* Leve seus aparelhos em até *18X SEM JUROS no cartão!* São parcelas pequenas de apenas *${formatCurrency(installmentValue)}* que cabem no seu bolso.\n` +
+      `* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de 10%*! Valor à vista: *${formatCurrency(cashPrice)}*\n\n` +
+      `*Sua tranquilidade é nossa prioridade:*\n` +
+      `Todos os aparelhos vêm com *2 a 4 anos (conforme fabricante)* de garantia, garantindo sua segurança e nosso suporte total.\n\n` +
+      `*Importante:* Esta proposta é válida por 30 dias. Não perca a chance de redescobrir os sons do mundo!\n\n` +
+      `Ficou com alguma dúvida ou quer bater um papo? É só responder essa mensagem, estamos aqui para você! 😊\n\n` +
+      `Com carinho,\n` +
+      `Equipe Sonatta Soluções Auditivas\n` +
+      `(48) 99999-9999`
     );
     
     return `https://wa.me/55${phone}?text=${message}`;
