@@ -200,7 +200,7 @@ export default function ClientDetail() {
               <Calendar className="h-4 w-4 mr-2" />
               Agendar
             </Button>
-            {currentUser?.user_role === 'admin' && (
+            {currentUser?.role === 'admin' && (
               <Button 
                 variant="destructive"
                 onClick={() => setDeleteDialogOpen(true)}
@@ -550,7 +550,7 @@ export default function ClientDetail() {
         );
 
         async function handleDelete() {
-        if (currentUser?.user_role !== 'admin') {
+        if (currentUser?.role !== 'admin') {
         toast.error('Apenas administradores podem excluir clientes');
         return;
         }

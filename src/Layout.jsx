@@ -188,7 +188,7 @@ export default function Layout({ children, currentPageName }) {
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-medium truncate">{user.full_name}</p>
                 <p className="text-white/50 text-xs truncate">
-                  {userRoleLabels[user.user_role] || 'Usuário'}
+                  {userRoleLabels[user.role] || 'Usuário'}
                 </p>
               </div>
               <Button

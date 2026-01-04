@@ -75,8 +75,7 @@ export default function Sales() {
       ]);
       setSales(salesData);
       setCurrentUser(user);
-       console.log('Current User object:', user); // Adicione esta linha
-      console.log('Current User Role from component:', user?.user_role); // E esta linha
+ 
     } catch (error) {
       console.error(error);
     } finally {
@@ -115,7 +114,7 @@ export default function Sales() {
   const handleDelete = async (sale) => {
     if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
 
-    if (currentUser?.user_role !== 'admin') {
+    if (currentUser?.role !== 'admin') {
       toast.error('Apenas administradores podem excluir vendas');
       return;
     }
@@ -349,7 +348,7 @@ export default function Sales() {
                             <MessageCircle className="h-4 w-4 mr-2" />
                             WhatsApp
                           </DropdownMenuItem>
-                          {currentUser?.user_role === 'admin' && (
+                          {currentUser?.role === 'admin' && (
                             <DropdownMenuItem
                               onClick={() => handleDelete(sale)}
                               className="text-red-600"
