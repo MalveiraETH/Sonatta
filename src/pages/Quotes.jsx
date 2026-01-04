@@ -358,12 +358,15 @@ export default function Quotes() {
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-56">
                           <DropdownMenuItem onClick={() => handleEdit(quote)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendWhatsApp(quote)}>
+                          <DropdownMenuItem 
+                            onClick={() => sendWhatsApp(quote)}
+                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 font-medium"
+                          >
                             <MessageCircle className="h-4 w-4 mr-2" />
                             Enviar WhatsApp
                           </DropdownMenuItem>

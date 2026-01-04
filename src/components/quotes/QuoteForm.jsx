@@ -108,7 +108,12 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         base44.entities.Product.list()
       ]);
       setClients(clientsData);
-      setProducts(productsData.filter(p => p.quantity > 0 || p.status !== 'esgotado'));
+      // Filtrar apenas produtos disponíveis para orçamento
+      setProducts(productsData.filter(p => 
+        p.status !== 'vendido' && 
+        p.status !== 'esgotado' && 
+        (p.stock_type === 'serializado' || (p.stock_type === 'nao_serializado' && p.quantity > 0))
+      ));
     } catch (e) {
       console.error(e);
     }
@@ -147,6 +152,16 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     if (field === 'product_id') {
       const product = products.find(p => p.id === value);
       if (product) {
+        // Verificar se produto está vendido ou fora de estoque
+        if (product.status === 'vendido') {
+          toast.error(`O produto ${product.name} (${product.serial_number || ''}) já foi vendido!`);
+          return;
+        }
+        if (product.status === 'esgotado' || (product.stock_type === 'nao_serializado' && product.quantity <= 0)) {
+          toast.error(`O produto ${product.name} está fora de estoque!`);
+          return;
+        }
+        
         newItems[index].product_name = product.name;
         newItems[index].unit_price = product.sale_price;
         newItems[index].total = product.sale_price * newItems[index].quantity;
