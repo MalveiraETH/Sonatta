@@ -134,16 +134,94 @@ export default function Quotes() {
     }
   };
 
-  const sendWhatsApp = (quote) => {
+  const sendWhatsApp = async (quote) => {
     if (!quote.client_phone) {
       toast.error('Cliente não possui telefone cadastrado');
       return;
     }
-    const phone = quote.client_phone.replace(/\D/g, '');
-    const message = encodeURIComponent(
-      `Olá ${quote.client_name}!\n\nSegue seu orçamento:\n\n*Nº ${quote.quote_number}*\nValor: ${formatCurrency(quote.total)}\n${quote.installments > 1 ? `Em ${quote.installments}x de ${formatCurrency(quote.installment_value)}` : ''}\n\nValidade: ${quote.validity_days} dias\n\n*Sonatta Soluções Auditivas*`
-    );
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+
+    try {
+      // Buscar produtos para incluir detalhes
+      const products = await base44.entities.Product.list();
+      
+      const phone = quote.client_phone.replace(/\D/g, '');
+      
+      // Montar lista de produtos com detalhes
+      let productDetails = '\n*📦 PRODUTOS INCLUSOS:*\n';
+      quote.items?.forEach(item => {
+        const product = products.find(p => p.id === item.product_id);
+        productDetails += `\n✓ ${item.product_name}`;
+        if (product?.brand || product?.model) {
+          productDetails += ` - ${product.brand || ''} ${product.model || ''}`;
+        }
+        if (item.quantity > 1) {
+          productDetails += ` (${item.quantity} unid.)`;
+        }
+        productDetails += `\n   Valor: ${formatCurrency(item.unit_price)}`;
+      });
+
+      // Montar formas de pagamento
+      let paymentInfo = '\n\n💳 *CONDIÇÕES DE PAGAMENTO:*\n';
+      if (quote.payment_details && quote.payment_details.length > 0) {
+        quote.payment_details.forEach(payment => {
+          const methodLabel = {
+            dinheiro: 'Dinheiro',
+            pix: 'PIX à Vista',
+            pix_parcelado: 'PIX Parcelado',
+            cartao_credito: 'Cartão de Crédito',
+            cartao_debito: 'Cartão de Débito',
+            boleto: 'Boleto',
+            transferencia: 'Transferência'
+          }[payment.method] || payment.method;
+          
+          paymentInfo += `• ${methodLabel}: ${formatCurrency(payment.amount)}`;
+          if (payment.installments > 1) {
+            paymentInfo += ` (${payment.installments}x de ${formatCurrency(payment.amount / payment.installments)})`;
+          }
+          paymentInfo += '\n';
+        });
+      } else if (quote.installments > 1) {
+        paymentInfo += `• ${quote.installments}x de ${formatCurrency(quote.total / quote.installments)}\n`;
+      } else {
+        paymentInfo += `• À vista: ${formatCurrency(quote.total)}\n`;
+      }
+
+      // Calcular desconto
+      let discountInfo = '';
+      if (quote.discount > 0) {
+        const discountPercent = ((quote.discount / quote.subtotal) * 100).toFixed(1);
+        discountInfo = `\n💰 *DESCONTO ESPECIAL:* ${discountPercent}% (economia de ${formatCurrency(quote.discount)}!)`;
+      }
+
+      // Garantia
+      const warrantyInfo = '\n\n🛡️ *GARANTIA:* 2 a 4 anos (conforme fabricante)';
+
+      const message = encodeURIComponent(
+        `Olá ${quote.client_name}! 👋\n\n` +
+        `Preparamos um orçamento especial para você:\n\n` +
+        `*📋 ORÇAMENTO Nº ${quote.quote_number}*\n` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        productDetails +
+        `\n━━━━━━━━━━━━━━━━━━━━\n` +
+        `\n*SUBTOTAL:* ${formatCurrency(quote.subtotal)}` +
+        discountInfo +
+        `\n\n*✨ VALOR TOTAL: ${formatCurrency(quote.total)}*` +
+        paymentInfo +
+        warrantyInfo +
+        `\n\n⏰ *Validade:* ${quote.validity_days} dias` +
+        `\n\n${quote.notes ? `📝 *Observações:*\n${quote.notes}\n\n` : ''}` +
+        `━━━━━━━━━━━━━━━━━━━━\n` +
+        `\n🎯 *Aproveite esta oportunidade!*\n` +
+        `Entre em contato para tirar dúvidas ou fechar negócio.\n\n` +
+        `*Sonatta Soluções Auditivas* 🦻\n` +
+        `_Sua melhor escolha em aparelhos auditivos_`
+      );
+      
+      window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
+      toast.error('Erro ao preparar mensagem');
+    }
   };
 
   const sendEmail = async (quote) => {
