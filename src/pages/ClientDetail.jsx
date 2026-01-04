@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function ClientDetail() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [client, setClient] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -108,7 +107,16 @@ export default function ClientDetail() {
     }
   };
 
+  const sendWhatsApp = () => {
+    if (!client?.phone) return;
+    const phone = client.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/55${phone}`, '_blank');
+  };
 
+  const sendEmail = () => {
+    if (!client?.email) return;
+    window.open(`mailto:${client.email}`, '_blank');
+  };
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -184,19 +192,23 @@ export default function ClientDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setAppointmentFormOpen(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-            <Calendar className="h-4 w-4 mr-2" />
-            Agendar
+          <Button variant="outline" onClick={sendWhatsApp}>
+            <MessageCircle className="h-4 w-4 mr-2" />
+            WhatsApp
           </Button>
-          {currentUser?.user_role === 'admin' && (
-            <Button 
-              variant="destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir
+          <Button onClick={() => setAppointmentFormOpen(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+              <Calendar className="h-4 w-4 mr-2" />
+              Agendar
             </Button>
-          )}
+            {currentUser?.user_role === 'admin' && (
+              <Button 
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </Button>
+            )}
         </div>
       </div>
 
@@ -521,15 +533,15 @@ export default function ClientDetail() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deseja excluir este cliente?</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O cliente "{client?.full_name}" e todos os dados relacionados serão permanentemente excluídos.
+              Tem certeza que deseja excluir o cliente "{client?.full_name}"? Esta ação não pode ser desfeita e removerá todos os dados relacionados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Não</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Sim
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -537,19 +549,19 @@ export default function ClientDetail() {
         </div>
         );
 
-  async function handleDelete() {
-    if (currentUser?.user_role !== 'admin') {
-      toast.error('Apenas administradores podem excluir clientes');
-      return;
-    }
+        async function handleDelete() {
+        if (currentUser?.user_role !== 'admin') {
+        toast.error('Apenas administradores podem excluir clientes');
+        return;
+        }
 
-    try {
-      await base44.entities.Client.delete(client.id);
-      toast.success('Cliente excluído com sucesso');
-      navigate(createPageUrl('Clients'));
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
-    }
-  }
+        try {
+        await base44.entities.Client.delete(client.id);
+        toast.success('Cliente excluído com sucesso');
+        window.location.href = createPageUrl('Clients');
+        } catch (error) {
+        console.error('Error:', error);
+        toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
+        }
+        }
 }

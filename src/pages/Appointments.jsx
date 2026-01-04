@@ -26,16 +26,6 @@ import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, is
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 export default function Appointments() {
   const [loading, setLoading] = useState(true);
@@ -46,8 +36,6 @@ export default function Appointments() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [appointmentToDelete, setAppointmentToDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -73,23 +61,16 @@ export default function Appointments() {
     setFormOpen(true);
   };
 
-  const handleDelete = async () => {
-    if (!appointmentToDelete) return;
+  const handleDelete = async (appointment) => {
+    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
 
     try {
-      await base44.entities.Appointment.delete(appointmentToDelete.id);
+      await base44.entities.Appointment.delete(appointment.id);
       toast.success('Agendamento excluído');
-      setDeleteDialogOpen(false);
-      setAppointmentToDelete(null);
       loadData();
     } catch (error) {
       toast.error('Erro ao excluir agendamento');
     }
-  };
-
-  const openDeleteDialog = (appointment) => {
-    setAppointmentToDelete(appointment);
-    setDeleteDialogOpen(true);
   };
 
   const handleStatusChange = async (appointment, newStatus) => {
@@ -326,7 +307,7 @@ export default function Appointments() {
                     variant="ghost"
                     size="icon"
                     className="text-red-500 hover:text-red-700"
-                    onClick={() => openDeleteDialog(appointment)}
+                    onClick={() => handleDelete(appointment)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -359,23 +340,6 @@ export default function Appointments() {
         appointment={selectedAppointment}
         onSuccess={loadData}
       />
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Deseja excluir este agendamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O agendamento será permanentemente excluído.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Não</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Sim
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

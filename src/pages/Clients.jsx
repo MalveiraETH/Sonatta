@@ -34,20 +34,11 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  Eye,
-  Grid3x3,
-  List
+  MessageCircle,
+  Calendar,
+  FileText,
+  Eye
 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 export default function Clients() {
@@ -58,10 +49,7 @@ export default function Clients() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [currentUser, setCurrentUser] = useState(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -111,8 +99,8 @@ export default function Clients() {
     setFormOpen(true);
   };
 
-  const handleDelete = async () => {
-    if (!clientToDelete) return;
+  const handleDelete = async (client) => {
+    if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
     
     if (currentUser?.user_role !== 'admin') {
       toast.error('Apenas administradores podem excluir registros');
@@ -120,22 +108,22 @@ export default function Clients() {
     }
 
     try {
-      await base44.entities.Client.delete(clientToDelete.id);
+      await base44.entities.Client.delete(client.id);
       toast.success('Cliente excluído');
-      setDeleteDialogOpen(false);
-      setClientToDelete(null);
       loadData();
     } catch (error) {
       toast.error('Erro ao excluir cliente');
     }
   };
 
-  const openDeleteDialog = (client) => {
-    setClientToDelete(client);
-    setDeleteDialogOpen(true);
+  const sendWhatsApp = (client) => {
+    if (!client.phone) {
+      toast.error('Cliente não possui telefone cadastrado');
+      return;
+    }
+    const phone = client.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/55${phone}`, '_blank');
   };
-
-
 
   const statusLabels = {
     lead: 'Lead',
@@ -187,136 +175,49 @@ export default function Clients() {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('grid')}
-              className={viewMode === 'grid' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('list')}
-              className={viewMode === 'list' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </Card>
 
-      {/* Content: Grid or List */}
-      {filteredClients.length > 0 ? (
-        viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredClients.map((client) => (
-              <Card key={client.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-800 text-lg">{client.full_name}</h3>
-                      <p className="text-sm text-slate-500">{client.phone}</p>
-                    </div>
-                    <StatusBadge status={client.status} />
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredClients.length > 0 ? (
+          filteredClients.map((client) => (
+            <Card key={client.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-slate-800 text-lg">{client.full_name}</h3>
+                    <p className="text-sm text-slate-500">{client.phone}</p>
                   </div>
-                  
-                  <div className="flex gap-2">
-                    <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex-1">
-                      <Button variant="default" size="sm" className="w-full bg-[#6B3FA0] hover:bg-[#834CB8]">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Detalhes
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleEdit(client)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    {currentUser?.user_role === 'admin' && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => openDeleteDialog(client)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  <StatusBadge status={client.status} />
                 </div>
-              </Card>
-            ))}
-          </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleEdit(client)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                  <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex-1">
+                    <Button variant="default" size="sm" className="w-full bg-[#6B3FA0] hover:bg-[#834CB8]">
+                      <Eye className="h-4 w-4 mr-1" />
+                      Detalhes
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ))
         ) : (
-          <Card className="border-0 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead className="hidden md:table-cell">E-mail</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-32">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredClients.map((client) => (
-                    <TableRow key={client.id} className="hover:bg-slate-50">
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-slate-800">{client.full_name}</p>
-                          {client.cpf && (
-                            <p className="text-xs text-slate-500">CPF: {client.cpf}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{client.phone || '-'}</TableCell>
-                      <TableCell className="hidden md:table-cell">{client.email || '-'}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={client.status} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`}>
-                            <Button variant="ghost" size="icon">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(client)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {currentUser?.user_role === 'admin' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => openDeleteDialog(client)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
-        )
-      ) : (
-        <Card className="border-0 shadow-sm">
-          <div className="text-center py-12">
+          <div className="col-span-full text-center py-12">
             <p className="text-slate-500">Nenhum cliente encontrado</p>
           </div>
-        </Card>
-      )}
+        )}
+      </div>
 
       <ClientForm
         open={formOpen}
@@ -324,23 +225,6 @@ export default function Clients() {
         client={selectedClient}
         onSuccess={loadData}
       />
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Deseja excluir este cliente?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O cliente será permanentemente excluído.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Não</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Sim
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
