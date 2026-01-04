@@ -318,7 +318,7 @@ export default function Quotes() {
                 <TableHead>Cliente</TableHead>
                 <TableHead className="hidden md:table-cell">Itens</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="w-12"></TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -349,7 +349,14 @@ export default function Quotes() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={quote.status} />
+                      <Button
+                        size="sm"
+                        onClick={() => sendWhatsApp(quote)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        <span className="hidden sm:inline">WhatsApp</span>
+                      </Button>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -362,13 +369,6 @@ export default function Quotes() {
                           <DropdownMenuItem onClick={() => handleEdit(quote)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => sendWhatsApp(quote)}
-                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 font-medium"
-                          >
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Enviar WhatsApp
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => sendEmail(quote)}>
                             <Mail className="h-4 w-4 mr-2" />
@@ -396,7 +396,7 @@ export default function Quotes() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                     Nenhum orçamento encontrado
                   </TableCell>
                 </TableRow>
