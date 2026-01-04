@@ -534,15 +534,15 @@ export default function ClientDetail() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Deseja excluir este cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o cliente "{client?.full_name}"? Esta ação não pode ser desfeita e removerá todos os dados relacionados.
+              Esta ação não pode ser desfeita. O cliente "{client?.full_name}" e todos os dados relacionados serão permanentemente excluídos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Não</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Excluir
+              Sim
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
