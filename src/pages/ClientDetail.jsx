@@ -108,16 +108,7 @@ export default function ClientDetail() {
     }
   };
 
-  const sendWhatsApp = () => {
-    if (!client?.phone) return;
-    const phone = client.phone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${phone}`, '_blank');
-  };
 
-  const sendEmail = () => {
-    if (!client?.email) return;
-    window.open(`mailto:${client.email}`, '_blank');
-  };
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -193,23 +184,19 @@ export default function ClientDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={sendWhatsApp}>
-            <MessageCircle className="h-4 w-4 mr-2" />
-            WhatsApp
-          </Button>
           <Button onClick={() => setAppointmentFormOpen(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-              <Calendar className="h-4 w-4 mr-2" />
-              Agendar
+            <Calendar className="h-4 w-4 mr-2" />
+            Agendar
+          </Button>
+          {currentUser?.user_role === 'admin' && (
+            <Button 
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir
             </Button>
-            {currentUser?.user_role === 'admin' && (
-              <Button 
-                variant="destructive"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Excluir
-              </Button>
-            )}
+          )}
         </div>
       </div>
 

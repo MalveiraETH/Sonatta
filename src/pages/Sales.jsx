@@ -42,6 +42,16 @@ import {
   ShoppingCart,
   CreditCard
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -56,6 +66,8 @@ export default function Sales() {
   const [contractOpen, setContractOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -108,8 +120,8 @@ export default function Sales() {
     setContractOpen(true);
   };
 
-  const handleDelete = async (sale) => {
-    if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
+  const handleDelete = async () => {
+    if (!saleToDelete) return;
 
     if (currentUser?.user_role !== 'admin') {
       toast.error('Apenas administradores podem excluir vendas');
@@ -117,12 +129,19 @@ export default function Sales() {
     }
 
     try {
-      await base44.entities.Sale.delete(sale.id);
+      await base44.entities.Sale.delete(saleToDelete.id);
       toast.success('Venda excluída');
+      setDeleteDialogOpen(false);
+      setSaleToDelete(null);
       loadData();
     } catch (error) {
       toast.error('Erro ao excluir venda');
     }
+  };
+
+  const openDeleteDialog = (sale) => {
+    setSaleToDelete(sale);
+    setDeleteDialogOpen(true);
   };
 
   const handleStatusChange = async (sale, newStatus) => {
@@ -321,7 +340,11 @@ export default function Sales() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(sale)}>
                             <Eye className="h-4 w-4 mr-2" />
-                            Ver Detalhes
+                            Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(sale)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleGenerateContract(sale)}>
                             <FileSignature className="h-4 w-4 mr-2" />
@@ -333,7 +356,7 @@ export default function Sales() {
                           </DropdownMenuItem>
                           {currentUser?.user_role === 'admin' && (
                             <DropdownMenuItem
-                              onClick={() => handleDelete(sale)}
+                              onClick={() => openDeleteDialog(sale)}
                               className="text-red-600"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -370,6 +393,23 @@ export default function Sales() {
         sale={selectedSale}
         onSuccess={loadData}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deseja excluir esta venda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A venda será permanentemente excluída.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Sim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
