@@ -188,8 +188,8 @@ export default function Inventory() {
       <Tabs defaultValue="dashboard" className="space-y-4 sm:space-y-6">
         <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto">
           <TabsTrigger value="dashboard" className="text-xs sm:text-sm px-2 py-2">Dashboard</TabsTrigger>
-          <TabsTrigger value="serialized" className="text-xs sm:text-sm px-2 py-2">Únicos (A)</TabsTrigger>
-          <TabsTrigger value="non-serialized" className="text-xs sm:text-sm px-2 py-2">Qtd (B)</TabsTrigger>
+          <TabsTrigger value="serialized" className="text-xs sm:text-sm px-2 py-2">Produto (A)</TabsTrigger>
+          <TabsTrigger value="non-serialized" className="text-xs sm:text-sm px-2 py-2">Produto (B)</TabsTrigger>
           <TabsTrigger value="movements" className="text-xs sm:text-sm px-2 py-2">Movim.</TabsTrigger>
         </TabsList>
 
