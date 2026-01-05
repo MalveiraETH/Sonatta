@@ -16,10 +16,8 @@ const statusConfig = {
   cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-700' },
   
   // Quote Status
-  rascunho: { label: 'Rascunho', color: 'bg-slate-100 text-slate-700' },
+  criado: { label: 'Criado', color: 'bg-slate-100 text-slate-700' },
   enviado: { label: 'Enviado', color: 'bg-blue-100 text-blue-700' },
-  aprovado: { label: 'Aprovado', color: 'bg-emerald-100 text-emerald-700' },
-  recusado: { label: 'Recusado', color: 'bg-red-100 text-red-700' },
   convertido: { label: 'Convertido', color: 'bg-purple-100 text-purple-700' },
   
   // Sale/Payment Status
