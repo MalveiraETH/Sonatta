@@ -366,12 +366,6 @@ export default function Sales() {
                             <Eye className="h-4 w-4 mr-2" />
                             Ver Detalhes
                           </DropdownMenuItem>
-                          {currentUser?.role === 'admin' && (
-                            <DropdownMenuItem onClick={() => handleEdit(sale)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar Venda
-                            </DropdownMenuItem>
-                          )}
                           <DropdownMenuItem onClick={() => handleGenerateContract(sale)}>
                             <FileSignature className="h-4 w-4 mr-2" />
                             Gerar Contrato
