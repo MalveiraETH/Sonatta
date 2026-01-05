@@ -40,7 +40,7 @@ export default function InstallmentsControl({ clientId, clientName, clientPhone,
 
   const openPaymentDialog = (installment) => {
     setSelectedInstallment(installment);
-    setPaymentAmount(installment.remaining_amount.toFixed(2));
+    setPaymentAmount(installment.remaining_amount.toString());
     setPaymentDialogOpen(true);
   };
 
@@ -286,10 +286,13 @@ Sonatta Soluções Auditivas`;
               <div className="space-y-2">
                 <Label>Valor Pago *</Label>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+                    setPaymentAmount(value);
+                  }}
                   placeholder="0.00"
                 />
                 <p className="text-xs text-slate-500">
