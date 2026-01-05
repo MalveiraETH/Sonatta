@@ -48,56 +48,56 @@ export default function InventoryDashboard({ products, sales }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[#6B3FA0]/10 flex items-center justify-center">
-              <Package className="h-6 w-6 text-[#6B3FA0]" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4 border-0 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#6B3FA0]/10 flex items-center justify-center flex-shrink-0">
+              <Package className="h-5 w-5 sm:h-6 sm:w-6 text-[#6B3FA0]" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Produtos Únicos</p>
-              <p className="text-2xl font-bold text-slate-800">{serializedProducts.length}</p>
+              <p className="text-xs sm:text-sm text-slate-500">Produtos Únicos</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{serializedProducts.length}</p>
               <p className="text-xs text-emerald-600">{serializedAvailable} disponíveis</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[#A4D233]/10 flex items-center justify-center">
-              <Layers className="h-6 w-6 text-[#A4D233]" />
+        <Card className="p-3 sm:p-4 border-0 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#A4D233]/10 flex items-center justify-center flex-shrink-0">
+              <Layers className="h-5 w-5 sm:h-6 sm:w-6 text-[#A4D233]" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Estoque Total (Qtd)</p>
-              <p className="text-2xl font-bold text-slate-800">{totalNonSerializedQty}</p>
+              <p className="text-xs sm:text-sm text-slate-500">Estoque (Qtd)</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800">{totalNonSerializedQty}</p>
               <p className="text-xs text-slate-500">{nonSerializedProducts.length} tipos</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-amber-600" />
+        <Card className="p-3 sm:p-4 border-0 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Alertas de Estoque</p>
-              <p className="text-2xl font-bold text-amber-600">{lowStockProducts}</p>
+              <p className="text-xs sm:text-sm text-slate-500">Alertas</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-600">{lowStockProducts}</p>
               <p className="text-xs text-slate-500">produtos baixos</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-blue-600" />
+        <Card className="p-3 sm:p-4 border-0 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">Valor em Estoque</p>
-              <p className="text-xl font-bold text-slate-800">{formatCurrency(totalValue)}</p>
+              <p className="text-xs sm:text-sm text-slate-500">Valor</p>
+              <p className="text-base sm:text-xl font-bold text-slate-800 truncate max-w-[120px]">{formatCurrency(totalValue)}</p>
               <p className="text-xs text-slate-500">custo total</p>
             </div>
           </div>
@@ -105,12 +105,12 @@ export default function InventoryDashboard({ products, sales }) {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6 border-0 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="p-4 sm:p-6 border-0 shadow-sm">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-800 mb-3 sm:mb-4">
             Distribuição por Categoria
           </h3>
-          <ResponsiveContainer width="100%" height={250}>
+          <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
                 data={chartData}
@@ -131,48 +131,48 @@ export default function InventoryDashboard({ products, sales }) {
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-6 border-0 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
+        <Card className="p-4 sm:p-6 border-0 shadow-sm">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-800 mb-3 sm:mb-4">
             Status - Produtos Serializados
           </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Package className="h-5 w-5 text-emerald-600" />
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between p-3 sm:p-4 bg-emerald-50 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-emerald-900">Disponíveis</p>
+                  <p className="text-sm sm:text-base font-semibold text-emerald-900">Disponíveis</p>
                   <p className="text-xs text-emerald-600">Prontos para venda</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-emerald-600">{serializedAvailable}</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-600">{serializedAvailable}</p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <div className="flex items-center justify-between p-3 sm:p-4 bg-amber-50 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-amber-900">Reservados</p>
+                  <p className="text-sm sm:text-base font-semibold text-amber-900">Reservados</p>
                   <p className="text-xs text-amber-600">Em processo</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-amber-600">{serializedReserved}</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-600">{serializedReserved}</p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                  <ShoppingCart className="h-5 w-5 text-slate-600" />
+            <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900">Vendidos</p>
+                  <p className="text-sm sm:text-base font-semibold text-slate-900">Vendidos</p>
                   <p className="text-xs text-slate-600">Fora do estoque</p>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-slate-600">{serializedSold}</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-600">{serializedSold}</p>
             </div>
           </div>
         </Card>
