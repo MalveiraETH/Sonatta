@@ -41,7 +41,10 @@ import {
   DollarSign,
   TrendingUp,
   ShoppingCart,
-  CreditCard
+  CreditCard,
+  XCircle,
+  Grid3x3,
+  List
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -59,6 +62,7 @@ export default function Sales() {
   const [contractOpen, setContractOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [viewMode, setViewMode] = useState('cards');
 
   useEffect(() => {
     loadData();
@@ -112,13 +116,8 @@ export default function Sales() {
     setContractOpen(true);
   };
 
-  const handleDelete = async (sale) => {
-    if (currentUser?.role !== 'admin') {
-      toast.error('Apenas administradores podem excluir vendas');
-      return;
-    }
-
-    if (!confirm('Tem certeza que deseja excluir esta venda?')) return;
+  const handleCancelSale = async (sale) => {
+    if (!confirm('Tem certeza que deseja cancelar esta venda? Os produtos retornarão ao estoque.')) return;
 
     try {
       // Retornar produtos ao estoque
@@ -128,7 +127,6 @@ export default function Sales() {
             status: 'disponivel'
           });
 
-          // Registrar movimentação de entrada (cancelamento)
           await base44.entities.StockMovement.create({
             product_id: item.product_id,
             product_name: item.product_name,
@@ -140,6 +138,26 @@ export default function Sales() {
         }
       }
 
+      // Atualizar status da venda
+      await base44.entities.Sale.update(sale.id, { status: 'cancelado' });
+      await logEdit('Venda', `Venda cancelada - ${sale.sale_number}`, sale.id);
+      toast.success('Venda cancelada e produtos retornados ao estoque');
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao cancelar:', error);
+      toast.error(`Erro ao cancelar venda: ${error.message || 'Tente novamente'}`);
+    }
+  };
+
+  const handleDelete = async (sale) => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem excluir vendas');
+      return;
+    }
+
+    if (!confirm('Tem certeza que deseja excluir esta venda permanentemente?')) return;
+
+    try {
       // Excluir parcelas de PIX parcelado relacionadas
       const installments = await base44.entities.Installment.filter({ sale_id: sale.id });
       for (const installment of installments) {
@@ -148,7 +166,7 @@ export default function Sales() {
 
       await base44.entities.Sale.delete(sale.id);
       await logDeletion('Venda', `${sale.sale_number} - ${sale.client_name}`, sale.id);
-      toast.success('Venda excluída e produtos retornados ao estoque');
+      toast.success('Venda excluída permanentemente');
       await loadData();
     } catch (error) {
       console.error('Erro ao excluir:', error);
@@ -279,13 +297,115 @@ export default function Sales() {
               <SelectItem value="cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('cards')}
+              className={viewMode === 'cards' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('table')}
+              className={viewMode === 'table' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </Card>
 
-      {/* Table */}
-      <Card className="border-0 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
+      {/* Cards View */}
+      {viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSales.length > 0 ? (
+            filteredSales.map((sale) => {
+              const hasPixParcelado = sale.payment_details?.some(pd => pd.method === 'pix_parcelado');
+              return (
+                <Card key={sale.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-slate-800">{sale.sale_number}</h3>
+                        <p className="text-sm text-slate-500">{sale.client_name}</p>
+                        <p className="text-xs text-slate-400">{format(new Date(sale.sale_date || sale.created_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                      </div>
+                      <StatusBadge status={sale.status} />
+                    </div>
+                    
+                    <div className="pt-2 border-t">
+                      <p className="text-xl font-bold text-[#1e3a5f]">{formatCurrency(sale.total)}</p>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {sale.payment_details && sale.payment_details.length > 0 && (
+                          <>
+                            {sale.payment_details.map((pd, idx) => (
+                              <p key={idx}>
+                                {paymentMethods[pd.method]}
+                                {pd.installments > 1 && ` (${pd.installments}x)`}
+                              </p>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEdit(sale)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleGenerateContract(sale)}>
+                            <FileSignature className="h-4 w-4 mr-2" />
+                            Gerar Contrato
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => sendWhatsApp(sale)}>
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            WhatsApp
+                          </DropdownMenuItem>
+                          {sale.status !== 'cancelado' && (
+                            <DropdownMenuItem onClick={() => handleCancelSale(sale)} className="text-orange-600">
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancelar Venda
+                            </DropdownMenuItem>
+                          )}
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenuItem onClick={() => handleDelete(sale)} className="text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-slate-500">Nenhuma venda encontrada</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Card className="border-0 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
                 <TableHead>Venda</TableHead>
@@ -394,11 +514,14 @@ export default function Sales() {
                             <MessageCircle className="h-4 w-4 mr-2" />
                             WhatsApp
                           </DropdownMenuItem>
+                          {sale.status !== 'cancelado' && (
+                            <DropdownMenuItem onClick={() => handleCancelSale(sale)} className="text-orange-600">
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancelar Venda
+                            </DropdownMenuItem>
+                          )}
                           {currentUser?.role === 'admin' && (
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(sale)}
-                              className="text-red-600"
-                            >
+                            <DropdownMenuItem onClick={() => handleDelete(sale)} className="text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Excluir
                             </DropdownMenuItem>
@@ -419,6 +542,7 @@ export default function Sales() {
           </Table>
         </div>
       </Card>
+      )}
 
       <SaleForm
         open={formOpen}

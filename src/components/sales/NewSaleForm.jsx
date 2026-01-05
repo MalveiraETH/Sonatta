@@ -293,10 +293,15 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     setLoading(true);
     try {
       const saleNumber = formData.sale_number || generateSaleNumber();
+      // Definir status inicial baseado no método de pagamento
+      const hasPixParcelado = formData.payment_details.some(pd => pd.method === 'pix_parcelado');
+      const initialStatus = hasPixParcelado ? 'pendente' : 'pago';
+
       const dataToSave = {
         ...formData,
         sale_number: saleNumber,
-        sale_date: format(saleDate, 'yyyy-MM-dd')
+        sale_date: format(saleDate, 'yyyy-MM-dd'),
+        status: initialStatus
       };
 
       // Criar venda

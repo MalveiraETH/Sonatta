@@ -58,7 +58,7 @@ export default function Dashboard() {
     try {
       const [clients, appointments, sales, products, installments] = await Promise.all([
         base44.entities.Client.list(),
-        base44.entities.Appointment.list(),
+        base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
         base44.entities.Product.list(),
         base44.entities.Installment.list()
@@ -77,6 +77,13 @@ export default function Dashboard() {
         return hasPixParcelado && inst.payment_status !== 'pago' && dueDate < todayDate;
       });
       const totalOverduePixAmount = overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0);
+
+      // Clients with device test appointments
+      const clientsWithTestAppointments = new Set(
+        appointments
+          .filter(a => a.type === 'teste')
+          .map(a => a.client_id)
+      ).size;
 
       // Stats
       const activeClients = clients.filter(c => c.status === 'cliente_ativo').length;
@@ -111,6 +118,7 @@ export default function Dashboard() {
         totalClients: clients.length,
         activeClients,
         leadClients: clients.filter(c => c.status === 'lead').length,
+        clientsWithTests: clientsWithTestAppointments,
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         monthRevenue,
@@ -233,6 +241,24 @@ export default function Dashboard() {
           color="gold"
         />
       </div>
+
+      {/* Card de Clientes em Teste */}
+      <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100">
+        <div className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-purple-500 flex items-center justify-center">
+              <Calendar className="h-7 w-7 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-purple-700 font-medium">Clientes em Teste de Aparelho</p>
+              <p className="text-3xl font-bold text-purple-900">{stats.clientsWithTests || 0}</p>
+              <p className="text-xs text-purple-600 mt-1">Agendamentos de teste cadastrados</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
       {/* Alertas de Pagamento */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
