@@ -258,8 +258,6 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
       {/* Alertas de Pagamento */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100 border-red-200">
