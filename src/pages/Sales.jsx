@@ -139,12 +139,6 @@ export default function Sales() {
         }
       }
 
-      // Excluir parcelas associadas (PIX parcelado, etc)
-      const installments = await base44.entities.Installment.filter({ sale_id: sale.id });
-      for (const installment of installments) {
-        await base44.entities.Installment.delete(installment.id);
-      }
-
       await base44.entities.Sale.delete(sale.id);
       toast.success('Venda excluída e produtos retornados ao estoque');
       await loadData();
