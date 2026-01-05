@@ -72,7 +72,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.sale_price) {
+    if (!formData.name) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }

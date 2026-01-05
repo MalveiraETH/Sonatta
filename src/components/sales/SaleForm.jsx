@@ -403,22 +403,30 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
             </div>
             <div className="space-y-2">
               <Label>Cliente *</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={handleClientChange}
-                disabled={!!quote}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
+              <div className="relative">
+                <Input
+                  placeholder="Digite o nome do cliente..."
+                  value={clients.find(c => c.id === formData.client_id)?.full_name || ''}
+                  onChange={(e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const found = clients.find(c => 
+                      c.full_name?.toLowerCase().includes(searchTerm)
+                    );
+                    if (found) {
+                      handleClientChange(found.id);
+                    }
+                  }}
+                  list="clients-list"
+                  disabled={!!quote}
+                />
+                <datalist id="clients-list">
                   {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
+                    <option key={client.id} value={client.full_name}>
                       {client.full_name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </datalist>
+              </div>
             </div>
           </div>
 

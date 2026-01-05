@@ -360,32 +360,30 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
             </div>
             <div className="space-y-2">
               <Label className="text-sm">Cliente *</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={handleClientChange}
-              >
-                <SelectTrigger className="text-sm">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <Input
-                    placeholder="Buscar cliente..."
-                    className="mb-2"
-                    onChange={(e) => {
-                      const search = e.target.value.toLowerCase();
-                      const filtered = clients.filter(c => 
-                        c.full_name?.toLowerCase().includes(search)
-                      );
-                      e.target.setAttribute('data-filtered', JSON.stringify(filtered));
-                    }}
-                  />
+              <div className="relative">
+                <Input
+                  placeholder="Digite o nome do cliente..."
+                  value={clients.find(c => c.id === formData.client_id)?.full_name || ''}
+                  onChange={(e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const found = clients.find(c => 
+                      c.full_name?.toLowerCase().includes(searchTerm)
+                    );
+                    if (found) {
+                      handleClientChange(found.id);
+                    }
+                  }}
+                  list="clients-list"
+                  className="text-sm"
+                />
+                <datalist id="clients-list">
                   {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
+                    <option key={client.id} value={client.full_name}>
                       {client.full_name}
-                    </SelectItem>
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
+                </datalist>
+              </div>
             </div>
           </div>
 

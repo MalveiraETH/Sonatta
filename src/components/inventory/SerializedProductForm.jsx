@@ -78,7 +78,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.sale_price || !formData.serial_number) {
+    if (!formData.name || !formData.serial_number) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
