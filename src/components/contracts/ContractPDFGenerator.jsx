@@ -28,105 +28,154 @@ export default function ContractPDFGenerator({ contract, contractText }) {
   const generatePDF = async () => {
     setGenerating(true);
     try {
-      const element = document.createElement('div');
-      element.style.position = 'absolute';
-      element.style.left = '-9999px';
-      element.style.width = '210mm';
-      element.style.minHeight = '297mm';
-      element.style.padding = '0';
-      element.style.margin = '0';
-      element.style.backgroundColor = 'white';
-      element.style.fontFamily = 'Arial, sans-serif';
-      element.style.fontSize = '11pt';
-      element.style.lineHeight = '1.6';
-      element.style.color = '#1a202c';
-      
-      const footer = footerInfo ? `
-        <div style="border-top: 2px solid #6B3FA0; padding: 15px 0; margin-top: 25px; background: linear-gradient(to top, #ffffff 0%, #f8f9fa 100%);">
-          <div style="text-align: center;">
-            <p style="margin: 0 0 8px 0; font-size: 9pt; color: #4a5568; line-height: 1.6;">
-              <strong style="color: #6B3FA0;">Sonatta - Soluções Auditivas</strong><br>
-              Edifício Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007<br>
-              Adrianópolis, Manaus – AM, 69057-035
-            </p>
-            <p style="margin: 8px 0 0 0; font-size: 8.5pt; color: #4a5568; line-height: 1.6;">
-              📱 ${footerInfo.phone} | 🌐 ${footerInfo.website}<br>
-              📸 ${footerInfo.instagram} | 📘 Facebook: @sonatta.manaus | 💼 LinkedIn: /sonatta
-            </p>
-          </div>
-        </div>
-      ` : '';
-      
-      element.innerHTML = `
-        <div style="min-height: 297mm; display: flex; flex-direction: column; box-sizing: border-box;">
-          <!-- Header -->
-          <div style="text-align: center; padding: 8mm 20mm 6mm 20mm; border-bottom: 2px solid #6B3FA0;">
-            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/a0b7b5040_Logo_Sonatta.png" 
-                 style="max-width: 140px; height: auto;" />
-          </div>
-          
-          <!-- Content -->
-          <div style="flex: 1; padding: 20mm 25mm; white-space: pre-wrap; text-align: justify;">
-            ${contractText.replace(/\n/g, '<br>')}
-          </div>
-          
-          <!-- Footer -->
-          <div style="padding: 0 25mm 15mm 25mm;">
-            ${footer}
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(element);
-
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false
-      });
-
-      document.body.removeChild(element);
-
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
 
-      const imgWidth = 210;
+      const pageWidth = 210;
       const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      const headerHeight = 20;
-      const footerHeight = 25;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-      let pageNumber = 0;
+      const margin = 25;
+      const headerHeight = 18;
+      const footerHeight = 23;
+      const contentAreaHeight = pageHeight - headerHeight - footerHeight;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      pageNumber++;
+      // Criar cabeçalho
+      const createHeader = () => {
+        const headerElement = document.createElement('div');
+        headerElement.style.width = '210mm';
+        headerElement.style.position = 'absolute';
+        headerElement.style.left = '-9999px';
+        headerElement.innerHTML = `
+          <div style="text-align: center; padding: 8mm 0 5mm 0; border-bottom: 2px solid #6B3FA0; background: white;">
+            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/a0b7b5040_Logo_Sonatta.png" 
+                 style="max-width: 130px; height: auto;" />
+          </div>
+        `;
+        return headerElement;
+      };
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
+      // Criar rodapé
+      const createFooter = () => {
+        const footerElement = document.createElement('div');
+        footerElement.style.width = '210mm';
+        footerElement.style.position = 'absolute';
+        footerElement.style.left = '-9999px';
         
-        const headerImg = await html2canvas(document.createElement('div'), {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        });
+        const footerContent = footerInfo ? `
+          <div style="border-top: 2px solid #6B3FA0; padding: 10px 25mm; background: white; font-family: Arial, sans-serif;">
+            <div style="text-align: center;">
+              <p style="margin: 0 0 6px 0; font-size: 9pt; color: #4a5568; line-height: 1.5;">
+                <strong style="color: #6B3FA0;">Sonatta - Soluções Auditivas</strong><br>
+                Edifício Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007<br>
+                Adrianópolis, Manaus – AM, 69057-035
+              </p>
+              <p style="margin: 6px 0 0 0; font-size: 8pt; color: #4a5568; line-height: 1.5;">
+                <span style="display: inline-flex; align-items: center; margin: 0 8px;">📱 ${footerInfo.phone}</span>
+                <span style="display: inline-flex; align-items: center; margin: 0 8px;">🌐 ${footerInfo.website}</span><br>
+                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📸 ${footerInfo.instagram}</span>
+                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📘 @sonatta.manaus</span>
+                <span style="display: inline-flex; align-items: center; margin: 0 6px;">💼 /sonatta</span>
+              </p>
+            </div>
+          </div>
+        ` : '';
         
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        pageNumber++;
+        footerElement.innerHTML = footerContent;
+        return footerElement;
+      };
+
+      // Criar conteúdo
+      const contentElement = document.createElement('div');
+      contentElement.style.position = 'absolute';
+      contentElement.style.left = '-9999px';
+      contentElement.style.width = '160mm';
+      contentElement.style.fontFamily = 'Arial, sans-serif';
+      contentElement.style.fontSize = '11pt';
+      contentElement.style.lineHeight = '1.6';
+      contentElement.style.color = '#1a202c';
+      contentElement.style.textAlign = 'justify';
+      contentElement.innerHTML = contractText.replace(/\n/g, '<br>');
+
+      document.body.appendChild(contentElement);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const contentCanvas = await html2canvas(contentElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      document.body.removeChild(contentElement);
+
+      const contentImgData = contentCanvas.toDataURL('image/png');
+      const contentImgWidth = 160;
+      const contentImgHeight = (contentCanvas.height * contentImgWidth) / contentCanvas.width;
+
+      // Calcular número de páginas necessárias
+      const numberOfPages = Math.ceil(contentImgHeight / contentAreaHeight);
+
+      // Renderizar cabeçalho e rodapé
+      const headerElement = createHeader();
+      const footerElement = createFooter();
+      
+      document.body.appendChild(headerElement);
+      document.body.appendChild(footerElement);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const headerCanvas = await html2canvas(headerElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const footerCanvas = await html2canvas(footerElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      document.body.removeChild(headerElement);
+      document.body.removeChild(footerElement);
+
+      const headerImgData = headerCanvas.toDataURL('image/png');
+      const footerImgData = footerCanvas.toDataURL('image/png');
+
+      // Adicionar páginas ao PDF
+      for (let i = 0; i < numberOfPages; i++) {
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        // Adicionar cabeçalho
+        pdf.addImage(headerImgData, 'PNG', 0, 0, pageWidth, headerHeight);
+
+        // Adicionar conteúdo
+        const sourceY = i * contentAreaHeight * (contentCanvas.width / contentImgWidth);
+        const sourceHeight = Math.min(contentAreaHeight * (contentCanvas.width / contentImgWidth), contentCanvas.height - sourceY);
+        
+        if (sourceHeight > 0) {
+          pdf.addImage(
+            contentImgData,
+            'PNG',
+            margin,
+            headerHeight,
+            contentImgWidth,
+            (sourceHeight * contentImgWidth) / contentCanvas.width,
+            undefined,
+            'FAST',
+            0,
+            -sourceY
+          );
+        }
+
+        // Adicionar rodapé
+        pdf.addImage(footerImgData, 'PNG', 0, pageHeight - footerHeight, pageWidth, footerHeight);
       }
 
       pdf.save(`contrato_${contract.contract_number}.pdf`);
