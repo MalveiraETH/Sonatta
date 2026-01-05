@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
@@ -69,6 +70,12 @@ export default function ContractTemplate() {
   const [saving, setSaving] = useState(false);
   const [template, setTemplate] = useState(null);
   const [templateText, setTemplateText] = useState(DEFAULT_TEMPLATE);
+  const [footerInfo, setFooterInfo] = useState({
+    phone: '(92) 99169-2102',
+    email: 'contato@sonatta.com.br',
+    website: 'www.sonatta.com.br',
+    instagram: '@sonatta.manaus'
+  });
 
   useEffect(() => {
     loadTemplate();
@@ -80,6 +87,9 @@ export default function ContractTemplate() {
       if (templates.length > 0) {
         setTemplate(templates[0]);
         setTemplateText(templates[0].template_text);
+        if (templates[0].footer_info) {
+          setFooterInfo(templates[0].footer_info);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -91,14 +101,17 @@ export default function ContractTemplate() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const dataToSave = {
+        template_text: templateText,
+        footer_info: footerInfo
+      };
+
       if (template) {
-        await base44.entities.ContractTemplate.update(template.id, {
-          template_text: templateText
-        });
+        await base44.entities.ContractTemplate.update(template.id, dataToSave);
       } else {
         await base44.entities.ContractTemplate.create({
           name: 'PIX Parcelado',
-          template_text: templateText,
+          ...dataToSave,
           is_active: true
         });
       }
@@ -163,9 +176,47 @@ export default function ContractTemplate() {
           value={templateText}
           onChange={(e) => setTemplateText(e.target.value)}
           placeholder="Digite o texto do contrato..."
-          rows={25}
+          rows={20}
           className="font-mono text-sm"
         />
+
+        <Card className="p-4 bg-slate-50">
+          <h3 className="font-semibold text-slate-800 mb-4">Informações do Rodapé (PDF)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm text-slate-600">Telefone</label>
+              <Input
+                value={footerInfo.phone}
+                onChange={(e) => setFooterInfo({ ...footerInfo, phone: e.target.value })}
+                placeholder="(92) 99169-2102"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-slate-600">E-mail</label>
+              <Input
+                value={footerInfo.email}
+                onChange={(e) => setFooterInfo({ ...footerInfo, email: e.target.value })}
+                placeholder="contato@sonatta.com.br"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-slate-600">Website</label>
+              <Input
+                value={footerInfo.website}
+                onChange={(e) => setFooterInfo({ ...footerInfo, website: e.target.value })}
+                placeholder="www.sonatta.com.br"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-slate-600">Instagram</label>
+              <Input
+                value={footerInfo.instagram}
+                onChange={(e) => setFooterInfo({ ...footerInfo, instagram: e.target.value })}
+                placeholder="@sonatta.manaus"
+              />
+            </div>
+          </div>
+        </Card>
       </CardContent>
     </Card>
   );

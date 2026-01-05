@@ -332,7 +332,7 @@ export default function Contracts() {
 
       {/* Contract Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -341,7 +341,7 @@ export default function Contracts() {
           </DialogHeader>
 
           {selectedContract && (
-            <div className="space-y-6 pt-4">
+            <div className="space-y-6 pt-4 overflow-y-auto pr-2">
               {/* Client Info */}
               <Card className="p-4 bg-slate-50">
                 <h3 className="font-semibold text-slate-800 mb-3">Dados do Cliente</h3>
@@ -432,13 +432,13 @@ export default function Contracts() {
               {selectedContract.contract_text && (
                 <Card className="p-4 bg-slate-50">
                   <h3 className="font-semibold text-slate-800 mb-3">Contrato</h3>
-                  <div className="text-sm whitespace-pre-wrap max-h-96 overflow-y-auto border border-slate-200 rounded p-4 bg-white">
+                  <div className="text-xs sm:text-sm whitespace-pre-wrap max-h-60 sm:max-h-96 overflow-y-auto border border-slate-200 rounded p-3 sm:p-4 bg-white">
                     {selectedContract.contract_text}
                   </div>
                 </Card>
               )}
 
-              <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-wrap justify-end gap-2 sm:gap-3 pt-4 border-t sticky bottom-0 bg-white pb-2">
                 <Button variant="outline" onClick={() => setDetailOpen(false)}>
                   Fechar
                 </Button>

@@ -136,7 +136,7 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
         total_value: sale.total,
         payment_conditions: formData.payment_conditions || getPaymentConditions(),
         warranty_period: formData.warranty_period,
-        contract_text: contractText,
+        contract_text: contractText || 'Template não configurado',
         status: 'gerado',
         notes: formData.notes
       };
