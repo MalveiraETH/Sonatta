@@ -27,86 +27,18 @@ export default function AuditLog() {
   const loadAuditLogs = async () => {
     setLoading(true);
     try {
-      // Buscar todas as entidades e criar log de auditoria
-      const [clients, appointments, quotes, sales, products, professionals] = await Promise.all([
-        base44.entities.Client.list('-updated_date', 100),
-        base44.entities.Appointment.list('-updated_date', 100),
-        base44.entities.Quote.list('-updated_date', 100),
-        base44.entities.Sale.list('-updated_date', 100),
-        base44.entities.Product.list('-updated_date', 100),
-        base44.entities.Professional.list('-updated_date', 100)
-      ]);
+      const auditLogsData = await base44.entities.AuditLog.list('-created_date', 200);
+      
+      const logs = auditLogsData.map(log => ({
+        entity: log.entity_type,
+        action: log.action === 'criacao' ? 'Criação' : 
+                log.action === 'edicao' ? 'Edição' : 
+                log.action === 'exclusao' ? 'Exclusão' : 'WhatsApp',
+        description: log.description,
+        user: log.created_by,
+        date: log.created_date
+      }));
 
-      const logs = [];
-
-      // Processar clientes
-      clients.forEach(item => {
-        logs.push({
-          entity: 'Cliente',
-          action: 'Criação',
-          description: item.full_name,
-          user: item.created_by,
-          date: item.created_date
-        });
-      });
-
-      // Processar agendamentos
-      appointments.forEach(item => {
-        logs.push({
-          entity: 'Agendamento',
-          action: 'Criação',
-          description: item.client_name,
-          user: item.created_by,
-          date: item.created_date
-        });
-      });
-
-      // Processar orçamentos
-      quotes.forEach(item => {
-        logs.push({
-          entity: 'Orçamento',
-          action: 'Criação',
-          description: `${item.quote_number} - ${item.client_name}`,
-          user: item.created_by,
-          date: item.created_date
-        });
-      });
-
-      // Processar vendas
-      sales.forEach(item => {
-        logs.push({
-          entity: 'Venda',
-          action: 'Criação',
-          description: `${item.sale_number} - ${item.client_name}`,
-          user: item.created_by,
-          date: item.created_date
-        });
-      });
-
-      // Processar produtos
-      products.forEach(item => {
-        logs.push({
-          entity: 'Produto',
-          action: 'Criação',
-          description: `${item.name} - ${item.serial_number}`,
-          user: item.created_by,
-          date: item.created_date
-        });
-      });
-
-      // Processar profissionais
-      professionals.forEach(item => {
-        logs.push({
-          entity: 'Profissional',
-          action: 'Criação',
-          description: item.full_name,
-          user: item.created_by,
-          date: item.created_date
-        });
-      });
-
-      // Ordenar por data mais recente
-      logs.sort((a, b) => new Date(b.date) - new Date(a.date));
       setAuditLogs(logs);
     } catch (error) {
       console.error(error);
@@ -127,7 +59,8 @@ export default function AuditLog() {
   const actionColors = {
     'Criação': 'bg-emerald-100 text-emerald-700',
     'Edição': 'bg-blue-100 text-blue-700',
-    'Exclusão': 'bg-red-100 text-red-700'
+    'Exclusão': 'bg-red-100 text-red-700',
+    'WhatsApp': 'bg-green-100 text-green-700'
   };
 
   if (loading) {

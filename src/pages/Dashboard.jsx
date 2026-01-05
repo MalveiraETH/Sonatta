@@ -82,7 +82,7 @@ export default function Dashboard() {
       const activeClients = clients.filter(c => c.status === 'cliente_ativo').length;
       const todayAppts = appointments.filter(a => a.date === today);
       const monthSalesData = sales.filter(s => {
-        const saleDate = new Date(s.created_date);
+        const saleDate = new Date(s.sale_date || s.created_date);
         return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
       });
       const monthRevenue = monthSalesData.reduce((sum, s) => sum + (s.total || 0), 0);

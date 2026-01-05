@@ -197,7 +197,7 @@ export default function Sales() {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const monthSales = sales.filter(s => {
-    const date = new Date(s.created_date);
+    const date = new Date(s.sale_date || s.created_date);
     return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
   });
   const monthRevenue = monthSales.reduce((sum, s) => sum + (s.total || 0), 0);

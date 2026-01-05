@@ -62,24 +62,22 @@ export default function Reports() {
     }).format(value || 0);
   };
 
-  const exportToCSV = (data, filename) => {
+  const exportToExcel = async (data, filename) => {
     if (data.length === 0) return;
     
-    const headers = Object.keys(data[0]).join(',');
-    const rows = data.map(obj => Object.values(obj).map(val => `"${val}"`).join(',')).join('\n');
-    const csv = `${headers}\n${rows}`;
+    // Usar XLSX do pacote instalado
+    const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs');
     
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dados');
+    XLSX.writeFile(workbook, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const filterSalesByDate = () => {
     if (!dateStart || !dateEnd) return sales;
     return sales.filter(sale => {
-      const saleDate = new Date(sale.created_date);
+      const saleDate = new Date(sale.sale_date || sale.created_date);
       const start = new Date(dateStart);
       const end = new Date(dateEnd);
       return saleDate >= start && saleDate <= end;
@@ -128,12 +126,12 @@ export default function Reports() {
       'Modelo': p.model || '',
       'Serial': p.serial_number || '',
       'Status': p.status,
-      'Custo': p.cost_price || 0,
+      'Custo do Produto': p.cost_price || 0,
       'Venda': p.sale_price || 0,
-      'NF Entrada': p.nota_fiscal_entrada || '',
+      'NF de Entrada': p.nota_fiscal_entrada || '',
       'Data Entrada': p.entry_date || ''
     }));
-    exportToCSV(data, 'relatorio_estoque');
+    exportToExcel(data, 'relatorio_estoque');
   };
 
   const exportClientReport = () => {
@@ -145,7 +143,7 @@ export default function Reports() {
       'Status': c.status,
       'Data Cadastro': format(new Date(c.created_date), 'dd/MM/yyyy')
     }));
-    exportToCSV(data, 'relatorio_clientes');
+    exportToExcel(data, 'relatorio_clientes');
   };
 
   const exportSalesReport = () => {
@@ -164,10 +162,10 @@ export default function Reports() {
         'Parcelas': s.installments,
         'Status': s.status,
         'NF': s.nota_fiscal || '',
-        'Data': format(new Date(s.created_date), 'dd/MM/yyyy')
+        'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
       };
     });
-    exportToCSV(data, 'relatorio_vendas');
+    exportToExcel(data, 'relatorio_vendas');
   };
 
   const exportReferralReport = () => {
@@ -189,7 +187,7 @@ export default function Reports() {
       }
     });
     
-    exportToCSV(referralData, 'relatorio_repasse_indicacao');
+    exportToExcel(referralData, 'relatorio_repasse_indicacao');
   };
 
   if (loading) {
@@ -259,7 +257,9 @@ export default function Reports() {
                       <TableHead>Marca/Modelo</TableHead>
                       <TableHead>Serial</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Custo do Produto</TableHead>
                       <TableHead className="text-right">Valor Venda</TableHead>
+                      <TableHead>NF de Entrada</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -269,7 +269,9 @@ export default function Reports() {
                         <TableCell>{product.brand} {product.model}</TableCell>
                         <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
                         <TableCell><StatusBadge status={product.status} /></TableCell>
+                        <TableCell className="text-right">{formatCurrency(product.cost_price)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
+                        <TableCell className="text-sm text-slate-600">{product.nota_fiscal_entrada || '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
