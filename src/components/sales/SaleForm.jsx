@@ -61,7 +61,6 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
   useEffect(() => {
     if (sale) {
       setFormData({ ...sale });
-      setSaleDate(new Date(sale.created_date));
       // Calcular percentual inicial se houver desconto
       if (sale.subtotal > 0 && sale.discount > 0) {
         setDiscountPercent(((sale.discount / sale.subtotal) * 100).toFixed(2));
@@ -87,7 +86,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         seller_name: currentUser?.full_name || '',
         nota_fiscal: ''
       });
-      setSaleDate(new Date(quote.created_date));
+      setSaleDate(new Date());
       // Calcular percentual do orçamento
       if (quote.subtotal > 0 && quote.discount > 0) {
         setDiscountPercent(((quote.discount / quote.subtotal) * 100).toFixed(2));
@@ -114,7 +113,6 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         quote_id: '',
         nota_fiscal: ''
       });
-      setSaleDate(new Date());
       setDiscountPercent(0);
     } else {
       setFormData({
@@ -136,7 +134,6 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
         quote_id: '',
         nota_fiscal: ''
       });
-      setSaleDate(new Date());
       setDiscountPercent(0);
     }
   }, [sale, quote, preselectedClient, open, currentUser]);
