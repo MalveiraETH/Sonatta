@@ -42,25 +42,17 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       element.style.color = '#1a202c';
       
       const footer = footerInfo ? `
-        <div style="border-top: 2px solid #6B3FA0; padding-top: 12px; margin-top: 25px; background: linear-gradient(to top, #ffffff 0%, #f8f9fa 100%); padding-bottom: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
-            <div style="flex: 1;">
-              <p style="margin: 0; font-size: 8.5pt; color: #4a5568; line-height: 1.5;">
-                <strong style="color: #6B3FA0; font-size: 9pt;">Sonatta - Soluções Auditivas</strong><br>
-                Edifício Corporate Trade Center<br>
-                Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007<br>
-                Adrianópolis, Manaus – AM, 69057-035
-              </p>
-            </div>
-            <div style="flex: 1; text-align: right;">
-              <p style="margin: 0; font-size: 8.5pt; color: #4a5568; line-height: 1.8;">
-                <strong style="color: #6B3FA0; font-size: 9pt;">Contato:</strong><br>
-                📞 ${footerInfo.phone}<br>
-                ✉️ ${footerInfo.email}<br>
-                🌐 ${footerInfo.website}<br>
-                📸 ${footerInfo.instagram}
-              </p>
-            </div>
+        <div style="border-top: 2px solid #6B3FA0; padding: 15px 0; margin-top: 25px; background: linear-gradient(to top, #ffffff 0%, #f8f9fa 100%);">
+          <div style="text-align: center;">
+            <p style="margin: 0 0 8px 0; font-size: 9pt; color: #4a5568; line-height: 1.6;">
+              <strong style="color: #6B3FA0;">Sonatta - Soluções Auditivas</strong><br>
+              Edifício Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007<br>
+              Adrianópolis, Manaus – AM, 69057-035
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 8.5pt; color: #4a5568; line-height: 1.6;">
+              📱 ${footerInfo.phone} | 🌐 ${footerInfo.website}<br>
+              📸 ${footerInfo.instagram} | 📘 Facebook: @sonatta.manaus | 💼 LinkedIn: /sonatta
+            </p>
           </div>
         </div>
       ` : '';
@@ -68,15 +60,9 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       element.innerHTML = `
         <div style="min-height: 297mm; display: flex; flex-direction: column; box-sizing: border-box;">
           <!-- Header -->
-          <div style="text-align: center; padding: 15mm 20mm 12mm 20mm; border-bottom: 3px solid #6B3FA0; background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);">
+          <div style="text-align: center; padding: 8mm 20mm 6mm 20mm; border-bottom: 2px solid #6B3FA0;">
             <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/a0b7b5040_Logo_Sonatta.png" 
-                 style="max-width: 160px; height: auto; margin-bottom: 12px;" />
-            <div style="margin-top: 8px;">
-              <p style="margin: 0; font-size: 8.5pt; color: #6B3FA0; font-weight: 600; line-height: 1.4;">
-                Edifício Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007<br>
-                Adrianópolis, Manaus – AM, 69057-035 | CNPJ: 33.457.952/0001-98
-              </p>
-            </div>
+                 style="max-width: 140px; height: auto;" />
           </div>
           
           <!-- Content -->
@@ -115,17 +101,32 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       const imgWidth = 210;
       const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      const headerHeight = 20;
+      const footerHeight = 25;
+      
       let heightLeft = imgHeight;
       let position = 0;
+      let pageNumber = 0;
 
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
+      pageNumber++;
 
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
+        
+        const headerImg = await html2canvas(document.createElement('div'), {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
+        pageNumber++;
       }
 
       pdf.save(`contrato_${contract.contract_number}.pdf`);
