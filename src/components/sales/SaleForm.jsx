@@ -276,8 +276,8 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
     }
 
     // Validar soma dos pagamentos
-    const totalPayments = formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0);
-    if (Math.abs(totalPayments - formData.total) > 0.01) {
+    const totalPayments = formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    if (Math.abs(totalPayments - formData.total) > 0.02) {
       toast.error(`Total dos pagamentos (${formatCurrency(totalPayments)}) não corresponde ao total da venda (${formatCurrency(formData.total)})`);
       return;
     }
