@@ -24,6 +24,7 @@ import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logCreation, logEdit } from '@/components/utils/auditLogger';
 
 export default function QuoteForm({ open, onOpenChange, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
@@ -249,9 +250,11 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
 
       if (quote) {
         await base44.entities.Quote.update(quote.id, dataToSave);
+        await logEdit('Orçamento', `${dataToSave.quote_number} - ${dataToSave.client_name}`, quote.id);
         toast.success('Orçamento atualizado!');
       } else {
         const newQuote = await base44.entities.Quote.create(dataToSave);
+        await logCreation('Orçamento', `${dataToSave.quote_number} - ${dataToSave.client_name}`, newQuote.id);
         
         // Marcar produtos como reservados
         for (const item of formData.items) {

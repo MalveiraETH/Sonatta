@@ -46,6 +46,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logDeletion, logWhatsApp, logEdit } from '@/components/utils/auditLogger';
 
 export default function Sales() {
   const [loading, setLoading] = useState(true);
@@ -146,6 +147,7 @@ export default function Sales() {
       }
 
       await base44.entities.Sale.delete(sale.id);
+      await logDeletion('Venda', `${sale.sale_number} - ${sale.client_name}`, sale.id);
       toast.success('Venda excluída e produtos retornados ao estoque');
       await loadData();
     } catch (error) {
@@ -157,6 +159,7 @@ export default function Sales() {
   const handleStatusChange = async (sale, newStatus) => {
     try {
       await base44.entities.Sale.update(sale.id, { status: newStatus });
+      await logEdit('Venda', `Status alterado para ${newStatus} - ${sale.sale_number}`, sale.id);
       toast.success('Status atualizado');
       loadData();
     } catch (error) {
@@ -164,7 +167,7 @@ export default function Sales() {
     }
   };
 
-  const sendWhatsApp = (sale) => {
+  const sendWhatsApp = async (sale) => {
     if (!sale.client_phone) {
       toast.error('Cliente não possui telefone cadastrado');
       return;
@@ -173,6 +176,7 @@ export default function Sales() {
     const message = encodeURIComponent(
       `Olá ${sale.client_name}!\n\nSua compra foi registrada:\n\n*Nº ${sale.sale_number}*\nValor: ${formatCurrency(sale.total)}\n\nAgradecemos a preferência!\n\n*Sonatta Soluções Auditivas*`
     );
+    await logWhatsApp('Venda', `Enviado para ${sale.client_name} - ${sale.sale_number}`, sale.id);
     window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
   };
 

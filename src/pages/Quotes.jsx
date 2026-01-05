@@ -36,6 +36,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logDeletion, logWhatsApp } from '@/components/utils/auditLogger';
 
 export default function Quotes() {
   const [loading, setLoading] = useState(true);
@@ -123,6 +124,7 @@ export default function Quotes() {
       }
       
       await base44.entities.Quote.delete(quote.id);
+      await logDeletion('Orçamento', `${quote.quote_number} - ${quote.client_name}`, quote.id);
       toast.success('Orçamento excluído com sucesso');
       await loadData();
     } catch (error) {
@@ -344,6 +346,7 @@ Equipe Sonatta Soluções Auditivas
                       const link = await getWhatsAppLink(quote);
                       if (link) {
                         await handleStatusChange(quote, 'enviado');
+                        await logWhatsApp('Orçamento', `Enviado para ${quote.client_name} - ${quote.quote_number}`, quote.id);
                         window.location.href = link;
                       }
                     }}

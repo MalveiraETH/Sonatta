@@ -24,6 +24,7 @@ import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logCreation } from '@/components/utils/auditLogger';
 
 export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
@@ -300,6 +301,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
       // Criar venda
       const newSale = await base44.entities.Sale.create(dataToSave);
+      await logCreation('Venda', `${saleNumber} - ${formData.client_name}`, newSale.id);
 
       // Criar parcelas para pagamento Pix Parcelado
       for (const payment of formData.payment_details) {

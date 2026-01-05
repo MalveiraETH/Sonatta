@@ -90,6 +90,11 @@ export default function Layout({ children, currentPageName }) {
           body {
             overflow-x: hidden;
           }
+          
+          /* Fix input zoom on mobile */
+          input, select, textarea {
+            font-size: 16px !important;
+          }
         }
       `}</style>
 
