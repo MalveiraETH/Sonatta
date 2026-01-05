@@ -174,15 +174,14 @@ export default function Reports() {
     const referralData = [];
     
     filteredSales.forEach(sale => {
-      const client = clients.find(c => c.id === sale.client_id);
-      if (client?.referral_professional) {
-        const prof = professionals.find(p => p.id === client.referral_professional);
+      if (sale.test_referral_id) {
+        const prof = professionals.find(p => p.id === sale.test_referral_id);
         if (prof) {
           referralData.push({
             'Profissional': prof.full_name,
             'Especialidade': prof.specialty,
             'Paciente': sale.client_name,
-            'Data Venda': format(new Date(sale.created_date), 'dd/MM/yyyy'),
+            'Data Venda': format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy'),
             'Valor Total': sale.total,
             'Repasse 10%': (sale.total * 0.10).toFixed(2)
           });
@@ -592,10 +591,9 @@ export default function Reports() {
                   </TableHeader>
                   <TableBody>
                     {filteredSales.map(sale => {
-                      const client = clients.find(c => c.id === sale.client_id);
-                      if (!client?.referral_professional) return null;
+                      if (!sale.test_referral_id) return null;
                       
-                      const prof = professionals.find(p => p.id === client.referral_professional);
+                      const prof = professionals.find(p => p.id === sale.test_referral_id);
                       if (!prof) return null;
                       
                       return (
@@ -603,7 +601,7 @@ export default function Reports() {
                           <TableCell className="font-medium">{prof.full_name}</TableCell>
                           <TableCell className="capitalize">{prof.specialty}</TableCell>
                           <TableCell>{sale.client_name}</TableCell>
-                          <TableCell>{format(new Date(sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                          <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(sale.total)}</TableCell>
                           <TableCell className="text-right font-bold text-[#A4D233]">
                             {formatCurrency(sale.total * 0.10)}

@@ -39,6 +39,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     client_phone: '',
     client_email: '',
     client_address: '',
+    test_referral_id: '',
+    test_referral_name: '',
     items: [],
     subtotal: 0,
     discount: 0,
@@ -60,6 +62,15 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   useEffect(() => {
     if (preselectedClient) {
+      loadClientReferral(preselectedClient.id);
+    }
+  }, [preselectedClient, open, currentUser]);
+
+  const loadClientReferral = async (clientId) => {
+    try {
+      const appointments = await base44.entities.Appointment.filter({ client_id: clientId }, '-created_date', 1);
+      const latestAppointment = appointments[0];
+      
       setFormData({
         client_id: preselectedClient.id,
         client_name: preselectedClient.full_name,
@@ -67,6 +78,32 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         client_phone: preselectedClient.phone || '',
         client_email: preselectedClient.email || '',
         client_address: preselectedClient.address || '',
+        test_referral_id: latestAppointment?.test_referral_id || '',
+        test_referral_name: latestAppointment?.test_referral_name || '',
+        items: [],
+        subtotal: 0,
+        discount: 0,
+        total: 0,
+        payment_details: [],
+        seller_id: currentUser?.id || '',
+        seller_name: currentUser?.full_name || '',
+        status: 'pendente',
+        notes: '',
+        quote_id: '',
+        nota_fiscal: ''
+      });
+      setDiscountPercent(0);
+    } catch (e) {
+      console.error(e);
+      setFormData({
+        client_id: preselectedClient.id,
+        client_name: preselectedClient.full_name,
+        client_cpf: preselectedClient.cpf || '',
+        client_phone: preselectedClient.phone || '',
+        client_email: preselectedClient.email || '',
+        client_address: preselectedClient.address || '',
+        test_referral_id: '',
+        test_referral_name: '',
         items: [],
         subtotal: 0,
         discount: 0,
@@ -81,7 +118,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       });
       setDiscountPercent(0);
     }
-  }, [preselectedClient, open, currentUser]);
+  };
 
   const loadData = async () => {
     try {
@@ -106,18 +143,38 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     }
   };
 
-  const handleClientChange = (clientId) => {
+  const handleClientChange = async (clientId) => {
     const client = clients.find(c => c.id === clientId);
     if (client) {
-      setFormData({
-        ...formData,
-        client_id: clientId,
-        client_name: client.full_name,
-        client_cpf: client.cpf || '',
-        client_phone: client.phone || '',
-        client_email: client.email || '',
-        client_address: client.address || ''
-      });
+      try {
+        const appointments = await base44.entities.Appointment.filter({ client_id: clientId }, '-created_date', 1);
+        const latestAppointment = appointments[0];
+        
+        setFormData({
+          ...formData,
+          client_id: clientId,
+          client_name: client.full_name,
+          client_cpf: client.cpf || '',
+          client_phone: client.phone || '',
+          client_email: client.email || '',
+          client_address: client.address || '',
+          test_referral_id: latestAppointment?.test_referral_id || '',
+          test_referral_name: latestAppointment?.test_referral_name || ''
+        });
+      } catch (e) {
+        console.error(e);
+        setFormData({
+          ...formData,
+          client_id: clientId,
+          client_name: client.full_name,
+          client_cpf: client.cpf || '',
+          client_phone: client.phone || '',
+          client_email: client.email || '',
+          client_address: client.address || '',
+          test_referral_id: '',
+          test_referral_name: ''
+        });
+      }
     }
   };
 
