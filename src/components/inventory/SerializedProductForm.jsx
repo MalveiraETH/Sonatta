@@ -151,8 +151,9 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
                 <SelectContent>
                   <SelectItem value="aparelho_auditivo">Aparelho Auditivo</SelectItem>
                   <SelectItem value="carregador">Carregador</SelectItem>
-                  <SelectItem value="umidificador">Umidificador</SelectItem>
+                  <SelectItem value="desumidificador">Desumidificador</SelectItem>
                   <SelectItem value="microfone">Microfone</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
             </div>
