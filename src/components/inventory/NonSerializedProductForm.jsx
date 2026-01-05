@@ -148,14 +148,14 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="bateria">Bateria</SelectItem>
-                  <SelectItem value="receptor">Receptor</SelectItem>
-                  <SelectItem value="gaveta">Gaveta</SelectItem>
                   <SelectItem value="cerustop">Cerustop</SelectItem>
                   <SelectItem value="gancho">Gancho</SelectItem>
-                  <SelectItem value="tubo_molde">Tubo de Molde</SelectItem>
-                  <SelectItem value="oliva">Oliva</SelectItem>
-                  <SelectItem value="acessorio">Acessório</SelectItem>
+                  <SelectItem value="gaveta">Gaveta</SelectItem>
                   <SelectItem value="molde">Molde</SelectItem>
+                  <SelectItem value="oliva">Oliva</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                  <SelectItem value="receptor">Receptor</SelectItem>
+                  <SelectItem value="tubo_molde">Tubo de Molde</SelectItem>
                 </SelectContent>
               </Select>
             </div>
