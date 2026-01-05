@@ -363,11 +363,14 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               <div className="relative">
                 <Input
                   placeholder="Digite o nome do cliente..."
-                  value={clients.find(c => c.id === formData.client_id)?.full_name || ''}
+                  value={formData.client_name || ''}
                   onChange={(e) => {
-                    const searchTerm = e.target.value.toLowerCase();
+                    const searchValue = e.target.value;
+                    setFormData({ ...formData, client_name: searchValue, client_id: '' });
+                    
+                    const searchTerm = searchValue.toLowerCase();
                     const found = clients.find(c => 
-                      c.full_name?.toLowerCase().includes(searchTerm)
+                      c.full_name?.toLowerCase() === searchTerm
                     );
                     if (found) {
                       handleClientChange(found.id);
