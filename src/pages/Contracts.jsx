@@ -42,8 +42,10 @@ import {
   FileText,
   CheckCircle,
   Archive,
-  Download
+  Download,
+  Printer
 } from 'lucide-react';
+import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -427,10 +429,25 @@ export default function Contracts() {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              {selectedContract.contract_text && (
+                <Card className="p-4 bg-slate-50">
+                  <h3 className="font-semibold text-slate-800 mb-3">Contrato</h3>
+                  <div className="text-sm whitespace-pre-wrap max-h-96 overflow-y-auto border border-slate-200 rounded p-4 bg-white">
+                    {selectedContract.contract_text}
+                  </div>
+                </Card>
+              )}
+
+              <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
                 <Button variant="outline" onClick={() => setDetailOpen(false)}>
                   Fechar
                 </Button>
+                {selectedContract.contract_text && (
+                  <ContractPDFGenerator 
+                    contract={selectedContract}
+                    contractText={selectedContract.contract_text}
+                  />
+                )}
                 <Button
                   onClick={() => sendWhatsApp(selectedContract)}
                   className="bg-green-600 hover:bg-green-700"

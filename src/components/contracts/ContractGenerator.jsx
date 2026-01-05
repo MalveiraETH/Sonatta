@@ -13,16 +13,34 @@ import {
 import { Card } from '@/components/ui/card';
 import { Loader2, FileText, Send, MessageCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function ContractGenerator({ open, onOpenChange, sale, onSuccess }) {
   const [loading, setLoading] = useState(false);
+  const [template, setTemplate] = useState(null);
   const [formData, setFormData] = useState({
     warranty_period: '12 meses',
     payment_conditions: '',
     notes: ''
   });
+
+  React.useEffect(() => {
+    if (open) {
+      loadTemplate();
+    }
+  }, [open]);
+
+  const loadTemplate = async () => {
+    try {
+      const templates = await base44.entities.ContractTemplate.filter({ name: 'PIX Parcelado' });
+      if (templates.length > 0) {
+        setTemplate(templates[0]);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const generateContractNumber = () => {
     const date = new Date();
@@ -54,13 +72,54 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
     return conditions;
   };
 
+  const generateContractText = (contractData) => {
+    if (!template) return '';
+    
+    // Buscar pagamento PIX parcelado
+    const pixParcelado = sale.payment_details?.find(p => p.method === 'pix_parcelado');
+    if (!pixParcelado) return '';
+
+    const installmentValue = pixParcelado.amount / pixParcelado.installments;
+    const saleDate = new Date(sale.sale_date || sale.created_date);
+    const firstPaymentDate = addDays(saleDate, 30);
+
+    // Lista de produtos
+    const productsList = sale.items.map(item => 
+      `${item.quantity} ${item.product_name}${item.brand ? ` - ${item.brand}` : ''}${item.model ? ` ${item.model}` : ''}`
+    ).join(', ');
+
+    let text = template.template_text;
+    text = text.replace(/\{\{client_name\}\}/g, sale.client_name);
+    text = text.replace(/\{\{client_cpf\}\}/g, sale.client_cpf || '');
+    text = text.replace(/\{\{client_address\}\}/g, sale.client_address || '');
+    text = text.replace(/\{\{products_list\}\}/g, productsList);
+    text = text.replace(/\{\{total_value\}\}/g, formatCurrency(sale.total));
+    text = text.replace(/\{\{installments_count\}\}/g, pixParcelado.installments);
+    text = text.replace(/\{\{installment_value\}\}/g, formatCurrency(installmentValue));
+    text = text.replace(/\{\{payment_day\}\}/g, firstPaymentDate.getDate());
+    text = text.replace(/\{\{first_payment_date\}\}/g, format(firstPaymentDate, 'dd/MM/yyyy'));
+    text = text.replace(/\{\{contract_date\}\}/g, format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }));
+
+    return text;
+  };
+
   const handleGenerate = async () => {
     if (!sale) return;
 
+    // Verificar se há PIX parcelado
+    const hasPixParcelado = sale.payment_details?.some(p => p.method === 'pix_parcelado');
+    if (!hasPixParcelado) {
+      toast.error('Este contrato é apenas para vendas com PIX Parcelado');
+      return;
+    }
+
     setLoading(true);
     try {
+      const contractNumber = generateContractNumber();
+      const contractText = generateContractText();
+
       const contractData = {
-        contract_number: generateContractNumber(),
+        contract_number: contractNumber,
         sale_id: sale.id,
         client_id: sale.client_id,
         client_name: sale.client_name,
@@ -77,6 +136,7 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
         total_value: sale.total,
         payment_conditions: formData.payment_conditions || getPaymentConditions(),
         warranty_period: formData.warranty_period,
+        contract_text: contractText,
         status: 'gerado',
         notes: formData.notes
       };
