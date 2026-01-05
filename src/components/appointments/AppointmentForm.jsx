@@ -191,21 +191,30 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
             <Label>Cliente *</Label>
-            <Select
-              value={formData.client_id}
-              onValueChange={handleClientChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.full_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              placeholder="Digite o nome do cliente..."
+              value={formData.client_name || ''}
+              onChange={(e) => {
+                const searchValue = e.target.value;
+                setFormData({ ...formData, client_name: searchValue, client_id: '' });
+                
+                const searchTerm = searchValue.toLowerCase();
+                const found = clients.find(c => 
+                  c.full_name?.toLowerCase() === searchTerm
+                );
+                if (found) {
+                  handleClientChange(found.id);
+                }
+              }}
+              list="clients-list-appt"
+            />
+            <datalist id="clients-list-appt">
+              {clients.map((client) => (
+                <option key={client.id} value={client.full_name}>
+                  {client.full_name}
+                </option>
+              ))}
+            </datalist>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

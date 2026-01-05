@@ -94,7 +94,8 @@ export default function Quotes() {
     setFormOpen(true);
   };
 
-  const handleConvertToSale = (quote) => {
+  const handleConvertToSale = async (quote) => {
+    await handleStatusChange(quote, 'convertido');
     setSelectedQuote(quote);
     setSaleFormOpen(true);
   };
@@ -108,6 +109,19 @@ export default function Quotes() {
     if (!confirm(`Tem certeza que deseja excluir o orçamento "${quote.quote_number}"?`)) return;
 
     try {
+      // Liberar produtos reservados
+      if (quote.items) {
+        for (const item of quote.items) {
+          if (item.product_id) {
+            const product = await base44.entities.Product.list();
+            const prod = product.find(p => p.id === item.product_id);
+            if (prod && prod.status === 'reservado') {
+              await base44.entities.Product.update(item.product_id, { status: 'disponivel' });
+            }
+          }
+        }
+      }
+      
       await base44.entities.Quote.delete(quote.id);
       toast.success('Orçamento excluído com sucesso');
       await loadData();
@@ -274,10 +288,8 @@ Equipe Sonatta Soluções Auditivas
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="rascunho">Rascunho</SelectItem>
+              <SelectItem value="criado">Criado</SelectItem>
               <SelectItem value="enviado">Enviado</SelectItem>
-              <SelectItem value="aprovado">Aprovado</SelectItem>
-              <SelectItem value="recusado">Recusado</SelectItem>
               <SelectItem value="convertido">Convertido</SelectItem>
             </SelectContent>
           </Select>
@@ -331,6 +343,7 @@ Equipe Sonatta Soluções Auditivas
                       }
                       const link = await getWhatsAppLink(quote);
                       if (link) {
+                        await handleStatusChange(quote, 'enviado');
                         window.location.href = link;
                       }
                     }}

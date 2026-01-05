@@ -468,17 +468,18 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                         placeholder="Digite o número de série..."
                         value={item.serial_number || ''}
                         onChange={(e) => {
-                          const searchTerm = e.target.value.toLowerCase();
+                          const searchValue = e.target.value;
+                          const newItems = [...formData.items];
+                          newItems[index].serial_number = searchValue;
+                          setFormData({ ...formData, items: newItems });
+                          
+                          const searchTerm = searchValue.toLowerCase();
                           const foundProduct = products.find(p => 
-                            p.serial_number?.toLowerCase().includes(searchTerm) && 
+                            p.serial_number?.toLowerCase() === searchTerm && 
                             p.status === 'disponivel'
                           );
-                          if (foundProduct && searchTerm.length > 2) {
+                          if (foundProduct) {
                             updateItem(index, 'product_id', foundProduct.id);
-                          } else {
-                            const newItems = [...formData.items];
-                            newItems[index].serial_number = e.target.value;
-                            setFormData({ ...formData, items: newItems });
                           }
                         }}
                         list={`serial-list-${index}`}

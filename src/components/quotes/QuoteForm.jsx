@@ -243,14 +243,23 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     try {
       const dataToSave = {
         ...formData,
-        quote_number: formData.quote_number || generateQuoteNumber()
+        quote_number: formData.quote_number || generateQuoteNumber(),
+        status: 'criado'
       };
 
       if (quote) {
         await base44.entities.Quote.update(quote.id, dataToSave);
         toast.success('Orçamento atualizado!');
       } else {
-        await base44.entities.Quote.create(dataToSave);
+        const newQuote = await base44.entities.Quote.create(dataToSave);
+        
+        // Marcar produtos como reservados
+        for (const item of formData.items) {
+          if (item.product_id) {
+            await base44.entities.Product.update(item.product_id, { status: 'reservado' });
+          }
+        }
+        
         toast.success('Orçamento criado!');
       }
       await onSuccess();
@@ -307,21 +316,30 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
             </div>
             <div className="space-y-2">
               <Label>Cliente *</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={handleClientChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                placeholder="Digite o nome do cliente..."
+                value={formData.client_name || ''}
+                onChange={(e) => {
+                  const searchValue = e.target.value;
+                  setFormData({ ...formData, client_name: searchValue, client_id: '' });
+                  
+                  const searchTerm = searchValue.toLowerCase();
+                  const found = clients.find(c => 
+                    c.full_name?.toLowerCase() === searchTerm
+                  );
+                  if (found) {
+                    handleClientChange(found.id);
+                  }
+                }}
+                list="clients-list-quote"
+              />
+              <datalist id="clients-list-quote">
+                {clients.map((client) => (
+                  <option key={client.id} value={client.full_name}>
+                    {client.full_name}
+                  </option>
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -339,29 +357,29 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
               <Card key={index} className="p-4">
                 <div className="grid grid-cols-12 gap-3 items-end">
                   <div className="col-span-5">
-                    <Label className="text-xs">Buscar Produto por Modelo</Label>
+                    <Label className="text-xs">Buscar Produto</Label>
                     <Input
-                      placeholder="Digite o modelo..."
+                      placeholder="Digite o nome do produto..."
                       value={item.product_name || ''}
                       onChange={(e) => {
-                        const searchTerm = e.target.value.toLowerCase();
+                        const searchValue = e.target.value;
+                        const newItems = [...formData.items];
+                        newItems[index].product_name = searchValue;
+                        setFormData({ ...formData, items: newItems });
+                        
+                        const searchTerm = searchValue.toLowerCase();
                         const foundProduct = products.find(p => 
-                          p.model?.toLowerCase().includes(searchTerm) ||
-                          p.name?.toLowerCase().includes(searchTerm)
+                          p.name?.toLowerCase() === searchTerm
                         );
-                        if (foundProduct && searchTerm.length > 2) {
+                        if (foundProduct) {
                           updateItem(index, 'product_id', foundProduct.id);
-                        } else {
-                          const newItems = [...formData.items];
-                          newItems[index].product_name = e.target.value;
-                          setFormData({ ...formData, items: newItems });
                         }
                       }}
-                      list={`model-list-${index}`}
+                      list={`product-list-${index}`}
                     />
-                    <datalist id={`model-list-${index}`}>
+                    <datalist id={`product-list-${index}`}>
                       {products.map((product) => (
-                        <option key={product.id} value={product.model || product.name}>
+                        <option key={product.id} value={product.name}>
                           {product.name} - {product.brand} {product.model}
                         </option>
                       ))}
