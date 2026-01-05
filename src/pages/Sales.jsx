@@ -302,8 +302,24 @@ export default function Sales() {
                         <p className="text-xs text-slate-500">
                           {format(new Date(sale.sale_date || sale.created_date), "dd/MM/yyyy", { locale: ptBR })}
                         </p>
-                        {sale.nota_fiscal && (
+                        {sale.nota_fiscal ? (
                           <p className="text-xs text-emerald-600 font-medium">NF: {sale.nota_fiscal}</p>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const nf = prompt('Digite o número da Nota Fiscal:');
+                              if (nf) {
+                                base44.entities.Sale.update(sale.id, { nota_fiscal: nf }).then(() => {
+                                  toast.success('Nota Fiscal registrada');
+                                  loadData();
+                                });
+                              }
+                            }}
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            + Adicionar NF
+                          </button>
                         )}
                       </div>
                     </TableCell>

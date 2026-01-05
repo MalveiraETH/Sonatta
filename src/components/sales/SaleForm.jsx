@@ -182,7 +182,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0 }]
+      items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0 }, ...formData.items]
     });
   };
 
@@ -253,7 +253,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
   const addPayment = () => {
     setFormData({
       ...formData,
-      payment_details: [...formData.payment_details, { method: 'pix', amount: 0, installments: 1, status: 'pendente' }]
+      payment_details: [{ method: 'pix', amount: 0, installments: 1, status: 'pendente' }, ...formData.payment_details]
     });
   };
 

@@ -124,7 +124,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0 }]
+      items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0 }, ...formData.items]
     });
   };
 
@@ -165,7 +165,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const addPayment = () => {
     setFormData({
       ...formData,
-      payment_details: [...formData.payment_details, { method: 'pix', amount: 0, installments: 1, status: 'pendente' }]
+      payment_details: [{ method: 'pix', amount: 0, installments: 1, status: 'pendente' }, ...formData.payment_details]
     });
   };
 
@@ -248,11 +248,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       for (const payment of formData.payment_details) {
         if (payment.method === 'pix_parcelado' && payment.installments > 1) {
           const installmentAmount = payment.amount / payment.installments;
-          const today = new Date();
+          const saleDateObj = new Date(saleDate);
           
           for (let i = 1; i <= payment.installments; i++) {
-            const dueDate = new Date(today);
-            dueDate.setMonth(dueDate.getMonth() + i);
+            const dueDate = new Date(saleDateObj);
+            dueDate.setDate(dueDate.getDate() + (30 * i));
             
             await base44.entities.Installment.create({
               sale_id: newSale.id,
@@ -368,6 +368,17 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
+                  <Input
+                    placeholder="Buscar cliente..."
+                    className="mb-2"
+                    onChange={(e) => {
+                      const search = e.target.value.toLowerCase();
+                      const filtered = clients.filter(c => 
+                        c.full_name?.toLowerCase().includes(search)
+                      );
+                      e.target.setAttribute('data-filtered', JSON.stringify(filtered));
+                    }}
+                  />
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.full_name}
@@ -569,16 +580,6 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 )}
               </div>
             )}
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm">Número da Nota Fiscal</Label>
-            <Input
-              value={formData.nota_fiscal}
-              onChange={(e) => setFormData({ ...formData, nota_fiscal: e.target.value })}
-              placeholder="Número da NF (opcional)"
-              className="text-sm"
-            />
           </div>
 
           <div className="space-y-2">
