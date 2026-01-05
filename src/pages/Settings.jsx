@@ -18,12 +18,12 @@ export default function Settings() {
       />
 
       <Tabs defaultValue="hours" className="space-y-6">
-        <TabsList className="bg-slate-100">
-          <TabsTrigger value="hours">Horário de Atendimento</TabsTrigger>
-          <TabsTrigger value="whatsapp">Mensagem WhatsApp</TabsTrigger>
-          <TabsTrigger value="contract">Contrato PIX Parcelado</TabsTrigger>
-          <TabsTrigger value="billing">Faturamento</TabsTrigger>
-          <TabsTrigger value="audit">Auditoria</TabsTrigger>
+        <TabsList className="bg-slate-100 flex-wrap h-auto gap-1 p-1">
+          <TabsTrigger value="hours" className="text-xs sm:text-sm">Horário</TabsTrigger>
+          <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">WhatsApp</TabsTrigger>
+          <TabsTrigger value="contract" className="text-xs sm:text-sm">Contrato</TabsTrigger>
+          <TabsTrigger value="billing" className="text-xs sm:text-sm">Faturamento</TabsTrigger>
+          <TabsTrigger value="audit" className="text-xs sm:text-sm">Auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="hours">

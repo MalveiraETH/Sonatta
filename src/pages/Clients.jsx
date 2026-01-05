@@ -103,7 +103,7 @@ export default function Clients() {
   };
 
   const handleDelete = async (client) => {
-    if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
+    if (!confirm('Tem certeza que deseja excluir este cliente? Todos os agendamentos deste cliente também serão excluídos.')) return;
     
     if (currentUser?.user_role !== 'admin') {
       toast.error('Apenas administradores podem excluir registros');
@@ -111,8 +111,15 @@ export default function Clients() {
     }
 
     try {
+      // Excluir agendamentos do cliente
+      const appointments = await base44.entities.Appointment.filter({ client_id: client.id });
+      for (const appointment of appointments) {
+        await base44.entities.Appointment.delete(appointment.id);
+      }
+      
+      // Excluir cliente
       await base44.entities.Client.delete(client.id);
-      toast.success('Cliente excluído');
+      toast.success('Cliente e seus agendamentos excluídos');
       loadData();
     } catch (error) {
       toast.error('Erro ao excluir cliente');
@@ -209,7 +216,7 @@ export default function Clients() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="font-semibold text-slate-800 text-lg">{client.full_name}</h3>
-                      <p className="text-sm text-slate-500">{client.phone}</p>
+                      {client.cpf && <p className="text-xs text-slate-400">CPF: {client.cpf}</p>}
                     </div>
                     <StatusBadge status={client.status} />
                   </div>
@@ -241,54 +248,59 @@ export default function Clients() {
           )}
         </div>
       ) : (
-        <Card className="border-0 shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredClients.length > 0 ? (
-                filteredClients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.full_name}</TableCell>
-                    <TableCell>{client.phone}</TableCell>
-                    <TableCell>{client.email || '-'}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={client.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(client)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`}>
-                          <Button variant="default" size="sm" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-                            <Eye className="h-4 w-4" />
+        <Card className="border-0 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead className="hidden md:table-cell">CPF</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredClients.length > 0 ? (
+                  filteredClients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{client.full_name}</p>
+                          <p className="text-xs text-slate-500 md:hidden">{client.cpf}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{client.cpf || '-'}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={client.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(client)}
+                          >
+                            <Edit className="h-4 w-4" />
                           </Button>
-                        </Link>
-                      </div>
+                          <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`}>
+                            <Button variant="default" size="sm" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-12 text-slate-500">
+                      Nenhum cliente encontrado
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-slate-500">
-                    Nenhum cliente encontrado
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
       )}
 

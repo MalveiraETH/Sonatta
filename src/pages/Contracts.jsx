@@ -43,7 +43,9 @@ import {
   CheckCircle,
   Archive,
   Download,
-  Printer
+  Printer,
+  Grid3x3,
+  List
 } from 'lucide-react';
 import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
 import { toast } from 'sonner';
@@ -59,6 +61,7 @@ export default function Contracts() {
   const [selectedContract, setSelectedContract] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [viewMode, setViewMode] = useState('cards');
 
   useEffect(() => {
     loadData();
@@ -226,13 +229,107 @@ export default function Contracts() {
               <SelectItem value="arquivado">Arquivado</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('cards')}
+              className={viewMode === 'cards' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => setViewMode('table')}
+              className={viewMode === 'table' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </Card>
 
-      {/* Table */}
-      <Card className="border-0 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
+      {/* Cards View */}
+      {viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredContracts.length > 0 ? (
+            filteredContracts.map((contract) => (
+              <Card key={contract.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-slate-800">{contract.contract_number}</h3>
+                      <p className="text-sm text-slate-500">{contract.client_name}</p>
+                      <p className="text-xs text-slate-400">{format(new Date(contract.created_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                    </div>
+                    <StatusBadge status={contract.status} />
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <p className="text-xl font-bold text-[#6B3FA0]">{formatCurrency(contract.total_value)}</p>
+                    <p className="text-xs text-slate-500">Garantia: {contract.warranty_period}</p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleView(contract)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Ver
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => sendWhatsApp(contract)}>
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          WhatsApp
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => sendEmail(contract)}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          E-mail
+                        </DropdownMenuItem>
+                        {contract.status !== 'assinado' && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(contract, 'assinado')}>
+                            <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
+                            Marcar Assinado
+                          </DropdownMenuItem>
+                        )}
+                        {contract.status === 'assinado' && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(contract, 'arquivado')}>
+                            <Archive className="h-4 w-4 mr-2" />
+                            Arquivar
+                          </DropdownMenuItem>
+                        )}
+                        {currentUser?.user_role === 'admin' && (
+                          <DropdownMenuItem onClick={() => handleDelete(contract)} className="text-red-600">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-slate-500">Nenhum contrato encontrado</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Card className="border-0 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
                 <TableHead>Contrato</TableHead>
@@ -329,6 +426,7 @@ export default function Contracts() {
           </Table>
         </div>
       </Card>
+      )}
 
       {/* Contract Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
