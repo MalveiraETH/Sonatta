@@ -8,8 +8,8 @@ import ProductDetail from './pages/ProductDetail';
 import Professionals from './pages/Professionals';
 import Quotes from './pages/Quotes';
 import Reports from './pages/Reports';
-import Settings from './pages/Settings';
 import Sales from './pages/Sales';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -24,8 +24,8 @@ export const PAGES = {
     "Professionals": Professionals,
     "Quotes": Quotes,
     "Reports": Reports,
-    "Settings": Settings,
     "Sales": Sales,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {

@@ -300,7 +300,7 @@ export default function Sales() {
                       <div>
                         <p className="font-medium text-slate-800">{sale.sale_number}</p>
                         <p className="text-xs text-slate-500">
-                          {format(new Date(sale.created_date), "dd/MM/yyyy", { locale: ptBR })}
+                          {format(new Date(sale.sale_date || sale.created_date), "dd/MM/yyyy", { locale: ptBR })}
                         </p>
                         {sale.nota_fiscal && (
                           <p className="text-xs text-emerald-600 font-medium">NF: {sale.nota_fiscal}</p>
