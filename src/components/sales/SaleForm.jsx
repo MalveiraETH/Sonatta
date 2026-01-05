@@ -296,7 +296,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
       const dataToSave = {
         ...formData,
         sale_number: formData.sale_number || generateSaleNumber(),
-        sale_date: format(saleDate, 'yyyy-MM-dd')
+        sale_date: format(new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()), 'yyyy-MM-dd')
       };
 
       if (sale) {

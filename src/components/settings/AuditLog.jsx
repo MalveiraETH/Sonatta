@@ -107,7 +107,7 @@ export default function AuditLog() {
                 filteredLogs.map((log, idx) => (
                   <TableRow key={idx}>
                     <TableCell className="text-sm">
-                      {format(new Date(log.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      {format(new Date(log.date + 'Z'), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                     </TableCell>
                     <TableCell className="font-medium">{log.entity}</TableCell>
                     <TableCell>
