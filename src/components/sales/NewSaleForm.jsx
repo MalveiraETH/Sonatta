@@ -217,8 +217,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     }
 
     // Validar soma dos pagamentos
-    const totalPayments = formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0);
-    if (Math.abs(totalPayments - formData.total) > 0.01) {
+    const totalPayments = formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    if (Math.abs(totalPayments - formData.total) > 0.02) {
       toast.error(`Total dos pagamentos (${formatCurrency(totalPayments)}) não corresponde ao total da venda (${formatCurrency(formData.total)})`);
       return;
     }
@@ -237,7 +237,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       const saleNumber = formData.sale_number || generateSaleNumber();
       const dataToSave = {
         ...formData,
-        sale_number: saleNumber
+        sale_number: saleNumber,
+        sale_date: format(saleDate, 'yyyy-MM-dd')
       };
 
       // Criar venda
@@ -324,26 +325,26 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-slate-800">
+          <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800">
             Nova Venda
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 pt-2 sm:pt-4">
           {/* Data e Cliente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label>Data da Venda *</Label>
+              <Label className="text-sm">Data da Venda *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full justify-start text-left font-normal"
+                    className="w-full justify-start text-left font-normal text-sm"
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(saleDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{format(saleDate, "dd/MM/yyyy", { locale: ptBR })}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -358,12 +359,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label>Cliente *</Label>
+              <Label className="text-sm">Cliente *</Label>
               <Select
                 value={formData.client_id}
                 onValueChange={handleClientChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-sm">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -380,18 +381,19 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           {/* Produtos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Produtos</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar Produto
+              <Label className="text-sm">Produtos</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addItem} className="text-xs sm:text-sm">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">Adicionar Produto</span>
+                <span className="sm:hidden">Adicionar</span>
               </Button>
             </div>
 
             {formData.items.map((item, index) => (
-              <Card key={index} className="p-4">
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-11">
+              <Card key={index} className="p-3 sm:p-4">
+                <div className="space-y-3">
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1">
                       <Label className="text-xs">Buscar por Número de Série</Label>
                       <Input
                         placeholder="Digite o número de série..."
@@ -411,6 +413,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           }
                         }}
                         list={`serial-list-${index}`}
+                        className="text-sm"
                       />
                       <datalist id={`serial-list-${index}`}>
                         {products.filter(p => p.status === 'disponivel').map((product) => (
@@ -420,30 +423,28 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                         ))}
                       </datalist>
                     </div>
-                    <div className="col-span-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(index)}
+                      className="text-red-500 hover:text-red-700 mt-5 flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                   {item.product_id && (
-                    <div className="grid grid-cols-3 gap-3 text-sm bg-slate-50 p-3 rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm bg-slate-50 p-2 sm:p-3 rounded-lg">
                       <div>
-                        <span className="text-slate-500">Produto:</span>
-                        <p className="font-medium">{item.product_name}</p>
+                        <span className="text-slate-500 text-xs">Produto:</span>
+                        <p className="font-medium truncate">{item.product_name}</p>
                       </div>
                       <div>
-                        <span className="text-slate-500">Marca/Modelo:</span>
-                        <p className="font-medium">{item.brand} {item.model}</p>
+                        <span className="text-slate-500 text-xs">Marca/Modelo:</span>
+                        <p className="font-medium truncate">{item.brand} {item.model}</p>
                       </div>
                       <div>
-                        <span className="text-slate-500">Valor:</span>
+                        <span className="text-slate-500 text-xs">Valor:</span>
                         <p className="font-bold text-[#1e3a5f]">{formatCurrency(item.unit_price)}</p>
                       </div>
                     </div>
@@ -454,11 +455,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           </div>
 
           {/* Totais */}
-          <Card className="p-4 bg-slate-50">
-            <div className="grid grid-cols-3 gap-4">
+          <Card className="p-3 sm:p-4 bg-slate-50">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <div>
                 <Label className="text-xs text-slate-500">Subtotal</Label>
-                <p className="text-lg font-semibold">{formatCurrency(formData.subtotal)}</p>
+                <p className="text-sm sm:text-lg font-semibold truncate">{formatCurrency(formData.subtotal)}</p>
               </div>
               <div>
                 <Label className="text-xs">Desconto (%)</Label>
@@ -470,11 +471,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   value={discountPercent}
                   onChange={(e) => updateDiscount(Number(e.target.value))}
                   placeholder="0"
+                  className="text-sm"
                 />
               </div>
               <div>
                 <Label className="text-xs text-slate-500">Total</Label>
-                <p className="text-xl font-bold text-[#1e3a5f]">{formatCurrency(formData.total)}</p>
+                <p className="text-base sm:text-xl font-bold text-[#1e3a5f] truncate">{formatCurrency(formData.total)}</p>
               </div>
             </div>
           </Card>
@@ -482,67 +484,73 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           {/* Formas de Pagamento */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Formas de Pagamento *</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addPayment}>
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar Pagamento
+              <Label className="text-sm">Formas de Pagamento *</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addPayment} className="text-xs sm:text-sm">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                <span className="hidden sm:inline">Adicionar Pagamento</span>
+                <span className="sm:hidden">Adicionar</span>
               </Button>
             </div>
 
             {formData.payment_details.map((payment, index) => (
-              <Card key={index} className="p-4">
-                <div className="grid grid-cols-12 gap-3 items-end">
-                  <div className="col-span-5">
-                    <Label className="text-xs">Método</Label>
-                    <Select
-                      value={payment.method}
-                      onValueChange={(value) => updatePayment(index, 'method', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(paymentMethods).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-3">
-                    <Label className="text-xs">Valor</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={payment.amount}
-                      onChange={(e) => updatePayment(index, 'amount', Number(e.target.value))}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  {(payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && (
-                    <div className="col-span-3">
-                      <Label className="text-xs">Parcelas</Label>
-                      <Select
-                        value={String(payment.installments)}
-                        onValueChange={(value) => updatePayment(index, 'installments', Number(value))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((n) => (
-                            <SelectItem key={n} value={String(n)}>{n}x de {formatCurrency(payment.amount / n)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+              <Card key={index} className="p-3 sm:p-4">
+                <div className="space-y-3">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <Label className="text-xs">Método</Label>
+                        <Select
+                          value={payment.method}
+                          onValueChange={(value) => updatePayment(index, 'method', value)}
+                        >
+                          <SelectTrigger className="text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(paymentMethods).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Valor</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={payment.amount}
+                            onChange={(e) => updatePayment(index, 'amount', Number(e.target.value))}
+                            placeholder="0.00"
+                            className="text-sm"
+                          />
+                        </div>
+                        {(payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && (
+                          <div>
+                            <Label className="text-xs">Parcelas</Label>
+                            <Select
+                              value={String(payment.installments)}
+                              onValueChange={(value) => updatePayment(index, 'installments', Number(value))}
+                            >
+                              <SelectTrigger className="text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((n) => (
+                                  <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  <div className="col-span-1">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => removePayment(index)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 flex-shrink-0"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -552,46 +560,46 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
             ))}
 
             {formData.payment_details.length > 0 && (
-              <div className="text-sm text-slate-600 bg-blue-50 p-3 rounded">
-                Total pago: {formatCurrency(formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0))} 
-                {Math.abs(formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0) - formData.total) > 0.01 && (
-                  <span className="text-red-600 ml-2 font-medium">
-                    (diferença: {formatCurrency(formData.total - formData.payment_details.reduce((sum, p) => sum + (p.amount || 0), 0))})
+              <div className="text-xs sm:text-sm text-slate-600 bg-blue-50 p-2 sm:p-3 rounded">
+                <span className="font-medium">Total pago:</span> {formatCurrency(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0))} 
+                {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && (
+                  <span className="text-red-600 ml-2 font-medium block sm:inline mt-1 sm:mt-0">
+                    (diferença: {formatCurrency(formData.total - formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0))})
                   </span>
                 )}
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Número da Nota Fiscal</Label>
-              <Input
-                value={formData.nota_fiscal}
-                onChange={(e) => setFormData({ ...formData, nota_fiscal: e.target.value })}
-                placeholder="Número da NF (opcional)"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="text-sm">Número da Nota Fiscal</Label>
+            <Input
+              value={formData.nota_fiscal}
+              onChange={(e) => setFormData({ ...formData, nota_fiscal: e.target.value })}
+              placeholder="Número da NF (opcional)"
+              className="text-sm"
+            />
           </div>
 
           <div className="space-y-2">
-            <Label>Observações</Label>
+            <Label className="text-sm">Observações</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Observações da venda"
               rows={2}
+              className="text-sm"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t sticky bottom-0 bg-white pb-2 -mb-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
             <Button 
               type="submit" 
               disabled={loading}
-              className="bg-[#1e3a5f] hover:bg-[#2d5a8a]"
+              className="bg-[#1e3a5f] hover:bg-[#2d5a8a] w-full sm:w-auto"
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Finalizar Venda
