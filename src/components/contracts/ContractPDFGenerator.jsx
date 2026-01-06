@@ -72,11 +72,11 @@ export default function ContractPDFGenerator({ contract, contractText }) {
                 Adrianópolis, Manaus – AM, 69057-035
               </p>
               <p style="margin: 6px 0 0 0; font-size: 8pt; color: #4a5568; line-height: 1.5;">
-                <span style="display: inline-flex; align-items: center; margin: 0 8px;">📱 ${footerInfo.phone}</span>
+                <span style="display: inline-flex; align-items: center; margin: 0 8px;">📱 WhatsApp: ${footerInfo.phone}</span>
                 <span style="display: inline-flex; align-items: center; margin: 0 8px;">🌐 ${footerInfo.website}</span><br>
-                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📸 ${footerInfo.instagram}</span>
-                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📘 @sonatta.manaus</span>
-                <span style="display: inline-flex; align-items: center; margin: 0 6px;">💼 /sonatta</span>
+                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📸 Instagram: ${footerInfo.instagram}</span>
+                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📘 Facebook: @sonatta.manaus</span>
+                <span style="display: inline-flex; align-items: center; margin: 0 6px;">💼 LinkedIn: /sonatta</span>
               </p>
             </div>
           </div>
@@ -155,22 +155,38 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         // Adicionar cabeçalho
         pdf.addImage(headerImgData, 'PNG', 0, 0, pageWidth, headerHeight);
 
-        // Adicionar conteúdo
-        const sourceY = i * contentAreaHeight * (contentCanvas.width / contentImgWidth);
-        const sourceHeight = Math.min(contentAreaHeight * (contentCanvas.width / contentImgWidth), contentCanvas.height - sourceY);
+        // Adicionar conteúdo - cortar a imagem corretamente para cada página
+        const scale = contentCanvas.width / contentImgWidth;
+        const sourceY = i * contentAreaHeight * scale;
+        const sourceHeight = Math.min(contentAreaHeight * scale, contentCanvas.height - sourceY);
         
         if (sourceHeight > 0) {
+          const destHeight = sourceHeight / scale;
+          
+          // Criar um canvas temporário com apenas a parte necessária
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = contentCanvas.width;
+          tempCanvas.height = sourceHeight;
+          const ctx = tempCanvas.getContext('2d');
+          
+          // Copiar apenas a parte necessária do canvas original
+          ctx.drawImage(
+            contentCanvas,
+            0, sourceY,                    // sx, sy - origem no canvas original
+            contentCanvas.width, sourceHeight, // sWidth, sHeight - tamanho na origem
+            0, 0,                          // dx, dy - destino no canvas temporário
+            contentCanvas.width, sourceHeight  // dWidth, dHeight - tamanho no destino
+          );
+          
+          // Adicionar a imagem recortada ao PDF
+          const tempImgData = tempCanvas.toDataURL('image/png');
           pdf.addImage(
-            contentImgData,
+            tempImgData,
             'PNG',
             margin,
             headerHeight,
             contentImgWidth,
-            (sourceHeight * contentImgWidth) / contentCanvas.width,
-            undefined,
-            'FAST',
-            0,
-            -sourceY
+            destHeight
           );
         }
 
