@@ -10,6 +10,7 @@ import Quotes from './pages/Quotes';
 import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
+import PixReport from './pages/PixReport';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "Reports": Reports,
     "Sales": Sales,
     "Settings": Settings,
+    "PixReport": PixReport,
 }
 
 export const pagesConfig = {

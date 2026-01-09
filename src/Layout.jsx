@@ -52,6 +52,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Orçamentos', page: 'Quotes', icon: FileText },
     { name: 'Vendas', page: 'Sales', icon: ShoppingCart },
     { name: 'Contratos', page: 'Contracts', icon: FileSignature },
+    { name: 'PIX Parcelado', page: 'PixReport', icon: DollarSign },
     { name: 'Relatórios', page: 'Reports', icon: FileText },
     { name: 'Configurações', page: 'Settings', icon: Bell },
   ];
