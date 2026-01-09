@@ -89,7 +89,11 @@ export default function PixReportPDF({ clientsReport }) {
         checkNewPage(50);
 
         // Box do Cliente
-        pdf.setFillColor(clientData.status === 'inadimplente' ? 254, 226, 226 : 236, 253, 245);
+        if (clientData.status === 'inadimplente') {
+          pdf.setFillColor(254, 226, 226);
+        } else {
+          pdf.setFillColor(236, 253, 245);
+        }
         pdf.rect(margin, yPosition - 5, pageWidth - 2 * margin, 40, 'F');
 
         // Nome do Cliente
