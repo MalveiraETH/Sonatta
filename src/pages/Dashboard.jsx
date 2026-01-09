@@ -49,6 +49,8 @@ export default function Dashboard() {
   const [recentSales, setRecentSales] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [salesByCategory, setSalesByCategory] = useState([]);
+  const [oldestTestClientId, setOldestTestClientId] = useState(null);
+  const [oldestOverdueClientId, setOldestOverdueClientId] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -78,12 +80,25 @@ export default function Dashboard() {
       });
       const totalOverduePixAmount = overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0);
 
+      // Cliente com PIX mais antigo atrasado
+      const oldestOverdueInstallment = overduePixInstallments.sort((a, b) => 
+        new Date(a.due_date) - new Date(b.due_date)
+      )[0];
+      if (oldestOverdueInstallment) {
+        setOldestOverdueClientId(oldestOverdueInstallment.client_id);
+      }
+
       // Clients with device test appointments
-      const clientsWithTestAppointments = new Set(
-        appointments
-          .filter(a => a.type === 'teste')
-          .map(a => a.client_id)
-      ).size;
+      const testAppointments = appointments.filter(a => a.type === 'teste');
+      const clientsWithTestAppointments = new Set(testAppointments.map(a => a.client_id)).size;
+
+      // Cliente com teste mais antigo
+      const oldestTestAppointment = testAppointments.sort((a, b) => 
+        new Date(a.date) - new Date(b.date)
+      )[0];
+      if (oldestTestAppointment) {
+        setOldestTestClientId(oldestTestAppointment.client_id);
+      }
 
       // Stats
       const activeClients = clients.filter(c => c.status === 'cliente_ativo').length;
@@ -243,39 +258,49 @@ export default function Dashboard() {
       </div>
 
       {/* Card de Clientes em Teste */}
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100">
-        <div className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-purple-500 flex items-center justify-center">
-              <Calendar className="h-7 w-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-purple-700 font-medium">Clientes em Teste de Aparelho</p>
-              <p className="text-3xl font-bold text-purple-900">{stats.clientsWithTests || 0}</p>
-              <p className="text-xs text-purple-600 mt-1">Agendamentos de teste cadastrados</p>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Alertas de Pagamento */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+      <Link 
+        to={oldestTestClientId ? createPageUrl(`ClientDetail?id=${oldestTestClientId}`) : '#'}
+        className={oldestTestClientId ? 'cursor-pointer' : 'cursor-default'}
+      >
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-md transition-shadow">
           <div className="p-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center">
-                <AlertTriangle className="h-7 w-7 text-white" />
+              <div className="w-14 h-14 rounded-full bg-purple-500 flex items-center justify-center">
+                <Calendar className="h-7 w-7 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-red-700 font-medium">PIX Parcelado Atrasado</p>
-                <p className="text-2xl font-bold text-red-900">{stats.overduePixCount || 0}</p>
-                <p className="text-sm text-red-600 font-semibold mt-1">
-                  Total: {formatCurrency(stats.overduePixAmount || 0)}
-                </p>
+                <p className="text-sm text-purple-700 font-medium">Clientes em Teste de Aparelho</p>
+                <p className="text-3xl font-bold text-purple-900">{stats.clientsWithTests || 0}</p>
+                <p className="text-xs text-purple-600 mt-1">Agendamentos de teste cadastrados</p>
               </div>
             </div>
           </div>
         </Card>
+      </Link>
+
+      {/* Alertas de Pagamento */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link 
+          to={oldestOverdueClientId ? createPageUrl(`ClientDetail?id=${oldestOverdueClientId}`) : '#'}
+          className={oldestOverdueClientId ? 'cursor-pointer' : 'cursor-default'}
+        >
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:shadow-md transition-shadow">
+            <div className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center">
+                  <AlertTriangle className="h-7 w-7 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-red-700 font-medium">PIX Parcelado Atrasado</p>
+                  <p className="text-2xl font-bold text-red-900">{stats.overduePixCount || 0}</p>
+                  <p className="text-sm text-red-600 font-semibold mt-1">
+                    Total: {formatCurrency(stats.overduePixAmount || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Link>
 
         <StatCard
           title="Agendamentos Hoje"
