@@ -15,7 +15,8 @@ import {
   LogOut,
   ChevronDown,
   Bell,
-  Ear
+  Ear,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
