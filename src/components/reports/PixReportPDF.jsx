@@ -111,7 +111,11 @@ export default function PixReportPDF({ clientsReport }) {
 
         // Status
         pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(clientData.status === 'inadimplente' ? 185, 28, 28 : 5, 150, 105);
+        if (clientData.status === 'inadimplente') {
+          pdf.setTextColor(185, 28, 28);
+        } else {
+          pdf.setTextColor(5, 150, 105);
+        }
         pdf.text(`Status: ${clientData.status.toUpperCase()}`, margin + 3, yPosition);
         pdf.setTextColor(0, 0, 0);
         yPosition += 7;
