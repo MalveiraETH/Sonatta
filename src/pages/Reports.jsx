@@ -29,6 +29,8 @@ export default function Reports() {
   const [appointments, setAppointments] = useState([]);
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
+  const [installments, setInstallments] = useState([]);
+  const [expenses, setExpenses] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -36,18 +38,22 @@ export default function Reports() {
 
   const loadData = async () => {
     try {
-      const [productsData, clientsData, salesData, professionalsData, appointmentsData] = await Promise.all([
+      const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData] = await Promise.all([
         base44.entities.Product.list(),
         base44.entities.Client.list(),
         base44.entities.Sale.list('-created_date'),
         base44.entities.Professional.list(),
-        base44.entities.Appointment.list()
+        base44.entities.Appointment.list(),
+        base44.entities.Installment.list(),
+        base44.entities.Expense.list()
       ]);
       setProducts(productsData);
       setClients(clientsData);
       setSales(salesData);
       setProfessionals(professionalsData);
       setAppointments(appointmentsData);
+      setInstallments(installmentsData);
+      setExpenses(expensesData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -533,6 +539,298 @@ export default function Reports() {
                     </div>
                   );
                 })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONTAS A RECEBER */}
+        <TabsContent value="receivables" className="space-y-6">
+          <Card className="p-4 border-0 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => setDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Fim</Label>
+                <Input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setDateStart('');
+                    setDateEnd('');
+                  }}
+                >
+                  Limpar Filtro
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Total a Receber</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">
+                {formatCurrency(installments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + (i.remaining_amount || 0), 0))}
+              </p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Total Recebido</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">
+                {formatCurrency(installments.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + (i.paid_amount || 0), 0))}
+              </p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">PIX Parcelado</p>
+              <p className="text-2xl font-bold text-purple-600 mt-1">
+                {installments.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length}
+              </p>
+              <p className="text-xs text-slate-500">parcelas pendentes</p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Cartão Crédito</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">
+                {installments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length}
+              </p>
+              <p className="text-xs text-slate-500">parcelas pendentes</p>
+            </Card>
+          </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Parcelas a Receber</CardTitle>
+              <Button onClick={() => {
+                const data = installments
+                  .filter(inst => {
+                    if (!dateStart || !dateEnd) return true;
+                    const dueDate = new Date(inst.due_date);
+                    const start = new Date(dateStart);
+                    const end = new Date(dateEnd);
+                    return dueDate >= start && dueDate <= end;
+                  })
+                  .map(i => ({
+                    'Cliente': i.client_name,
+                    'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
+                    'Parcela': i.installment_number,
+                    'Vencimento': format(new Date(i.due_date), 'dd/MM/yyyy'),
+                    'Valor Original': i.original_amount,
+                    'Valor Pago': i.paid_amount,
+                    'Saldo': i.remaining_amount,
+                    'Status': i.payment_status === 'pago' ? 'Pago' : i.payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'
+                  }));
+                exportToExcel(data, 'relatorio_contas_receber');
+              }} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead>Parcela</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead className="text-right">Valor Original</TableHead>
+                      <TableHead className="text-right">Valor Pago</TableHead>
+                      <TableHead className="text-right">Saldo</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {installments
+                      .filter(inst => {
+                        if (!dateStart || !dateEnd) return true;
+                        const dueDate = new Date(inst.due_date);
+                        const start = new Date(dateStart);
+                        const end = new Date(dateEnd);
+                        return dueDate >= start && dueDate <= end;
+                      })
+                      .map(inst => (
+                        <TableRow key={inst.id}>
+                          <TableCell className="font-medium">{inst.client_name}</TableCell>
+                          <TableCell>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</TableCell>
+                          <TableCell>{inst.installment_number}</TableCell>
+                          <TableCell>{format(new Date(inst.due_date), 'dd/MM/yyyy')}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(inst.paid_amount)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(inst.remaining_amount)}</TableCell>
+                          <TableCell>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              inst.payment_status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 
+                              inst.payment_status === 'atrasado' ? 'bg-red-100 text-red-700' : 
+                              'bg-amber-100 text-amber-700'
+                            }`}>
+                              {inst.payment_status === 'pago' ? 'Pago' : inst.payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONTAS A PAGAR */}
+        <TabsContent value="payables" className="space-y-6">
+          <Card className="p-4 border-0 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => setDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Fim</Label>
+                <Input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setDateStart('');
+                    setDateEnd('');
+                  }}
+                >
+                  Limpar Filtro
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">A Pagar</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">
+                {formatCurrency(expenses.filter(e => e.status !== 'pago').reduce((sum, e) => sum + (e.amount || 0), 0))}
+              </p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Pago</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">
+                {formatCurrency(expenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + (e.amount || 0), 0))}
+              </p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Atrasado</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">
+                {formatCurrency(expenses.filter(e => {
+                  if (e.status === 'pago') return false;
+                  const dueDate = new Date(e.due_date);
+                  return dueDate < new Date();
+                }).reduce((sum, e) => sum + (e.amount || 0), 0))}
+              </p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Total Despesas</p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">
+                {expenses.length}
+              </p>
+            </Card>
+          </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Despesas Cadastradas</CardTitle>
+              <Button onClick={() => {
+                const data = expenses
+                  .filter(exp => {
+                    if (!dateStart || !dateEnd) return true;
+                    const dueDate = new Date(exp.due_date);
+                    const start = new Date(dateStart);
+                    const end = new Date(dateEnd);
+                    return dueDate >= start && dueDate <= end;
+                  })
+                  .map(e => ({
+                    'Categoria': e.category_name,
+                    'Fornecedor': e.counterparty_name || '',
+                    'Vencimento': format(new Date(e.due_date), 'dd/MM/yyyy'),
+                    'Valor': e.amount,
+                    'Método': e.payment_method,
+                    'Parcela': e.installment_number ? `${e.installment_number}/${e.installments}` : '-',
+                    'Status': e.status === 'pago' ? 'Pago' : 'A Pagar',
+                    'Data Pagamento': e.payment_date ? format(new Date(e.payment_date), 'dd/MM/yyyy') : '-'
+                  }));
+                exportToExcel(data, 'relatorio_contas_pagar');
+              }} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Fornecedor</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead>Parcela</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expenses
+                      .filter(exp => {
+                        if (!dateStart || !dateEnd) return true;
+                        const dueDate = new Date(exp.due_date);
+                        const start = new Date(dateStart);
+                        const end = new Date(dateEnd);
+                        return dueDate >= start && dueDate <= end;
+                      })
+                      .map(exp => {
+                        const today = new Date();
+                        const dueDate = new Date(exp.due_date);
+                        const status = exp.status === 'pago' ? 'pago' : (dueDate < today ? 'atrasado' : 'a_pagar');
+                        
+                        return (
+                          <TableRow key={exp.id}>
+                            <TableCell className="font-medium">{exp.category_name}</TableCell>
+                            <TableCell>{exp.counterparty_name || '-'}</TableCell>
+                            <TableCell>{format(dueDate, 'dd/MM/yyyy')}</TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrency(exp.amount)}</TableCell>
+                            <TableCell className="capitalize">{exp.payment_method?.replace('_', ' ')}</TableCell>
+                            <TableCell>
+                              {exp.installment_number ? `${exp.installment_number}/${exp.installments}` : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 
+                                status === 'atrasado' ? 'bg-red-100 text-red-700' : 
+                                'bg-amber-100 text-amber-700'
+                              }`}>
+                                {status === 'pago' ? 'Pago' : status === 'atrasado' ? 'Atrasado' : 'A Pagar'}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
