@@ -13,6 +13,7 @@ import ExpenseForm from '../components/financial/ExpenseForm';
 export default function AccountsPayable() {
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState([]);
+  const [installments, setInstallments] = useState([]);
   const [filter, setFilter] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -24,8 +25,12 @@ export default function AccountsPayable() {
   const loadExpenses = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Expense.list('-due_date');
-      setExpenses(data);
+      const [expensesData, installmentsData] = await Promise.all([
+        base44.entities.Expense.list('-due_date'),
+        base44.entities.Installment.list('-due_date')
+      ]);
+      setExpenses(expensesData);
+      setInstallments(installmentsData.filter(i => i.payment_method === 'pix_parcelado'));
     } catch (error) {
       console.error('Erro ao carregar despesas:', error);
     } finally {
@@ -57,13 +62,32 @@ export default function AccountsPayable() {
     return 'a_pagar';
   };
 
+  const updateInstallmentStatus = (installment) => {
+    if (installment.payment_status === 'pago') return 'pago';
+    const today = new Date();
+    const dueDate = new Date(installment.due_date);
+    if (isBefore(dueDate, today)) return 'atrasado';
+    return 'a_pagar';
+  };
+
   const filteredExpenses = expenses.filter(expense => {
     const status = updateExpenseStatus(expense);
-    const matchesFilter = filter === 'todos' || status === filter;
+    const matchesFilter = filter === 'todos' || filter === 'pix_parcelado' ? false : status === filter;
     const matchesSearch = expense.category_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           expense.counterparty_name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  const filteredInstallments = installments.filter(inst => {
+    const status = updateInstallmentStatus(inst);
+    const matchesFilter = filter === 'todos' || filter === 'pix_parcelado' || status === filter;
+    const matchesSearch = inst.client_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  const showOnlyPix = filter === 'pix_parcelado';
+  const displayItems = showOnlyPix ? [] : filteredExpenses;
+  const displayInstallments = (filter === 'todos' || filter === 'pix_parcelado') ? filteredInstallments : [];
 
   const toPay = expenses.filter(e => updateExpenseStatus(e) === 'a_pagar').reduce((sum, e) => sum + e.amount, 0);
   const overdue = expenses.filter(e => updateExpenseStatus(e) === 'atrasado').reduce((sum, e) => sum + e.amount, 0);
@@ -74,6 +98,8 @@ export default function AccountsPayable() {
     return status === 'a_pagar' && isBefore(dueDate, in7Days);
   }).length;
   const paid = expenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + e.amount, 0);
+  
+  const pixPending = installments.filter(i => updateInstallmentStatus(i) !== 'pago').reduce((sum, i) => sum + (i.remaining_amount || 0), 0);
 
   const handlePayExpense = async (expense) => {
     try {
@@ -100,7 +126,7 @@ export default function AccountsPayable() {
         actionLabel="Nova Despesa"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">A Pagar</CardTitle>
@@ -110,6 +136,19 @@ export default function AccountsPayable() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(toPay)}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">PIX Parcelado</CardTitle>
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-purple-600" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(pixPending)}</div>
+            <p className="text-xs text-slate-500 mt-1">{installments.filter(i => updateInstallmentStatus(i) !== 'pago').length} parcelas</p>
           </CardContent>
         </Card>
 
@@ -159,6 +198,7 @@ export default function AccountsPayable() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="pix_parcelado">PIX Parcelado</SelectItem>
                 <SelectItem value="a_pagar">A Pagar</SelectItem>
                 <SelectItem value="atrasado">Atrasado</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
@@ -173,14 +213,45 @@ export default function AccountsPayable() {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredExpenses.length === 0 ? (
+          {displayItems.length === 0 && displayInstallments.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
               <DollarSign className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <p>Nenhuma despesa encontrada</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredExpenses.map((expense) => {
+              {displayInstallments.map((inst) => {
+                const status = updateInstallmentStatus(inst);
+                return (
+                  <div
+                    key={inst.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 bg-purple-50/30"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-semibold">{inst.client_name}</span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">PIX Parcelado</span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(status)}`}>
+                          {status === 'a_pagar' ? 'A Pagar' : status === 'atrasado' ? 'Atrasado' : 'Pago'}
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        Parcela {inst.installment_number} • Vencimento: {format(new Date(inst.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-bold text-lg">{formatCurrency(inst.remaining_amount)}</div>
+                        {inst.paid_amount > 0 && (
+                          <div className="text-xs text-slate-500">Pago: {formatCurrency(inst.paid_amount)}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {displayItems.map((expense) => {
                 const status = updateExpenseStatus(expense);
                 return (
                   <div
