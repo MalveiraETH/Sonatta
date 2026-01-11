@@ -73,12 +73,17 @@ export default function Dashboard() {
 
       // PIX parcelado atrasado
       const overduePixInstallments = installments.filter(inst => {
-        const sale = sales.find(s => s.id === inst.sale_id);
-        const hasPixParcelado = sale?.payment_details?.some(p => p.method === 'pix_parcelado');
         const dueDate = new Date(inst.due_date);
-        return hasPixParcelado && inst.payment_status !== 'pago' && dueDate < todayDate;
+        return inst.payment_method === 'pix_parcelado' && inst.payment_status !== 'pago' && dueDate < todayDate;
       });
       const totalOverduePixAmount = overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0);
+
+      // Cartão de crédito atrasado
+      const overdueCardInstallments = installments.filter(inst => {
+        const dueDate = new Date(inst.due_date);
+        return inst.payment_method === 'cartao_credito' && inst.payment_status !== 'pago' && dueDate < todayDate;
+      });
+      const totalOverdueCardAmount = overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0);
 
       // Cliente com PIX mais antigo atrasado
       const oldestOverdueInstallment = overduePixInstallments.sort((a, b) => 
@@ -87,6 +92,13 @@ export default function Dashboard() {
       if (oldestOverdueInstallment) {
         setOldestOverdueClientId(oldestOverdueInstallment.client_id);
       }
+
+      // Cliente com cartão mais antigo atrasado
+      const [oldestOverdueCardClientId, setOldestOverdueCardClientId] = [null, null];
+      const oldestOverdueCardInstallment = overdueCardInstallments.sort((a, b) => 
+        new Date(a.due_date) - new Date(b.due_date)
+      )[0];
+      const oldestCardClientId = oldestOverdueCardInstallment?.client_id;
 
       // Clients with device test appointments
       const testAppointments = appointments.filter(a => a.type === 'teste');
@@ -144,7 +156,10 @@ export default function Dashboard() {
         receptores,
         totalStockValue,
         overduePixCount: overduePixInstallments.length,
-        overduePixAmount: totalOverduePixAmount
+        overduePixAmount: totalOverduePixAmount,
+        overdueCardCount: overdueCardInstallments.length,
+        overdueCardAmount: totalOverdueCardAmount,
+        oldestCardClientId
       });
 
       setTodayAppointments(todayAppts.slice(0, 5));
@@ -279,7 +294,7 @@ export default function Dashboard() {
       </Link>
 
       {/* Alertas de Pagamento */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link 
           to={oldestOverdueClientId ? createPageUrl(`ClientDetail?id=${oldestOverdueClientId}`) : '#'}
           className={oldestOverdueClientId ? 'cursor-pointer' : 'cursor-default'}
@@ -295,6 +310,28 @@ export default function Dashboard() {
                   <p className="text-2xl font-bold text-red-900">{stats.overduePixCount || 0}</p>
                   <p className="text-sm text-red-600 font-semibold mt-1">
                     Total: {formatCurrency(stats.overduePixAmount || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Link>
+
+        <Link 
+          to={stats.oldestCardClientId ? createPageUrl(`ClientDetail?id=${stats.oldestCardClientId}`) : '#'}
+          className={stats.oldestCardClientId ? 'cursor-pointer' : 'cursor-default'}
+        >
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-md transition-shadow">
+            <div className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center">
+                  <AlertTriangle className="h-7 w-7 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-orange-700 font-medium">Cartão de Crédito Atrasado</p>
+                  <p className="text-2xl font-bold text-orange-900">{stats.overdueCardCount || 0}</p>
+                  <p className="text-sm text-orange-600 font-semibold mt-1">
+                    Total: {formatCurrency(stats.overdueCardAmount || 0)}
                   </p>
                 </div>
               </div>
