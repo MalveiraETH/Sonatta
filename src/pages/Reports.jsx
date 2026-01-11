@@ -211,6 +211,8 @@ export default function Reports() {
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="clients">Clientes</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
+          <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
+          <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="referral">Repasse Indicação</TabsTrigger>
         </TabsList>

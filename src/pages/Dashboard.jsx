@@ -58,12 +58,13 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
         base44.entities.Product.list(),
-        base44.entities.Installment.list()
+        base44.entities.Installment.list(),
+        base44.entities.Expense.list()
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -120,6 +121,35 @@ export default function Dashboard() {
         return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
       });
       const monthRevenue = monthSalesData.reduce((sum, s) => sum + (s.total || 0), 0);
+
+      // Receita do mês (PIX, Dinheiro e recebimentos do contas a receber)
+      const monthActualRevenue = monthSalesData.reduce((sum, s) => {
+        const pixDinheiro = s.payment_details
+          ?.filter(p => p.method === 'pix' || p.method === 'dinheiro')
+          .reduce((total, p) => total + (p.amount || 0), 0) || 0;
+        return sum + pixDinheiro;
+      }, 0);
+
+      const monthInstallmentRevenue = installments
+        .filter(i => {
+          if (i.payment_status !== 'pago') return false;
+          const paymentDate = new Date(i.last_payment_date || i.created_date);
+          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+        })
+        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+
+      const totalMonthRevenue = monthActualRevenue + monthInstallmentRevenue;
+
+      // Contas a pagar do mês
+      const monthExpenses = expenses
+        .filter(e => {
+          const dueDate = new Date(e.due_date);
+          return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+        })
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+
+      // Resultado do mês
+      const monthResult = totalMonthRevenue - monthExpenses;
       const lowStock = products.filter(p => 
         (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
         (p.stock_type === 'serializado' && p.status === 'disponivel' && p.quantity <= 1)
@@ -149,6 +179,9 @@ export default function Dashboard() {
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         monthRevenue,
+        totalMonthRevenue,
+        monthExpenses,
+        monthResult,
         lowStockProducts: lowStock.length,
         aparelhos,
         carregadores,
@@ -244,31 +277,67 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Stats Grid - Financeiro */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Receita do Mês"
+          value={formatCurrency(stats.totalMonthRevenue || 0)}
+          icon={TrendingUp}
+          color="green"
+        />
+        <StatCard
+          title="Contas a Pagar"
+          value={formatCurrency(stats.monthExpenses || 0)}
+          icon={DollarSign}
+          color="red"
+        />
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Resultado</CardTitle>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${(stats.monthResult || 0) >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+              <TrendingUp className={`h-5 w-5 ${(stats.monthResult || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${(stats.monthResult || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatCurrency(stats.monthResult || 0)}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Receita - Despesas</p>
+          </CardContent>
+        </Card>
+        <StatCard
+          title="Receita Faturada do Mês"
+          value={formatCurrency(stats.monthRevenue)}
+          icon={ShoppingCart}
+          color="purple"
+        />
+      </div>
+
       {/* Stats Grid - Vendas e Leads */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Vendas do Mês"
           value={stats.monthSales}
           icon={ShoppingCart}
-          color="green"
-        />
-        <StatCard
-          title="Receita do Mês"
-          value={formatCurrency(stats.monthRevenue)}
-          icon={TrendingUp}
-          color="purple"
+          color="blue"
         />
         <StatCard
           title="Leads"
           value={stats.leadClients}
           icon={UserPlus}
-          color="blue"
+          color="gold"
         />
         <StatCard
           title="Clientes Ativos"
           value={stats.activeClients}
           icon={Users}
-          color="gold"
+          color="purple"
+        />
+        <StatCard
+          title="Agendamentos Hoje"
+          value={stats.todayAppointments}
+          icon={Calendar}
+          color="blue"
         />
       </div>
 
@@ -294,7 +363,7 @@ export default function Dashboard() {
       </Link>
 
       {/* Alertas de Pagamento */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link 
           to={oldestOverdueClientId ? createPageUrl(`ClientDetail?id=${oldestOverdueClientId}`) : '#'}
           className={oldestOverdueClientId ? 'cursor-pointer' : 'cursor-default'}
@@ -338,13 +407,6 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
-
-        <StatCard
-          title="Agendamentos Hoje"
-          value={stats.todayAppointments}
-          icon={Calendar}
-          color="blue"
-        />
       </div>
 
       {/* Stats Grid - Estoque */}

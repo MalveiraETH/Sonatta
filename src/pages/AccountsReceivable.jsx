@@ -73,10 +73,24 @@ export default function AccountsReceivable() {
     return matchesFilter && matchesSearch;
   });
 
-  const pixInstallments = installments.filter(i => i.payment_method === 'pix_parcelado');
-  const cardInstallments = installments.filter(i => i.payment_method === 'cartao_credito');
-  const totalReceivable = installments.reduce((sum, i) => sum + (i.remaining_amount || 0), 0);
-  const totalReceived = installments.reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const pixInstallments = installments.filter(i => i.payment_method === 'pix_parcelado' && updateInstallmentStatus(i) !== 'pago');
+  const cardInstallments = installments.filter(i => i.payment_method === 'cartao_credito' && updateInstallmentStatus(i) !== 'pago');
+  
+  const totalReceivable = installments
+    .filter(i => updateInstallmentStatus(i) !== 'pago')
+    .reduce((sum, i) => sum + (i.remaining_amount || 0), 0);
+  
+  const totalReceivedMonth = installments
+    .filter(i => {
+      if (i.payment_status !== 'pago') return false;
+      const paymentDate = new Date(i.last_payment_date || i.created_date);
+      return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+    })
+    .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
 
   const handlePayInstallment = async () => {
     if (!paymentDialog || !paymentAmount) return;
@@ -124,43 +138,53 @@ export default function AccountsReceivable() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">A Receber</CardTitle>
-            <DollarSign className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-sm font-medium">Total a Receber</CardTitle>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalReceivable)}</div>
+            <p className="text-xs text-slate-500 mt-1">PIX + Cartão pendentes</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Recebido</CardTitle>
-            <DollarSign className="h-5 w-5 text-emerald-600" />
+            <CardTitle className="text-sm font-medium">Total Recebido no Mês</CardTitle>
+            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-emerald-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalReceived)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalReceivedMonth)}</div>
+            <p className="text-xs text-slate-500 mt-1">PIX + Cartão pagos</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">PIX Parcelado</CardTitle>
-            <Smartphone className="h-5 w-5 text-purple-600" />
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Smartphone className="h-5 w-5 text-purple-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pixInstallments.length}</div>
-            <p className="text-xs text-slate-500">parcelas</p>
+            <p className="text-xs text-slate-500">parcelas pendentes</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Cartão Crédito</CardTitle>
-            <CreditCard className="h-5 w-5 text-amber-600" />
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-amber-600" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{cardInstallments.length}</div>
-            <p className="text-xs text-slate-500">parcelas</p>
+            <p className="text-xs text-slate-500">parcelas pendentes</p>
           </CardContent>
         </Card>
       </div>
