@@ -279,32 +279,55 @@ export default function Dashboard() {
 
       {/* Stats Grid - Financeiro */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Receita do Mês"
-          value={formatCurrency(stats.totalMonthRevenue || 0)}
-          icon={TrendingUp}
-          color="green"
-        />
-        <StatCard
-          title="Contas a Pagar"
-          value={formatCurrency(stats.monthExpenses || 0)}
-          icon={DollarSign}
-          color="red"
-        />
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Resultado</CardTitle>
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${(stats.monthResult || 0) >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-              <TrendingUp className={`h-5 w-5 ${(stats.monthResult || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+        <Card className="border-0 shadow-sm bg-emerald-50">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <CardTitle className="text-sm font-medium text-slate-600">Receita do Mês</CardTitle>
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-emerald-600" />
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${(stats.monthResult || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            <div className="text-2xl font-bold text-slate-900">
+              {formatCurrency(stats.totalMonthRevenue || 0)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm bg-red-50">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <CardTitle className="text-sm font-medium text-slate-600">Contas a Pagar</CardTitle>
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-red-600" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-900">
+              {formatCurrency(stats.monthExpenses || 0)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className={`border-0 shadow-sm ${(stats.monthResult || 0) >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <CardTitle className="text-sm font-medium text-slate-600">Resultado</CardTitle>
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${(stats.monthResult || 0) >= 0 ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                <TrendingUp className={`h-5 w-5 ${(stats.monthResult || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-900">
               {formatCurrency(stats.monthResult || 0)}
             </div>
             <p className="text-xs text-slate-500 mt-1">Receita - Despesas</p>
           </CardContent>
         </Card>
+
         <StatCard
           title="Receita Faturada do Mês"
           value={formatCurrency(stats.monthRevenue)}
@@ -365,8 +388,8 @@ export default function Dashboard() {
       {/* Alertas de Pagamento */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link 
-          to={oldestOverdueClientId ? createPageUrl(`ClientDetail?id=${oldestOverdueClientId}`) : '#'}
-          className={oldestOverdueClientId ? 'cursor-pointer' : 'cursor-default'}
+          to={createPageUrl('AccountsReceivable')}
+          className="cursor-pointer"
         >
           <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:shadow-md transition-shadow">
             <div className="p-6">
@@ -387,8 +410,8 @@ export default function Dashboard() {
         </Link>
 
         <Link 
-          to={stats.oldestCardClientId ? createPageUrl(`ClientDetail?id=${stats.oldestCardClientId}`) : '#'}
-          className={stats.oldestCardClientId ? 'cursor-pointer' : 'cursor-default'}
+          to={createPageUrl('AccountsReceivable')}
+          className="cursor-pointer"
         >
           <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-md transition-shadow">
             <div className="p-6">
