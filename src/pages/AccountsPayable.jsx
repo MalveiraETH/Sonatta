@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DollarSign, AlertTriangle, Clock, CheckCircle2, Plus } from 'lucide-react';
+import { DollarSign, AlertTriangle, Clock, CheckCircle2, Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import ExpenseForm from '../components/financial/ExpenseForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 
 export default function AccountsPayable() {
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,11 @@ export default function AccountsPayable() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [additionalFees, setAdditionalFees] = useState('');
   const [feeDescription, setFeeDescription] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   const handlePayExpense = async () => {
     if (!paymentDialog) return;
@@ -104,6 +110,13 @@ export default function AccountsPayable() {
     } catch (error) {
       console.error('Erro ao dar baixa:', error);
     }
+  };
+
+  const handleDelete = async () => {
+    await base44.entities.Expense.delete(expenseToDelete.id);
+    setShowDeleteDialog(false);
+    setExpenseToDelete(null);
+    loadExpenses();
   };
 
   if (loading) {
@@ -219,10 +232,32 @@ export default function AccountsPayable() {
                         {expense.installment_number && <span> • Parcela {expense.installment_number}/{expense.installments}</span>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
+                    <div className="flex items-center gap-2">
+                      <div className="text-right mr-2">
                         <div className="font-bold text-lg">{formatCurrency(expense.amount)}</div>
                       </div>
+                      <Button
+                        onClick={() => {
+                          setSelectedExpense(expense);
+                          setShowDetails(true);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        title="Ver Detalhes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setEditingExpense(expense);
+                          setShowForm(true);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        title="Editar"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       {status !== 'pago' && (
                         <Button
                           onClick={() => {
@@ -237,6 +272,17 @@ export default function AccountsPayable() {
                           Dar Baixa
                         </Button>
                       )}
+                      <Button
+                        onClick={() => {
+                          setExpenseToDelete(expense);
+                          setShowDeleteDialog(true);
+                        }}
+                        size="sm"
+                        variant="destructive"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 );
@@ -248,14 +294,124 @@ export default function AccountsPayable() {
 
       {showForm && (
         <ExpenseForm
+          expense={editingExpense}
           open={showForm}
-          onClose={() => setShowForm(false)}
+          onClose={() => {
+            setShowForm(false);
+            setEditingExpense(null);
+          }}
           onSuccess={() => {
             setShowForm(false);
+            setEditingExpense(null);
             loadExpenses();
           }}
         />
       )}
+
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Despesa</DialogTitle>
+          </DialogHeader>
+          {selectedExpense && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Categoria</p>
+                  <p className="font-medium">{selectedExpense.category_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Fornecedor</p>
+                  <p className="font-medium">{selectedExpense.counterparty_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Valor</p>
+                  <p className="font-medium">{formatCurrency(selectedExpense.amount)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Status</p>
+                  <p className="font-medium capitalize">{updateExpenseStatus(selectedExpense).replace('_', ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Vencimento</p>
+                  <p className="font-medium">{format(new Date(selectedExpense.due_date), 'dd/MM/yyyy')}</p>
+                </div>
+                {selectedExpense.payment_date && (
+                  <div>
+                    <p className="text-sm text-slate-500">Data de Pagamento</p>
+                    <p className="font-medium">{format(new Date(selectedExpense.payment_date), 'dd/MM/yyyy')}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-slate-500">Método de Pagamento</p>
+                  <p className="font-medium capitalize">{selectedExpense.payment_method?.replace('_', ' ')}</p>
+                </div>
+                {selectedExpense.installment_number && (
+                  <div>
+                    <p className="text-sm text-slate-500">Parcela</p>
+                    <p className="font-medium">{selectedExpense.installment_number}/{selectedExpense.installments}</p>
+                  </div>
+                )}
+                {selectedExpense.invoice_number && (
+                  <div>
+                    <p className="text-sm text-slate-500">Nota Fiscal</p>
+                    <p className="font-medium">{selectedExpense.invoice_number}</p>
+                  </div>
+                )}
+              </div>
+              {selectedExpense.notes && (
+                <div>
+                  <p className="text-sm text-slate-500">Observações</p>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{selectedExpense.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão de Despesa</AlertDialogTitle>
+            <AlertDialogDescription>
+              {expenseToDelete && (
+                <div className="mt-4 space-y-3">
+                  <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+                    <p className="font-semibold text-slate-900 text-lg">
+                      {expenseToDelete.category_name}
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {formatCurrency(expenseToDelete.amount)}
+                    </p>
+                    <div className="text-sm text-slate-600 space-y-1">
+                      {expenseToDelete.counterparty_name && (
+                        <p>Fornecedor: {expenseToDelete.counterparty_name}</p>
+                      )}
+                      <p>Vencimento: {format(new Date(expenseToDelete.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                      {expenseToDelete.installment_number && (
+                        <p>Parcela: {expenseToDelete.installment_number}/{expenseToDelete.installments}</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-red-600 font-semibold text-center py-2">
+                    ⚠️ Esta ação é irreversível! A despesa será permanentemente excluída.
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Sim, Excluir Despesa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={!!paymentDialog} onOpenChange={() => setPaymentDialog(null)}>
         <DialogContent>
