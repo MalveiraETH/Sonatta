@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
-export default function InstallmentsControl({ clientId, clientName, clientPhone, onUpdate }) {
+export default function InstallmentsControl({ clientId, clientName, clientPhone, paymentMethod = 'pix_parcelado', onUpdate }) {
   const [installments, setInstallments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -25,11 +25,11 @@ export default function InstallmentsControl({ clientId, clientName, clientPhone,
 
   React.useEffect(() => {
     loadInstallments();
-  }, [clientId]);
+  }, [clientId, paymentMethod]);
 
   const loadInstallments = async () => {
     try {
-      const data = await base44.entities.Installment.filter({ client_id: clientId }, 'due_date');
+      const data = await base44.entities.Installment.filter({ client_id: clientId, payment_method: paymentMethod }, 'due_date');
       setInstallments(data);
     } catch (e) {
       console.error(e);
@@ -96,6 +96,7 @@ export default function InstallmentsControl({ clientId, clientName, clientPhone,
 
     const phone = clientPhone.replace(/\D/g, '');
     const dueDate = format(new Date(installment.due_date), "dd/MM/yyyy", { locale: ptBR });
+    const paymentType = paymentMethod === 'pix_parcelado' ? 'PIX' : 'Cartão de Crédito';
     const message = `Olá ${clientName}! 
 
 Este é um lembrete sobre a parcela ${installment.installment_number} da venda ${installment.sale_number}.
@@ -103,7 +104,7 @@ Este é um lembrete sobre a parcela ${installment.installment_number} da venda $
 📅 Vencimento: ${dueDate}
 💰 Valor: ${formatCurrency(installment.remaining_amount)}
 
-Aguardamos seu pagamento via PIX. Em caso de dúvidas, estamos à disposição!
+Aguardamos seu pagamento via ${paymentType}. Em caso de dúvidas, estamos à disposição!
 
 Obrigado,
 Sonatta Soluções Auditivas`;
@@ -162,7 +163,9 @@ Sonatta Soluções Auditivas`;
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Controle de Parcelas PIX</CardTitle>
+            <CardTitle>
+              {paymentMethod === 'pix_parcelado' ? 'Controle de Parcelas PIX' : 'Controle de Parcelas Cartão'}
+            </CardTitle>
             {totalPending > 0 && (
               <div className="text-right">
                 <p className="text-sm text-slate-500">Saldo Total Devedor</p>
@@ -196,7 +199,7 @@ Sonatta Soluções Auditivas`;
                           </p>
                         </div>
                       </div>
-                      {installment.payment_status !== 'pago' && (
+                      {installment.payment_status !== 'pago' && paymentMethod === 'pix_parcelado' && (
                         <Button
                           size="sm"
                           variant="outline"
