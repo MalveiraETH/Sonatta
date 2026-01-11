@@ -674,7 +674,6 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           </Popover>
                         </div>
                       )}
-                      </div>
                     </div>
                     <Button
                       type="button"
@@ -686,8 +685,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </Card>
+                </Card>
             ))}
 
             {formData.payment_details.length > 0 && (
