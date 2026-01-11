@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, AlertTriangle, Clock, CheckCircle2, Plus } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
-import ExpenseForm from '@/components/financial/ExpenseForm';
+import ExpenseForm from '../components/financial/ExpenseForm';
 
 export default function AccountsPayable() {
   const [loading, setLoading] = useState(true);

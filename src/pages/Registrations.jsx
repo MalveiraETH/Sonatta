@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, CreditCard, Tag, Users, FileText, RotateCw } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
-import CompanyTab from '@/components/financial/CompanyTab';
-import AccountsTab from '@/components/financial/AccountsTab';
-import CategoriesTab from '@/components/financial/CategoriesTab';
-import CounterpartiesTab from '@/components/financial/CounterpartiesTab';
-import RecurringExpensesTab from '@/components/financial/RecurringExpensesTab';
+import CompanyTab from '../components/financial/CompanyTab';
+import AccountsTab from '../components/financial/AccountsTab';
+import CategoriesTab from '../components/financial/CategoriesTab';
+import CounterpartiesTab from '../components/financial/CounterpartiesTab';
+import RecurringExpensesTab from '../components/financial/RecurringExpensesTab';
 
 export default function Registrations() {
   const [activeTab, setActiveTab] = useState('empresas');
