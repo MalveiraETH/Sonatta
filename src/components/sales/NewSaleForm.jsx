@@ -685,7 +685,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </Card>
+                </div>
+              </Card>
             ))}
 
             {formData.payment_details.length > 0 && (
