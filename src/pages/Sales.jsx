@@ -325,34 +325,50 @@ export default function Sales() {
             filteredSales.map((sale) => {
               const hasPixParcelado = sale.payment_details?.some(pd => pd.method === 'pix_parcelado');
               return (
-                <Card key={sale.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
-                  <div className="space-y-3">
+                <Card key={sale.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="px-6 py-4 border-b border-slate-100">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-slate-800">{sale.sale_number}</h3>
-                        <p className="text-sm text-slate-500">{sale.client_name}</p>
-                        <p className="text-xs text-slate-400">{format(new Date(sale.sale_date || sale.created_date), "dd/MM/yyyy", { locale: ptBR })}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-lg text-slate-800">{sale.sale_number || '-'}</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {format(new Date(sale.sale_date || sale.created_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
                       </div>
                       <StatusBadge status={sale.status} />
                     </div>
-                    
-                    <div className="pt-2 border-t">
-                      <p className="text-xl font-bold text-[#1e3a5f]">{formatCurrency(sale.total)}</p>
-                      <div className="text-xs text-slate-500 mt-1">
-                        {sale.payment_details && sale.payment_details.length > 0 && (
-                          <>
-                            {sale.payment_details.map((pd, idx) => (
-                              <p key={idx}>
-                                {paymentMethods[pd.method]}
-                                {pd.installments > 1 && ` (${pd.installments}x)`}
-                              </p>
-                            ))}
-                          </>
-                        )}
+                  </div>
+                  
+                  <div className="px-6 py-4 space-y-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-slate-900">{sale.client_name}</p>
+                      {sale.seller_name && (
+                        <p className="text-xs text-slate-500">Vendedor: {sale.seller_name}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <p className="text-xs text-slate-500">Itens</p>
+                        <p className="text-sm font-medium">{sale.items?.length || 0} item(s)</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Valor Total</p>
+                        <p className="text-lg font-bold text-[#6B3FA0]">{formatCurrency(sale.total)}</p>
                       </div>
                     </div>
-                    
-                    <div className="flex gap-2">
+
+                    {sale.payment_details && sale.payment_details.length > 0 && (
+                      <div className="text-xs text-slate-600 space-y-0.5">
+                        {sale.payment_details.map((pd, idx) => (
+                          <p key={idx}>
+                            {paymentMethods[pd.method]}
+                            {pd.installments > 1 && ` (${pd.installments}x)`}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -361,6 +377,14 @@ export default function Sales() {
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         Ver
+                      </Button>
+                      <Button
+                        onClick={() => sendWhatsApp(sale)}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        size="sm"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        WhatsApp
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -372,10 +396,6 @@ export default function Sales() {
                           <DropdownMenuItem onClick={() => handleGenerateContract(sale)}>
                             <FileSignature className="h-4 w-4 mr-2" />
                             Gerar Contrato
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendWhatsApp(sale)}>
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            WhatsApp
                           </DropdownMenuItem>
                           {sale.status !== 'cancelado' && (
                             <DropdownMenuItem onClick={() => handleCancelSale(sale)} className="text-orange-600">

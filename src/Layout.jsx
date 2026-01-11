@@ -163,7 +163,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1 pb-32">
+        <nav className="p-4 space-y-1 pb-24 lg:pb-32 overflow-y-auto max-h-[calc(100vh-13rem)] lg:max-h-[calc(100vh-15rem)]">
           {menuItems.map((item) => {
             const isActive = currentPageName === item.page;
             const Icon = item.icon;
@@ -173,14 +173,14 @@ export default function Layout({ children, currentPageName }) {
                 to={createPageUrl(item.page)}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                  "flex items-center gap-3 px-4 py-2.5 lg:py-3 rounded-xl transition-all duration-200",
                   isActive
                     ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
                     : "text-white/80 hover:bg-white/10 hover:text-white"
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span className="font-medium">{item.name}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium text-sm lg:text-base">{item.name}</span>
               </Link>
             );
           })}

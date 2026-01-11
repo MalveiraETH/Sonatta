@@ -217,25 +217,25 @@ export default function AccountsPayable() {
                 return (
                   <div
                     key={expense.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
+                    className="flex flex-col gap-3 p-4 border rounded-lg hover:bg-slate-50"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-semibold">{expense.category_name}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(status)}`}>
-                          {status === 'a_pagar' ? 'A Pagar' : status === 'atrasado' ? 'Atrasado' : 'Pago'}
-                        </span>
-                      </div>
-                      <div className="text-sm text-slate-600">
-                        {expense.counterparty_name && <span>{expense.counterparty_name} • </span>}
-                        Vencimento: {format(new Date(expense.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                        {expense.installment_number && <span> • Parcela {expense.installment_number}/{expense.installments}</span>}
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-semibold">{expense.category_name}</span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(status)}`}>
+                            {status === 'a_pagar' ? 'A Pagar' : status === 'atrasado' ? 'Atrasado' : 'Pago'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          {expense.counterparty_name && <span>{expense.counterparty_name} • </span>}
+                          Vencimento: {format(new Date(expense.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                          {expense.installment_number && <span> • Parcela {expense.installment_number}/{expense.installments}</span>}
+                        </div>
+                        <div className="font-bold text-lg mt-2">{formatCurrency(expense.amount)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right mr-2">
-                        <div className="font-bold text-lg">{formatCurrency(expense.amount)}</div>
-                      </div>
+                    <div className="grid grid-cols-2 gap-2">
                       <Button
                         onClick={() => {
                           setSelectedExpense(expense);
@@ -243,9 +243,10 @@ export default function AccountsPayable() {
                         }}
                         size="sm"
                         variant="outline"
-                        title="Ver Detalhes"
+                        className="w-full"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4 mr-1" />
+                        Detalhes
                       </Button>
                       <Button
                         onClick={() => {
@@ -254,9 +255,10 @@ export default function AccountsPayable() {
                         }}
                         size="sm"
                         variant="outline"
-                        title="Editar"
+                        className="w-full"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-4 w-4 mr-1" />
+                        Editar
                       </Button>
                       {status !== 'pago' && (
                         <Button
@@ -267,7 +269,7 @@ export default function AccountsPayable() {
                             setFeeDescription('');
                           }}
                           size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700"
+                          className="bg-emerald-600 hover:bg-emerald-700 w-full"
                         >
                           Dar Baixa
                         </Button>
@@ -279,9 +281,10 @@ export default function AccountsPayable() {
                         }}
                         size="sm"
                         variant="destructive"
-                        title="Excluir"
+                        className="w-full"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Excluir
                       </Button>
                     </div>
                   </div>
