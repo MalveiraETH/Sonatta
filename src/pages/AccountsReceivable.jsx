@@ -226,48 +226,57 @@ export default function AccountsReceivable() {
                 return (
                   <div
                     key={installment.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
+                    className="flex flex-col gap-3 p-4 border rounded-lg hover:bg-slate-50"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-semibold">{installment.client_name}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(status)}`}>
-                          {status === 'pendente' ? 'Pendente' : 
-                           status === 'atrasado' ? 'Atrasado' :
-                           status === 'parcialmente_pago' ? 'Parcial' : 'Pago'}
-                        </span>
-                        {installment.payment_method === 'pix_parcelado' ? (
-                          <Smartphone className="h-4 w-4 text-purple-600" />
-                        ) : (
-                          <CreditCard className="h-4 w-4 text-amber-600" />
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 flex-shrink-0 rounded-lg flex items-center justify-center ${
+                        status === 'pago' ? 'bg-emerald-50' : 
+                        status === 'atrasado' ? 'bg-red-50' : 'bg-slate-100'
+                      }`}>
+                        <DollarSign className={`h-5 w-5 ${
+                          status === 'pago' ? 'text-emerald-600' : 
+                          status === 'atrasado' ? 'text-red-600' : 'text-slate-600'
+                        }`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-semibold">{installment.client_name}</span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(status)}`}>
+                            {status === 'pendente' ? 'Pendente' : 
+                             status === 'atrasado' ? 'Atrasado' :
+                             status === 'parcialmente_pago' ? 'Parcial' : 'Pago'}
+                          </span>
+                          {installment.payment_method === 'pix_parcelado' ? (
+                            <Smartphone className="h-4 w-4 text-purple-600" />
+                          ) : (
+                            <CreditCard className="h-4 w-4 text-amber-600" />
+                          )}
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          Parcela {installment.installment_number} • 
+                          Vencimento: {format(new Date(installment.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="font-bold text-lg">{formatCurrency(installment.remaining_amount)}</div>
+                          {installment.paid_amount > 0 && (
+                            <div className="text-xs text-emerald-600">
+                              Pago: {formatCurrency(installment.paid_amount)}
+                            </div>
+                          )}
+                        </div>
+                        {status !== 'pago' && (
+                          <Button
+                            onClick={() => {
+                              setPaymentDialog(installment);
+                              setPaymentAmount(installment.remaining_amount.toString());
+                            }}
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 w-full mt-2"
+                          >
+                            Dar Baixa
+                          </Button>
                         )}
                       </div>
-                      <div className="text-sm text-slate-600">
-                        Parcela {installment.installment_number} • 
-                        Vencimento: {format(new Date(installment.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-bold text-lg">{formatCurrency(installment.remaining_amount)}</div>
-                        {installment.paid_amount > 0 && (
-                          <div className="text-xs text-slate-500">
-                            Pago: {formatCurrency(installment.paid_amount)}
-                          </div>
-                        )}
-                      </div>
-                      {status !== 'pago' && (
-                        <Button
-                          onClick={() => {
-                            setPaymentDialog(installment);
-                            setPaymentAmount(installment.remaining_amount.toString());
-                          }}
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700"
-                        >
-                          Dar Baixa
-                        </Button>
-                      )}
                     </div>
                   </div>
                 );
