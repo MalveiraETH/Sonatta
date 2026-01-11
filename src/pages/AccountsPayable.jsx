@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DollarSign, AlertTriangle, Clock, CheckCircle2, Plus } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import ExpenseForm from '../components/financial/ExpenseForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function AccountsPayable() {
   const [loading, setLoading] = useState(true);
@@ -75,12 +76,30 @@ export default function AccountsPayable() {
   }).length;
   const paid = expenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + e.amount, 0);
 
-  const handlePayExpense = async (expense) => {
+  const [paymentDialog, setPaymentDialog] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [additionalFees, setAdditionalFees] = useState('');
+  const [feeDescription, setFeeDescription] = useState('');
+
+  const handlePayExpense = async () => {
+    if (!paymentDialog) return;
+    
     try {
-      await base44.entities.Expense.update(expense.id, {
+      const baseAmount = paymentDialog.amount;
+      const fees = parseFloat(additionalFees) || 0;
+      const totalAmount = baseAmount + fees;
+      
+      await base44.entities.Expense.update(paymentDialog.id, {
         status: 'pago',
-        payment_date: format(new Date(), 'yyyy-MM-dd')
+        payment_date: format(new Date(), 'yyyy-MM-dd'),
+        amount: totalAmount,
+        notes: feeDescription ? `${paymentDialog.notes || ''}\n${feeDescription}`.trim() : paymentDialog.notes
       });
+      
+      setPaymentDialog(null);
+      setPaymentAmount('');
+      setAdditionalFees('');
+      setFeeDescription('');
       loadExpenses();
     } catch (error) {
       console.error('Erro ao dar baixa:', error);
@@ -206,7 +225,12 @@ export default function AccountsPayable() {
                       </div>
                       {status !== 'pago' && (
                         <Button
-                          onClick={() => handlePayExpense(expense)}
+                          onClick={() => {
+                            setPaymentDialog(expense);
+                            setPaymentAmount(expense.amount.toString());
+                            setAdditionalFees('');
+                            setFeeDescription('');
+                          }}
                           size="sm"
                           className="bg-emerald-600 hover:bg-emerald-700"
                         >
@@ -232,6 +256,65 @@ export default function AccountsPayable() {
           }}
         />
       )}
+
+      <Dialog open={!!paymentDialog} onOpenChange={() => setPaymentDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Categoria</label>
+              <p className="text-lg">{paymentDialog?.category_name}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Valor Original</label>
+              <p className="text-xl font-bold">{formatCurrency(paymentDialog?.amount)}</p>
+            </div>
+            {paymentDialog && new Date(paymentDialog.due_date) < new Date() && (
+              <>
+                <div>
+                  <label className="text-sm font-medium">Juros/Multas</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={additionalFees}
+                    onChange={(e) => setAdditionalFees(e.target.value)}
+                    placeholder="0,00"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Adicionar valor de juros ou multas por atraso
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Descrição dos Juros/Multas</label>
+                  <Input
+                    value={feeDescription}
+                    onChange={(e) => setFeeDescription(e.target.value)}
+                    placeholder="Ex: Juros 2% + Multa R$ 10,00"
+                  />
+                </div>
+              </>
+            )}
+            {additionalFees && parseFloat(additionalFees) > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-amber-800">Total a Pagar</p>
+                <p className="text-2xl font-bold text-amber-900">
+                  {formatCurrency((paymentDialog?.amount || 0) + parseFloat(additionalFees))}
+                </p>
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setPaymentDialog(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={handlePayExpense} className="bg-emerald-600 hover:bg-emerald-700">
+                Confirmar Pagamento
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

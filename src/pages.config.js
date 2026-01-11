@@ -1,4 +1,3 @@
-import AccountsPayable from './pages/AccountsPayable';
 import AccountsReceivable from './pages/AccountsReceivable';
 import Appointments from './pages/Appointments';
 import ClientDetail from './pages/ClientDetail';
@@ -14,11 +13,11 @@ import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
+import AccountsPayable from './pages/AccountsPayable';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "AccountsPayable": AccountsPayable,
     "AccountsReceivable": AccountsReceivable,
     "Appointments": Appointments,
     "ClientDetail": ClientDetail,
@@ -34,6 +33,7 @@ export const PAGES = {
     "Reports": Reports,
     "Sales": Sales,
     "Settings": Settings,
+    "AccountsPayable": AccountsPayable,
 }
 
 export const pagesConfig = {
