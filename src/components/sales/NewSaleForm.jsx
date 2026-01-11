@@ -30,9 +30,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [saleDate, setSaleDate] = useState(new Date());
+  const [firstDueDate, setFirstDueDate] = useState(null);
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -52,7 +54,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     status: 'pendente',
     notes: '',
     quote_id: '',
-    nota_fiscal: ''
+    nota_fiscal: '',
+    category_id: '',
+    category_name: ''
   });
 
   useEffect(() => {
@@ -123,13 +127,15 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   const loadData = async () => {
     try {
-      const [clientsData, productsData, user] = await Promise.all([
+      const [clientsData, productsData, categoriesData, user] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Product.list(),
+        base44.entities.ExpenseCategory.filter({ type: 'receita' }),
         base44.auth.me()
       ]);
       setClients(clientsData);
       setProducts(productsData);
+      setCategories(categoriesData);
       setCurrentUser(user);
       
       if (!sale && !quote) {
@@ -308,21 +314,22 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       const newSale = await base44.entities.Sale.create(dataToSave);
       await logCreation('Venda', `${saleNumber} - ${formData.client_name}`, newSale.id);
 
-      // Criar parcelas para pagamento Pix Parcelado
+      // Criar parcelas para pagamento Pix Parcelado e Cartão
       for (const payment of formData.payment_details) {
-        if (payment.method === 'pix_parcelado' && payment.installments > 1) {
+        if ((payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && payment.installments > 1) {
           const installmentAmount = payment.amount / payment.installments;
-          const saleDateObj = new Date(saleDate);
+          const baseDueDate = payment.method === 'pix_parcelado' && firstDueDate ? new Date(firstDueDate) : new Date(saleDate);
           
           for (let i = 1; i <= payment.installments; i++) {
-            const dueDate = new Date(saleDateObj);
-            dueDate.setDate(dueDate.getDate() + (30 * i));
+            const dueDate = new Date(baseDueDate);
+            dueDate.setMonth(dueDate.getMonth() + (i - 1));
             
             await base44.entities.Installment.create({
               sale_id: newSale.id,
               sale_number: saleNumber,
               client_id: formData.client_id,
               client_name: formData.client_name,
+              payment_method: payment.method,
               installment_number: i,
               due_date: dueDate.toISOString().split('T')[0],
               original_amount: installmentAmount,
@@ -397,8 +404,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 pt-2 sm:pt-4">
-          {/* Data e Cliente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          {/* Data, Cliente e Categoria */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label className="text-sm">Data da Venda *</Label>
               <Popover>
@@ -451,6 +458,25 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   ))}
                 </datalist>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Categoria *</Label>
+              <Select
+                value={formData.category_id}
+                onValueChange={(value) => {
+                  const cat = categories.find(c => c.id === value);
+                  setFormData({ ...formData, category_id: value, category_name: cat?.name });
+                }}
+              >
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -620,6 +646,34 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                             </Select>
                           </div>
                         )}
+                      </div>
+                      {payment.method === 'pix_parcelado' && payment.installments > 1 && (
+                        <div>
+                          <Label className="text-xs">Data do 1º Vencimento</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="w-full justify-start text-left font-normal text-sm"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">
+                                  {firstDueDate ? format(firstDueDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione..."}
+                                </span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={firstDueDate}
+                                onSelect={(date) => setFirstDueDate(date)}
+                                initialFocus
+                                locale={ptBR}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
                       </div>
                     </div>
                     <Button

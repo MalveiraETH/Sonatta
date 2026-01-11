@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DollarSign, CreditCard, Smartphone } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 export default function AccountsReceivable() {
   const [loading, setLoading] = useState(true);
@@ -17,6 +20,7 @@ export default function AccountsReceivable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentDialog, setPaymentDialog] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date());
 
   useEffect(() => {
     loadInstallments();
@@ -84,7 +88,7 @@ export default function AccountsReceivable() {
       
       const paymentHistory = paymentDialog.payment_history || [];
       paymentHistory.push({
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: format(paymentDate, 'yyyy-MM-dd'),
         amount: amount,
         note: ''
       });
@@ -93,12 +97,13 @@ export default function AccountsReceivable() {
         paid_amount: newPaidAmount,
         remaining_amount: newRemainingAmount,
         payment_status: newRemainingAmount <= 0 ? 'pago' : 'parcialmente_pago',
-        last_payment_date: format(new Date(), 'yyyy-MM-dd'),
+        last_payment_date: format(paymentDate, 'yyyy-MM-dd'),
         payment_history: paymentHistory
       });
 
       setPaymentDialog(null);
       setPaymentAmount('');
+      setPaymentDate(new Date());
       loadInstallments();
     } catch (error) {
       console.error('Erro ao processar pagamento:', error);
@@ -271,6 +276,26 @@ export default function AccountsReceivable() {
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 placeholder="0,00"
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Data do Pagamento</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(paymentDate, "dd/MM/yyyy", { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(date) => setPaymentDate(date || new Date())}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setPaymentDialog(null)}>

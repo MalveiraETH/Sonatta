@@ -263,6 +263,7 @@ export default function ClientDetail() {
         <TabsList className="bg-slate-100 flex-wrap h-auto">
           <TabsTrigger value="devices">Aparelhos</TabsTrigger>
           <TabsTrigger value="installments">Parcelas PIX</TabsTrigger>
+          <TabsTrigger value="card-installments">Parcelas Cartão</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="quotes">Orçamentos</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
@@ -362,6 +363,17 @@ export default function ClientDetail() {
             clientId={client.id}
             clientName={client.full_name}
             clientPhone={client.phone}
+            paymentMethod="pix_parcelado"
+            onUpdate={loadData}
+          />
+        </TabsContent>
+
+        <TabsContent value="card-installments">
+          <InstallmentsControl 
+            clientId={client.id}
+            clientName={client.full_name}
+            clientPhone={client.phone}
+            paymentMethod="cartao_credito"
             onUpdate={loadData}
           />
         </TabsContent>
