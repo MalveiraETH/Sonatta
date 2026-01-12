@@ -124,19 +124,28 @@ export default function Reports() {
     pendente: filteredSales.filter(s => s.status === 'pendente').length
   };
 
-  const exportStockReport = () => {
-    const data = products.map(p => ({
-      'Nome': p.name,
-      'Categoria': p.category,
-      'Marca': p.brand || '',
-      'Modelo': p.model || '',
-      'Serial': p.serial_number || '',
-      'Status': p.status,
-      'Custo do Produto': p.cost_price || 0,
-      'Venda': p.sale_price || 0,
-      'NF de Entrada': p.nota_fiscal_entrada || '',
-      'Data Entrada': p.entry_date || ''
-    }));
+  const exportStockReport = async () => {
+    // Buscar movimentações de saída para pegar NF de saída e data de saída
+    const movements = await base44.entities.StockMovement.filter({ type: 'saida' });
+    
+    const data = products.map(p => {
+      const exitMovement = movements.find(m => m.product_id === p.id);
+      
+      return {
+        'Nome': p.name,
+        'Categoria': p.category,
+        'Marca': p.brand || '',
+        'Modelo': p.model || '',
+        'Serial': p.serial_number || '',
+        'Status': p.status,
+        'Custo do Produto': p.cost_price || 0,
+        'Venda': p.sale_price || 0,
+        'NF de Entrada': p.nota_fiscal_entrada || '',
+        'Data Entrada': p.entry_date || '',
+        'NF de Saída': '', // Campo para ser preenchido manualmente
+        'Data de Saída': exitMovement ? format(new Date(exitMovement.created_date), 'dd/MM/yyyy') : ''
+      };
+    });
     exportToExcel(data, 'relatorio_estoque');
   };
 
@@ -153,24 +162,55 @@ export default function Reports() {
   };
 
   const exportSalesReport = () => {
-    const data = filteredSales.map(s => {
+    const data = [];
+    const paymentMethodLabels = {
+      dinheiro: 'Dinheiro',
+      pix: 'PIX',
+      pix_parcelado: 'PIX Parcelado',
+      cartao_credito: 'Cartão de Crédito',
+      cartao_debito: 'Cartão de Débito',
+      boleto: 'Boleto',
+      transferencia: 'Transferência'
+    };
+    
+    filteredSales.forEach(s => {
       const client = clients.find(c => c.id === s.client_id);
       const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
       const profResponsavel = professionals.find(p => p.id === client?.responsible_professional);
       
-      return {
-        'Número': s.sale_number,
-        'Cliente': s.client_name,
-        'Prof. Indicação': profIndicacao?.full_name || '',
-        'Prof. Responsável': profResponsavel?.full_name || '',
-        'Valor': s.total,
-        'Pagamento': s.payment_method,
-        'Parcelas': s.installments,
-        'Status': s.status,
-        'NF': s.nota_fiscal || '',
-        'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
-      };
+      // Se tem payment_details (novo formato), criar linha para cada método
+      if (s.payment_details && s.payment_details.length > 0) {
+        s.payment_details.forEach(pd => {
+          data.push({
+            'Número': s.sale_number,
+            'Cliente': s.client_name,
+            'Prof. Indicação': profIndicacao?.full_name || '',
+            'Prof. Responsável': profResponsavel?.full_name || '',
+            'Valor': pd.amount || 0,
+            'Método': paymentMethodLabels[pd.method] || pd.method,
+            'Parcelas': pd.installments > 1 ? pd.installments : '',
+            'Status': s.status,
+            'NF': s.nota_fiscal || '',
+            'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
+          });
+        });
+      } else {
+        // Formato antigo (compatibilidade)
+        data.push({
+          'Número': s.sale_number,
+          'Cliente': s.client_name,
+          'Prof. Indicação': profIndicacao?.full_name || '',
+          'Prof. Responsável': profResponsavel?.full_name || '',
+          'Valor': s.total,
+          'Método': paymentMethodLabels[s.payment_method] || s.payment_method || '',
+          'Parcelas': s.installments > 1 ? s.installments : '',
+          'Status': s.status,
+          'NF': s.nota_fiscal || '',
+          'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
+        });
+      }
     });
+    
     exportToExcel(data, 'relatorio_vendas');
   };
 
@@ -267,21 +307,31 @@ export default function Reports() {
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Custo do Produto</TableHead>
                       <TableHead className="text-right">Valor Venda</TableHead>
-                      <TableHead>NF de Entrada</TableHead>
+                      <TableHead>NF Entrada</TableHead>
+                      <TableHead>NF Saída</TableHead>
+                      <TableHead>Data Saída</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {products.map(product => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>{product.brand} {product.model}</TableCell>
-                        <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
-                        <TableCell><StatusBadge status={product.status} /></TableCell>
-                        <TableCell className="text-right">{formatCurrency(product.cost_price)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
-                        <TableCell className="text-sm text-slate-600">{product.nota_fiscal_entrada || '-'}</TableCell>
-                      </TableRow>
-                    ))}
+                    {products.map(product => {
+                      // Buscar data de saída através de movimentação de estoque
+                      const exitDate = product.status === 'vendido' ? 
+                        format(new Date(product.updated_date), 'dd/MM/yyyy') : '-';
+                      
+                      return (
+                        <TableRow key={product.id}>
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell>{product.brand} {product.model}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
+                          <TableCell><StatusBadge status={product.status} /></TableCell>
+                          <TableCell className="text-right">{formatCurrency(product.cost_price)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{product.nota_fiscal_entrada || '-'}</TableCell>
+                          <TableCell className="text-sm text-slate-600">-</TableCell>
+                          <TableCell className="text-sm text-slate-600">{exitDate}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -425,7 +475,7 @@ export default function Reports() {
                       <TableHead>Prof. Responsável</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Pagamento</TableHead>
+                      <TableHead>Método</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -444,7 +494,24 @@ export default function Reports() {
                           <TableCell>{format(new Date(sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(sale.total)}</TableCell>
                           <TableCell className="text-sm">
-                            {sale.payment_method} {sale.installments > 1 && `(${sale.installments}x)`}
+                            {sale.payment_details && sale.payment_details.length > 0 ? (
+                              <div className="space-y-0.5">
+                                {sale.payment_details.map((pd, idx) => (
+                                  <div key={idx}>
+                                    {pd.method === 'pix' ? 'PIX' : 
+                                     pd.method === 'pix_parcelado' ? 'PIX Parcelado' :
+                                     pd.method === 'cartao_credito' ? 'Cartão Crédito' :
+                                     pd.method === 'cartao_debito' ? 'Cartão Débito' :
+                                     pd.method === 'dinheiro' ? 'Dinheiro' :
+                                     pd.method === 'boleto' ? 'Boleto' :
+                                     pd.method === 'transferencia' ? 'Transferência' : pd.method}
+                                    {pd.installments > 1 && ` (${pd.installments}x)`}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span>{sale.payment_method} {sale.installments > 1 && `(${sale.installments}x)`}</span>
+                            )}
                           </TableCell>
                           <TableCell><StatusBadge status={sale.status} /></TableCell>
                         </TableRow>

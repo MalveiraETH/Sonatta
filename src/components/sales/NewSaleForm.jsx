@@ -318,7 +318,17 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       for (const payment of formData.payment_details) {
         if ((payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && payment.installments > 1) {
           const installmentAmount = payment.amount / payment.installments;
-          const baseDueDate = payment.method === 'pix_parcelado' && firstDueDate ? new Date(firstDueDate) : new Date(saleDate);
+          let baseDueDate;
+          
+          if (payment.method === 'pix_parcelado' && firstDueDate) {
+            baseDueDate = new Date(firstDueDate);
+          } else if (payment.method === 'cartao_credito') {
+            // Cartão de crédito: primeira parcela vence D+30
+            baseDueDate = new Date(saleDate);
+            baseDueDate.setDate(baseDueDate.getDate() + 30);
+          } else {
+            baseDueDate = new Date(saleDate);
+          }
           
           for (let i = 1; i <= payment.installments; i++) {
             const dueDate = new Date(baseDueDate);
