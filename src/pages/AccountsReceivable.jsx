@@ -65,7 +65,7 @@ export default function AccountsReceivable() {
   const loadInstallments = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Installment.list('-due_date');
+      const data = await base44.entities.Installment.list('due_date');
       setInstallments(data);
     } catch (error) {
       toast.error('Erro ao carregar parcelas');
