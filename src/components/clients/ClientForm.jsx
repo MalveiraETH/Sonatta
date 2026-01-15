@@ -29,6 +29,8 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
     email: '',
     address: '',
     birth_date: '',
+    payer_name: '',
+    payer_document: '',
     status: 'lead',
     notes: ''
   });
@@ -42,6 +44,8 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         email: client.email || '',
         address: client.address || '',
         birth_date: client.birth_date || '',
+        payer_name: client.payer_name || '',
+        payer_document: client.payer_document || '',
         status: client.status || 'lead',
         notes: client.notes || ''
       });
@@ -53,6 +57,8 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         email: '',
         address: '',
         birth_date: '',
+        payer_name: '',
+        payer_document: '',
         status: 'lead',
         notes: ''
       });
@@ -74,6 +80,25 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       .replace(/(\d{2})(\d)/, '($1) $2')
       .replace(/(\d{5})(\d)/, '$1-$2')
       .replace(/(-\d{4})\d+?$/, '$1');
+  };
+
+  const formatCNPJ = (value) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  };
+
+  const formatDocument = (value) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) {
+      return formatCPF(value);
+    } else {
+      return formatCNPJ(value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -173,6 +198,31 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Endereço completo"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label className="font-semibold text-slate-700">Responsável pelo Pagamento (se diferente do cliente)</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payer_name">Nome do Responsável</Label>
+              <Input
+                id="payer_name"
+                value={formData.payer_name}
+                onChange={(e) => setFormData({ ...formData, payer_name: e.target.value })}
+                placeholder="Nome do responsável pelo pagamento"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payer_document">CPF ou CNPJ do Responsável</Label>
+              <Input
+                id="payer_document"
+                value={formData.payer_document}
+                onChange={(e) => setFormData({ ...formData, payer_document: formatDocument(e.target.value) })}
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                maxLength={18}
               />
             </div>
 

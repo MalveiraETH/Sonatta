@@ -184,6 +184,8 @@ export default function Reports() {
           data.push({
             'Número': s.sale_number,
             'Cliente': s.client_name,
+            'Responsável Pagamento': client?.payer_name || '',
+            'CPF/CNPJ Responsável': client?.payer_document || '',
             'Prof. Indicação': profIndicacao?.full_name || '',
             'Prof. Responsável': profResponsavel?.full_name || '',
             'Valor': pd.amount || 0,
@@ -199,6 +201,8 @@ export default function Reports() {
         data.push({
           'Número': s.sale_number,
           'Cliente': s.client_name,
+          'Responsável Pagamento': client?.payer_name || '',
+          'CPF/CNPJ Responsável': client?.payer_document || '',
           'Prof. Indicação': profIndicacao?.full_name || '',
           'Prof. Responsável': profResponsavel?.full_name || '',
           'Valor': s.total,
