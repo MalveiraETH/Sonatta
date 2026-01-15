@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -12,17 +13,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import PageHeader from '@/components/ui/PageHeader';
-import { 
-  Search, 
-  FileText, 
-  MessageCircle, 
-  AlertCircle, 
-  CheckCircle,
-  Download,
-  Calendar,
-  DollarSign
-} from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, FileDown, X, AlertCircle, CheckCircle2, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import PixReportPDF from '@/components/reports/PixReportPDF';
@@ -36,6 +49,7 @@ export default function PixReport() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [clientsReport, setClientsReport] = useState([]);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -57,7 +71,6 @@ export default function PixReport() {
       setSales(salesData);
       setInstallments(installmentsData);
 
-      // Processar dados para o relatório
       const report = processPixReport(clientsData, salesData, installmentsData);
       setClientsReport(report);
     } catch (error) {
@@ -71,7 +84,6 @@ export default function PixReport() {
     const today = new Date();
     const clientMap = new Map();
 
-    // Filtrar vendas com PIX parcelado
     const pixSales = salesData.filter(sale => 
       sale.payment_details?.some(p => p.method === 'pix_parcelado')
     );
@@ -124,7 +136,6 @@ export default function PixReport() {
         }
       });
 
-      // Determinar status geral
       clientData.status = clientData.overdueCount > 0 ? 'inadimplente' : 'adimplente';
     });
 
@@ -136,14 +147,12 @@ export default function PixReport() {
   const filterClients = () => {
     let filtered = [...clientsReport];
 
-    // Filtro por status
     if (statusFilter === 'adimplente') {
       filtered = filtered.filter(c => c.status === 'adimplente');
     } else if (statusFilter === 'inadimplente') {
       filtered = filtered.filter(c => c.status === 'inadimplente');
     }
 
-    // Filtro por busca
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(c => 
@@ -163,6 +172,16 @@ export default function PixReport() {
     }).format(value || 0);
   };
 
+  const sendWhatsApp = (clientData) => {
+    const phone = clientData.client.phone?.replace(/\D/g, '');
+    if (!phone) {
+      toast.error('Cliente não possui telefone');
+      return;
+    }
+    const message = generateWhatsAppMessage(clientData);
+    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+  };
+
   const generateWhatsAppMessage = (clientData) => {
     const client = clientData.client;
     const overdueInstallments = clientData.installments.filter(inst => {
@@ -173,41 +192,56 @@ export default function PixReport() {
     let message = `Olá ${client.full_name}! 👋\n\n`;
     
     if (clientData.status === 'inadimplente') {
-      message += `Identificamos que você possui ${clientData.overdueCount} parcela(s) de PIX Parcelado em atraso.\n\n`;
-      message += `*Detalhes das Parcelas Atrasadas:*\n`;
-      
-      overdueInstallments.slice(0, 3).forEach(inst => {
-        message += `• Parcela ${inst.installment_number} - Venc: ${format(new Date(inst.due_date), 'dd/MM/yyyy')}\n`;
-        message += `  Valor: ${formatCurrency(inst.remaining_amount)}\n`;
-      });
-      
-      message += `\n*Total em Atraso:* ${formatCurrency(clientData.totalRemaining)}\n\n`;
-      message += `Para regularizar sua situação, entre em contato conosco! 😊\n\n`;
+      message += `Identificamos ${clientData.overdueCount} parcela(s) de PIX Parcelado em atraso.\n\n`;
+      message += `*Total em Atraso:* ${formatCurrency(clientData.totalRemaining)}\n\n`;
+      message += `Entre em contato conosco para regularizar! 😊`;
     } else {
-      const nextInstallment = clientData.installments
-        .filter(inst => inst.payment_status !== 'pago')
-        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
-      
-      if (nextInstallment) {
-        message += `Sua próxima parcela do PIX Parcelado vence em ${format(new Date(nextInstallment.due_date), 'dd/MM/yyyy')}.\n\n`;
-        message += `*Valor:* ${formatCurrency(nextInstallment.remaining_amount)}\n\n`;
-        message += `Agradecemos pela sua pontualidade! 🎉\n\n`;
-      } else {
-        message += `Parabéns! Todas as suas parcelas do PIX Parcelado estão quitadas! 🎉\n\n`;
-      }
+      message += `Sua próxima parcela vence em breve.\n\nAgradecemos pela sua pontualidade! 🎉`;
     }
     
-    message += `*Sonatta - Soluções Auditivas*\n`;
-    message += `📞 (92) 99169-2102`;
+    message += `\n\n*Sonatta - Soluções Auditivas*\n📞 (92) 99169-2102`;
     
     return encodeURIComponent(message);
   };
 
-  const sendWhatsApp = (clientData) => {
-    const phone = clientData.client.phone?.replace(/\D/g, '');
-    const message = generateWhatsAppMessage(clientData);
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('todos');
   };
+
+  const stats = {
+    total: clientsReport.length,
+    adimplentes: clientsReport.filter(c => c.status === 'adimplente').length,
+    inadimplentes: clientsReport.filter(c => c.status === 'inadimplente').length,
+    totalReceivable: clientsReport.reduce((sum, c) => sum + c.totalRemaining, 0)
+  };
+
+  const FiltersContent = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm">Status</Label>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="adimplente">Adimplentes</SelectItem>
+            <SelectItem value="inadimplente">Inadimplentes</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" onClick={clearFilters} className="flex-1">
+          Limpar
+        </Button>
+        <Button onClick={() => setFilterOpen(false)} className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]">
+          Aplicar
+        </Button>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -218,195 +252,291 @@ export default function PixReport() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Relatório PIX Parcelado"
-        description="Gestão de clientes adimplentes e inadimplentes"
-      />
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">PIX Parcelado</h1>
+          <p className="text-sm text-slate-500 mt-1">Relatório de adimplência e inadimplência</p>
+        </div>
+        <PixReportPDF clientsReport={filteredClients} />
+      </div>
 
-      {/* Estatísticas Resumidas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">Total de Clientes</p>
-                <p className="text-2xl font-bold text-slate-800">{clientsReport.length}</p>
-              </div>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('todos')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Clientes</p>
+              <p className="text-lg sm:text-2xl font-bold text-slate-900">{stats.total}</p>
             </div>
-          </CardContent>
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 opacity-60" />
+          </div>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-emerald-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-emerald-700">Adimplentes</p>
-                <p className="text-2xl font-bold text-emerald-900">
-                  {clientsReport.filter(c => c.status === 'adimplente').length}
-                </p>
-              </div>
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('adimplente')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Adimplentes</p>
+              <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.adimplentes}</p>
             </div>
-          </CardContent>
+            <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
+          </div>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-red-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center">
-                <AlertCircle className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-red-700">Inadimplentes</p>
-                <p className="text-2xl font-bold text-red-900">
-                  {clientsReport.filter(c => c.status === 'inadimplente').length}
-                </p>
-              </div>
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('inadimplente')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Inadimplentes</p>
+              <p className="text-lg sm:text-2xl font-bold text-red-600">{stats.inadimplentes}</p>
             </div>
-          </CardContent>
+            <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 opacity-60" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">A Receber</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.totalReceivable)}</p>
+            </div>
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
+          </div>
         </Card>
       </div>
 
-      {/* Filtros */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Filters - Desktop */}
+      <Card className="p-4 hidden lg:block">
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Label className="text-sm mb-2">Buscar</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Buscar por nome, CPF ou telefone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9"
               />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
+          </div>
 
+          <div className="w-48">
+            <Label className="text-sm mb-2">Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="Status" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos os Status</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="adimplente">Adimplentes</SelectItem>
                 <SelectItem value="inadimplente">Inadimplentes</SelectItem>
               </SelectContent>
             </Select>
-
-            <PixReportPDF clientsReport={filteredClients} />
           </div>
-        </CardContent>
+
+          <Button variant="outline" onClick={clearFilters}>
+            Limpar
+          </Button>
+        </div>
       </Card>
 
-      {/* Lista de Clientes */}
-      <div className="grid gap-4">
-        {filteredClients.length > 0 ? (
-          filteredClients.map((clientData) => (
-            <Card 
-              key={clientData.client.id} 
-              className={`border-0 shadow-sm hover:shadow-md transition-shadow ${
-                clientData.status === 'inadimplente' ? 'bg-red-50/50' : 'bg-white'
-              }`}
+      {/* Filters - Mobile */}
+      <div className="lg:hidden space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearchTerm('')}
             >
-              <CardContent className="pt-6">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                  {/* Info do Cliente */}
-                  <div className="flex-1">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        clientData.status === 'inadimplente' 
-                          ? 'bg-red-500' 
-                          : 'bg-emerald-500'
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+              {statusFilter !== 'todos' && (
+                <span className="ml-2 bg-[#6B3FA0] text-white text-xs px-2 py-0.5 rounded-full">
+                  Ativos
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[80vh]">
+            <SheetHeader>
+              <SheetTitle>Filtros</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <FiltersContent />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Table - Desktop */}
+      <Card className="hidden lg:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50">
+              <TableHead>Cliente</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Parcelas</TableHead>
+              <TableHead className="text-right">Total Devido</TableHead>
+              <TableHead className="text-right">Total Pago</TableHead>
+              <TableHead className="text-right">Saldo</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredClients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12 text-slate-500">
+                  Nenhum cliente encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredClients.map(clientData => {
+                const Icon = clientData.status === 'inadimplente' ? AlertCircle : CheckCircle2;
+                return (
+                  <TableRow key={clientData.client.id} className="hover:bg-slate-50">
+                    <TableCell className="font-medium">{clientData.client.full_name}</TableCell>
+                    <TableCell>{clientData.client.phone}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                        clientData.status === 'inadimplente' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
                       }`}>
-                        {clientData.status === 'inadimplente' ? (
-                          <AlertCircle className="h-6 w-6 text-white" />
-                        ) : (
-                          <CheckCircle className="h-6 w-6 text-white" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <Link 
-                          to={createPageUrl(`ClientDetail?id=${clientData.client.id}`)}
-                          className="text-lg font-semibold text-slate-800 hover:text-[#6B3FA0]"
-                        >
-                          {clientData.client.full_name}
-                        </Link>
-                        <p className="text-sm text-slate-500">
-                          {clientData.client.cpf} • {clientData.client.phone}
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                            clientData.status === 'inadimplente'
-                              ? 'bg-red-100 text-red-700'
-                              : 'bg-emerald-100 text-emerald-700'
-                          }`}>
-                            {clientData.status === 'inadimplente' ? 'Inadimplente' : 'Adimplente'}
-                          </span>
-                          {clientData.overdueCount > 0 && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 font-medium">
-                              {clientData.overdueCount} parcela(s) atrasada(s)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                        <Icon className="h-3.5 w-3.5" />
+                        {clientData.status === 'inadimplente' ? 'Inadimplente' : 'Adimplente'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">{clientData.paidCount}/{clientData.installments.length}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(clientData.totalDue)}</TableCell>
+                    <TableCell className="text-right text-emerald-600 font-medium">{formatCurrency(clientData.totalPaid)}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(clientData.totalRemaining)}</TableCell>
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={createPageUrl(`ClientDetail?id=${clientData.client.id}`)} className="flex items-center">
+                              <Eye className="h-4 w-4 mr-2" />
+                              Detalhes
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => sendWhatsApp(clientData)}>
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            WhatsApp
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </Card>
 
-                  {/* Dados Financeiros */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 lg:gap-6">
-                    <div>
-                      <p className="text-xs text-slate-500">Total Devido</p>
-                      <p className="font-semibold text-slate-800">{formatCurrency(clientData.totalDue)}</p>
+      {/* Cards - Mobile */}
+      <div className="lg:hidden space-y-3">
+        {filteredClients.length === 0 ? (
+          <Card className="p-8 text-center text-slate-500">
+            Nenhum cliente encontrado
+          </Card>
+        ) : (
+          filteredClients.map(clientData => {
+            const Icon = clientData.status === 'inadimplente' ? AlertCircle : CheckCircle2;
+            return (
+              <Card key={clientData.client.id} className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-slate-900">{clientData.client.full_name}</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          clientData.status === 'inadimplente' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          <Icon className="h-3 w-3" />
+                          {clientData.status === 'inadimplente' ? 'Inadimplente' : 'OK'}
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        {clientData.client.phone} • {clientData.paidCount}/{clientData.installments.length} parcelas
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Total Pago</p>
-                      <p className="font-semibold text-emerald-600">{formatCurrency(clientData.totalPaid)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Saldo Restante</p>
-                      <p className={`font-semibold ${clientData.overdueCount > 0 ? 'text-red-600' : 'text-slate-800'}`}>
-                        {formatCurrency(clientData.totalRemaining)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Parcelas</p>
-                      <p className="font-semibold text-slate-800">
-                        {clientData.paidCount}/{clientData.installments.length}
-                      </p>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link to={createPageUrl(`ClientDetail?id=${clientData.client.id}`)} className="flex items-center">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Detalhes
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => sendWhatsApp(clientData)}>
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          WhatsApp
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-
-                  {/* Ações */}
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => sendWhatsApp(clientData)}
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 hover:bg-green-50"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                    </Button>
-                    <Link to={createPageUrl(`ClientDetail?id=${clientData.client.id}`)}>
-                      <Button variant="outline" size="sm">
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(clientData.totalRemaining)}</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-500">Total Devido:</span>
+                      <p className="font-medium">{formatCurrency(clientData.totalDue)}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Total Pago:</span>
+                      <p className="font-medium text-emerald-600">{formatCurrency(clientData.totalPaid)}</p>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="py-12 text-center">
-              <p className="text-slate-500">Nenhum cliente encontrado com os filtros aplicados.</p>
-            </CardContent>
-          </Card>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>

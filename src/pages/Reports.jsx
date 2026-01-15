@@ -495,7 +495,7 @@ export default function Reports() {
                           <TableCell>{sale.client_name}</TableCell>
                           <TableCell className="text-sm">{profIndicacao?.full_name || '-'}</TableCell>
                           <TableCell className="text-sm">{profResponsavel?.full_name || '-'}</TableCell>
-                          <TableCell>{format(new Date(sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                          <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(sale.total)}</TableCell>
                           <TableCell className="text-sm">
                             {sale.payment_details && sale.payment_details.length > 0 ? (

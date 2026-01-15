@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -18,35 +27,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import PageHeader from '@/components/ui/PageHeader';
-import StatusBadge from '@/components/ui/StatusBadge';
-import {
-  Search,
-  MoreHorizontal,
-  Eye,
-  Trash2,
-  MessageCircle,
-  Mail,
-  FileText,
-  CheckCircle,
-  Archive,
-  Download,
-  Printer,
-  Grid3x3,
-  List
-} from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, Mail, CheckCircle, Archive, Trash2, X, FileText, Shield } from 'lucide-react';
 import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -60,8 +54,9 @@ export default function Contracts() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedContract, setSelectedContract] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const [viewMode, setViewMode] = useState('cards');
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -104,28 +99,6 @@ export default function Contracts() {
     setFilteredContracts(filtered);
   };
 
-  const handleView = (contract) => {
-    setSelectedContract(contract);
-    setDetailOpen(true);
-  };
-
-  const handleDelete = async (contract) => {
-    if (!confirm('Tem certeza que deseja excluir este contrato?')) return;
-
-    if (currentUser?.user_role !== 'admin') {
-      toast.error('Apenas administradores podem excluir contratos');
-      return;
-    }
-
-    try {
-      await base44.entities.Contract.delete(contract.id);
-      toast.success('Contrato excluído');
-      loadData();
-    } catch (error) {
-      toast.error('Erro ao excluir contrato');
-    }
-  };
-
   const handleStatusChange = async (contract, newStatus) => {
     try {
       const updateData = { status: newStatus };
@@ -162,24 +135,24 @@ export default function Contracts() {
     try {
       await base44.integrations.Core.SendEmail({
         to: contract.client_email,
-        subject: `Contrato ${contract.contract_number} - Sonatta Soluções Auditivas`,
-        body: `
-          <h2>Olá ${contract.client_name}!</h2>
-          <p>Seu contrato está disponível para assinatura.</p>
-          <p><strong>Nº Contrato:</strong> ${contract.contract_number}</p>
-          <p><strong>Valor Total:</strong> ${formatCurrency(contract.total_value)}</p>
-          <p><strong>Garantia:</strong> ${contract.warranty_period}</p>
-          <br>
-          <p>Por favor, entre em contato para assinar o contrato.</p>
-          <br>
-          <p>Atenciosamente,</p>
-          <p><strong>Sonatta Soluções Auditivas</strong></p>
-        `
+        subject: `Contrato ${contract.contract_number} - Sonatta`,
+        body: `<h2>Olá ${contract.client_name}!</h2><p>Seu contrato está disponível.</p>`
       });
       toast.success('E-mail enviado com sucesso!');
       handleStatusChange(contract, 'enviado');
     } catch (error) {
       toast.error('Erro ao enviar e-mail');
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await base44.entities.Contract.delete(selectedContract.id);
+      toast.success('Contrato excluído');
+      setDeleteOpen(false);
+      loadData();
+    } catch (error) {
+      toast.error('Erro ao excluir contrato');
     }
   };
 
@@ -190,104 +163,266 @@ export default function Contracts() {
     }).format(value || 0);
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+  };
+
+  const stats = {
+    total: contracts.length,
+    gerado: contracts.filter(c => c.status === 'gerado').length,
+    enviado: contracts.filter(c => c.status === 'enviado').length,
+    assinado: contracts.filter(c => c.status === 'assinado').length
+  };
+
+  const FiltersContent = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm">Status</Label>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="gerado">Gerado</SelectItem>
+            <SelectItem value="enviado">Enviado</SelectItem>
+            <SelectItem value="assinado">Assinado</SelectItem>
+            <SelectItem value="arquivado">Arquivado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" onClick={clearFilters} className="flex-1">
+          Limpar
+        </Button>
+        <Button onClick={() => setFilterOpen(false)} className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]">
+          Aplicar
+        </Button>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3a5f]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B3FA0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Contratos"
-        description={`${contracts.length} contratos registrados`}
-      />
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Contratos</h1>
+          <p className="text-sm text-slate-500 mt-1">{contracts.length} contratos registrados</p>
+        </div>
+      </div>
 
-      {/* Filters */}
-      <Card className="p-4 border-0 shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Buscar por cliente ou número..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('all')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Total</p>
+              <p className="text-lg sm:text-2xl font-bold text-slate-900">{stats.total}</p>
+            </div>
+            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 opacity-60" />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="gerado">Gerado</SelectItem>
-              <SelectItem value="enviado">Enviado</SelectItem>
-              <SelectItem value="assinado">Assinado</SelectItem>
-              <SelectItem value="arquivado">Arquivado</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'cards' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('cards')}
-              className={viewMode === 'cards' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('table')}
-              className={viewMode === 'table' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
-            >
-              <List className="h-4 w-4" />
-            </Button>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('gerado')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Gerados</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-600">{stats.gerado}</p>
+            </div>
+            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
           </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('enviado')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Enviados</p>
+              <p className="text-lg sm:text-2xl font-bold text-amber-600">{stats.enviado}</p>
+            </div>
+            <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 opacity-60" />
+          </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('assinado')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Assinados</p>
+              <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.assinado}</p>
+            </div>
+            <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters - Desktop */}
+      <Card className="p-4 hidden lg:block">
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Label className="text-sm mb-2">Buscar</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por cliente ou número..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="w-48">
+            <Label className="text-sm mb-2">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="gerado">Gerado</SelectItem>
+                <SelectItem value="enviado">Enviado</SelectItem>
+                <SelectItem value="assinado">Assinado</SelectItem>
+                <SelectItem value="arquivado">Arquivado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button variant="outline" onClick={clearFilters}>
+            Limpar
+          </Button>
         </div>
       </Card>
 
-      {/* Cards View */}
-      {viewMode === 'cards' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredContracts.length > 0 ? (
-            filteredContracts.map((contract) => (
-              <Card key={contract.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-800">{contract.contract_number}</h3>
-                      <p className="text-sm text-slate-500">{contract.client_name}</p>
-                      <p className="text-xs text-slate-400">{format(new Date(contract.created_date), "dd/MM/yyyy", { locale: ptBR })}</p>
-                    </div>
-                    <StatusBadge status={contract.status} />
-                  </div>
-                  
-                  <div className="pt-2 border-t">
-                    <p className="text-xl font-bold text-[#6B3FA0]">{formatCurrency(contract.total_value)}</p>
-                    <p className="text-xs text-slate-500">Garantia: {contract.warranty_period}</p>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleView(contract)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver
-                    </Button>
+      {/* Filters - Mobile */}
+      <div className="lg:hidden space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearchTerm('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+              {statusFilter !== 'all' && (
+                <span className="ml-2 bg-[#6B3FA0] text-white text-xs px-2 py-0.5 rounded-full">
+                  Ativos
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[80vh]">
+            <SheetHeader>
+              <SheetTitle>Filtros</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <FiltersContent />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Table - Desktop */}
+      <Card className="hidden lg:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50">
+              <TableHead>Número</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Garantia</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredContracts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                  Nenhum contrato encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredContracts.map(contract => (
+                <TableRow key={contract.id} className="hover:bg-slate-50">
+                  <TableCell className="font-medium">{contract.contract_number}</TableCell>
+                  <TableCell>{contract.client_name}</TableCell>
+                  <TableCell>{format(new Date(contract.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(contract.total_value)}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                      contract.status === 'assinado' ? 'bg-emerald-100 text-emerald-700' :
+                      contract.status === 'enviado' ? 'bg-blue-100 text-blue-700' :
+                      contract.status === 'arquivado' ? 'bg-slate-100 text-slate-700' :
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {contract.status === 'gerado' ? 'Gerado' : 
+                       contract.status === 'enviado' ? 'Enviado' :
+                       contract.status === 'assinado' ? 'Assinado' : 'Arquivado'}
+                    </span>
+                  </TableCell>
+                  <TableCell>{contract.warranty_period}</TableCell>
+                  <TableCell className="text-center">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDetailOpen(true); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => sendWhatsApp(contract)}>
                           <MessageCircle className="h-4 w-4 mr-2" />
                           WhatsApp
@@ -298,7 +433,7 @@ export default function Contracts() {
                         </DropdownMenuItem>
                         {contract.status !== 'assinado' && (
                           <DropdownMenuItem onClick={() => handleStatusChange(contract, 'assinado')}>
-                            <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
+                            <CheckCircle className="h-4 w-4 mr-2" />
                             Marcar Assinado
                           </DropdownMenuItem>
                         )}
@@ -308,254 +443,130 @@ export default function Contracts() {
                             Arquivar
                           </DropdownMenuItem>
                         )}
-                        {currentUser?.user_role === 'admin' && (
-                          <DropdownMenuItem onClick={() => handleDelete(contract)} className="text-red-600">
+                        {currentUser?.role === 'admin' && (
+                          <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDeleteOpen(true); }} className="text-red-600">
                             <Trash2 className="h-4 w-4 mr-2" />
                             Excluir
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <p className="text-slate-500">Nenhum contrato encontrado</p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <Card className="border-0 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>Contrato</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="hidden md:table-cell">Garantia</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredContracts.length > 0 ? (
-                filteredContracts.map((contract) => (
-                  <TableRow key={contract.id} className="hover:bg-slate-50">
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-slate-800">{contract.contract_number}</p>
-                        <p className="text-xs text-slate-500">
-                          {format(new Date(contract.created_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{contract.client_name}</p>
-                        <p className="text-xs text-slate-500">{contract.client_cpf}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {contract.warranty_period}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <p className="font-semibold text-[#1e3a5f]">
-                        {formatCurrency(contract.total_value)}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={contract.status} />
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleView(contract)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Detalhes
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendWhatsApp(contract)}>
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Enviar WhatsApp
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => sendEmail(contract)}>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Enviar E-mail
-                          </DropdownMenuItem>
-                          {contract.status !== 'assinado' && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(contract, 'assinado')}>
-                              <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
-                              Marcar como Assinado
-                            </DropdownMenuItem>
-                          )}
-                          {contract.status === 'assinado' && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(contract, 'arquivado')}>
-                              <Archive className="h-4 w-4 mr-2" />
-                              Arquivar
-                            </DropdownMenuItem>
-                          )}
-                          {currentUser?.user_role === 'admin' && (
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(contract)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                    Nenhum contrato encontrado
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </Card>
-      )}
 
-      {/* Contract Detail Dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Contrato {selectedContract?.contract_number}
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedContract && (
-            <div className="space-y-6 pt-4 overflow-y-auto pr-2">
-              {/* Client Info */}
-              <Card className="p-4 bg-slate-50">
-                <h3 className="font-semibold text-slate-800 mb-3">Dados do Cliente</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-500">Nome:</span>
-                    <p className="font-medium">{selectedContract.client_name}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">CPF:</span>
-                    <p className="font-medium">{selectedContract.client_cpf || '-'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Telefone:</span>
-                    <p className="font-medium">{selectedContract.client_phone || '-'}</p>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">E-mail:</span>
-                    <p className="font-medium">{selectedContract.client_email || '-'}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-slate-500">Endereço:</span>
-                    <p className="font-medium">{selectedContract.client_address || '-'}</p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Products */}
-              <Card className="p-4">
-                <h3 className="font-semibold text-slate-800 mb-3">Produtos</h3>
-                <div className="space-y-2">
-                  {selectedContract.products?.map((product, index) => (
-                    <div key={index} className="flex justify-between items-center py-2 border-b last:border-0">
-                      <div>
-                        <p className="font-medium">{product.product_name}</p>
-                        {product.serial_number && (
-                          <p className="text-xs text-slate-500">Série: {product.serial_number}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{formatCurrency(product.unit_price)}</p>
-                        <p className="text-xs text-slate-500">Qtd: {product.quantity}</p>
-                      </div>
+      {/* Cards - Mobile */}
+      <div className="lg:hidden space-y-3">
+        {filteredContracts.length === 0 ? (
+          <Card className="p-8 text-center text-slate-500">
+            Nenhum contrato encontrado
+          </Card>
+        ) : (
+          filteredContracts.map(contract => (
+            <Card key={contract.id} className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-slate-900">{contract.contract_number}</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        contract.status === 'assinado' ? 'bg-emerald-100 text-emerald-700' :
+                        contract.status === 'enviado' ? 'bg-blue-100 text-blue-700' :
+                        contract.status === 'arquivado' ? 'bg-slate-100 text-slate-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {contract.status === 'gerado' ? 'Gerado' : 
+                         contract.status === 'enviado' ? 'Enviado' :
+                         contract.status === 'assinado' ? 'Assinado' : 'Arquivado'}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Contract Details */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm text-slate-500">Valor Total:</span>
-                  <p className="text-xl font-bold text-[#1e3a5f]">
-                    {formatCurrency(selectedContract.total_value)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-slate-500">Garantia:</span>
-                  <p className="font-semibold">{selectedContract.warranty_period}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-slate-500">Condições de Pagamento:</span>
-                  <p className="font-medium">{selectedContract.payment_conditions || '-'}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-slate-500">Status:</span>
-                  <div className="mt-1">
-                    <StatusBadge status={selectedContract.status} />
+                    <div className="text-sm text-slate-600">
+                      {contract.client_name} • {format(new Date(contract.created_date), 'dd/MM/yyyy', { locale: ptBR })}
+                    </div>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDetailOpen(true); }}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => sendWhatsApp(contract)}>
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        WhatsApp
+                      </DropdownMenuItem>
+                      {contract.status !== 'assinado' && (
+                        <DropdownMenuItem onClick={() => handleStatusChange(contract, 'assinado')}>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Marcar Assinado
+                        </DropdownMenuItem>
+                      )}
+                      {currentUser?.role === 'admin' && (
+                        <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDeleteOpen(true); }} className="text-red-600">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                {selectedContract.signature_date && (
-                  <div>
-                    <span className="text-sm text-slate-500">Data de Assinatura:</span>
-                    <p className="font-medium">
-                      {format(new Date(selectedContract.signature_date), "dd/MM/yyyy", { locale: ptBR })}
-                    </p>
-                  </div>
-                )}
+                <div className="text-2xl font-bold text-slate-900">{formatCurrency(contract.total_value)}</div>
+                <div className="text-xs text-slate-500">Garantia: {contract.warranty_period}</div>
               </div>
+            </Card>
+          ))
+        )}
+      </div>
 
-              {selectedContract.notes && (
+      {/* Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Contrato {selectedContract?.contract_number}</DialogTitle>
+          </DialogHeader>
+          {selectedContract && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-sm text-slate-500">Observações:</span>
-                  <p className="text-sm mt-1">{selectedContract.notes}</p>
+                  <span className="text-slate-500">Cliente:</span>
+                  <p className="font-medium">{selectedContract.client_name}</p>
                 </div>
-              )}
-
+                <div>
+                  <span className="text-slate-500">Valor:</span>
+                  <p className="font-medium text-lg">{formatCurrency(selectedContract.total_value)}</p>
+                </div>
+              </div>
               {selectedContract.contract_text && (
-                <Card className="p-4 bg-slate-50">
-                  <h3 className="font-semibold text-slate-800 mb-3">Contrato</h3>
-                  <div className="text-xs sm:text-sm whitespace-pre-wrap max-h-60 sm:max-h-96 overflow-y-auto border border-slate-200 rounded p-3 sm:p-4 bg-white">
-                    {selectedContract.contract_text}
-                  </div>
-                </Card>
+                <div className="bg-slate-50 p-4 rounded max-h-60 overflow-y-auto">
+                  <pre className="text-xs whitespace-pre-wrap">{selectedContract.contract_text}</pre>
+                </div>
               )}
-
-              <div className="flex flex-wrap justify-end gap-2 sm:gap-3 pt-4 border-t sticky bottom-0 bg-white pb-2">
-                <Button variant="outline" onClick={() => setDetailOpen(false)}>
-                  Fechar
-                </Button>
-                {selectedContract.contract_text && (
-                  <ContractPDFGenerator 
-                    contract={selectedContract}
-                    contractText={selectedContract.contract_text}
-                  />
-                )}
-                <Button
-                  onClick={() => sendWhatsApp(selectedContract)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Enviar WhatsApp
-                </Button>
-              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            Tem certeza que deseja excluir este contrato? Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
