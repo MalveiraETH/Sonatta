@@ -5,6 +5,14 @@ import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -20,27 +28,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import PageHeader from '@/components/ui/PageHeader';
-import StatusBadge from '@/components/ui/StatusBadge';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import ClientForm from '@/components/clients/ClientForm';
-import {
-  Search,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  MessageCircle,
-  Calendar,
-  FileText,
-  Eye,
-  Grid3x3,
-  List
-} from 'lucide-react';
+import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Clients() {
@@ -51,8 +46,7 @@ export default function Clients() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -64,12 +58,8 @@ export default function Clients() {
 
   const loadData = async () => {
     try {
-      const [clientsData, user] = await Promise.all([
-        base44.entities.Client.list('-created_date'),
-        base44.auth.me()
-      ]);
+      const clientsData = await base44.entities.Client.list('-created_date');
       setClients(clientsData);
-      setCurrentUser(user);
     } catch (error) {
       console.error(error);
     } finally {
@@ -97,35 +87,6 @@ export default function Clients() {
     setFilteredClients(filtered);
   };
 
-  const handleEdit = (client) => {
-    setSelectedClient(client);
-    setFormOpen(true);
-  };
-
-  const handleDelete = async (client) => {
-    if (!confirm('Tem certeza que deseja excluir este cliente? Todos os agendamentos deste cliente também serão excluídos.')) return;
-    
-    if (currentUser?.user_role !== 'admin') {
-      toast.error('Apenas administradores podem excluir registros');
-      return;
-    }
-
-    try {
-      // Excluir agendamentos do cliente
-      const appointments = await base44.entities.Appointment.filter({ client_id: client.id });
-      for (const appointment of appointments) {
-        await base44.entities.Appointment.delete(appointment.id);
-      }
-      
-      // Excluir cliente
-      await base44.entities.Client.delete(client.id);
-      toast.success('Cliente e seus agendamentos excluídos');
-      loadData();
-    } catch (error) {
-      toast.error('Erro ao excluir cliente');
-    }
-  };
-
   const sendWhatsApp = (client) => {
     if (!client.phone) {
       toast.error('Cliente não possui telefone cadastrado');
@@ -135,6 +96,11 @@ export default function Clients() {
     window.open(`https://wa.me/55${phone}`, '_blank');
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+  };
+
   const statusLabels = {
     lead: 'Lead',
     em_teste: 'Em Teste',
@@ -142,167 +108,340 @@ export default function Clients() {
     pos_venda: 'Pós-Venda'
   };
 
+  const stats = {
+    total: clients.length,
+    leads: clients.filter(c => c.status === 'lead').length,
+    emTeste: clients.filter(c => c.status === 'em_teste').length,
+    ativos: clients.filter(c => c.status === 'cliente_ativo').length
+  };
+
+  const FiltersContent = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm">Status</Label>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" onClick={clearFilters} className="flex-1">
+          Limpar
+        </Button>
+        <Button onClick={() => setFilterOpen(false)} className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]">
+          Aplicar
+        </Button>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3a5f]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B3FA0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Clientes"
-        description={`${clients.length} clientes cadastrados`}
-        action={() => {
-          setSelectedClient(null);
-          setFormOpen(true);
-        }}
-        actionLabel="Novo Cliente"
-      />
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Clientes</h1>
+          <p className="text-sm text-slate-500 mt-1">{clients.length} clientes cadastrados</p>
+        </div>
+        <Button onClick={() => { setSelectedClient(null); setFormOpen(true); }} className="bg-[#6B3FA0] hover:bg-[#834CB8] w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Cliente
+        </Button>
+      </div>
 
-      {/* Filters */}
-      <Card className="p-4 border-0 shadow-sm">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Buscar por nome, CPF, telefone ou e-mail..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('all')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Total</p>
+              <p className="text-lg sm:text-2xl font-bold text-slate-900">{stats.total}</p>
+            </div>
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 opacity-60" />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Filtrar por status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <SelectItem key={value} value={value}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'cards' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('cards')}
-              className={viewMode === 'cards' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('table')}
-              className={viewMode === 'table' ? 'bg-[#6B3FA0] hover:bg-[#834CB8]' : ''}
-            >
-              <List className="h-4 w-4" />
-            </Button>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('lead')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Leads</p>
+              <p className="text-lg sm:text-2xl font-bold text-amber-600">{stats.leads}</p>
+            </div>
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 opacity-60" />
           </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('em_teste')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Em Teste</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-600">{stats.emTeste}</p>
+            </div>
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
+          </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('cliente_ativo')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Ativos</p>
+              <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.ativos}</p>
+            </div>
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters - Desktop */}
+      <Card className="p-4 hidden lg:block">
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Label className="text-sm mb-2">Buscar</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por nome, CPF, telefone ou e-mail..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="w-48">
+            <Label className="text-sm mb-2">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button variant="outline" onClick={clearFilters}>
+            Limpar
+          </Button>
         </div>
       </Card>
 
-      {/* Cards Grid */}
-      {viewMode === 'cards' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredClients.length > 0 ? (
-            filteredClients.map((client) => (
-              <Card key={client.id} className="border-0 shadow-sm hover:shadow-md transition-shadow p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-800 text-lg">{client.full_name}</h3>
-                      {client.cpf && <p className="text-xs text-slate-400">CPF: {client.cpf}</p>}
-                    </div>
-                    <StatusBadge status={client.status} />
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleEdit(client)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex-1">
-                      <Button variant="default" size="sm" className="w-full bg-[#6B3FA0] hover:bg-[#834CB8]">
-                        <Eye className="h-4 w-4 mr-1" />
-                        Detalhes
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <p className="text-slate-500">Nenhum cliente encontrado</p>
-            </div>
+      {/* Filters - Mobile */}
+      <div className="lg:hidden space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearchTerm('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
           )}
         </div>
-      ) : (
-        <Card className="border-0 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead className="hidden md:table-cell">CPF</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.length > 0 ? (
-                  filteredClients.map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{client.full_name}</p>
-                          <p className="text-xs text-slate-500 md:hidden">{client.cpf}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{client.cpf || '-'}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={client.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(client)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`}>
-                            <Button variant="default" size="sm" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-                              <Eye className="h-4 w-4" />
-                            </Button>
+
+        <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+              {statusFilter !== 'all' && (
+                <span className="ml-2 bg-[#6B3FA0] text-white text-xs px-2 py-0.5 rounded-full">
+                  Ativos
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[80vh]">
+            <SheetHeader>
+              <SheetTitle>Filtros</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <FiltersContent />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Table - Desktop */}
+      <Card className="hidden lg:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50">
+              <TableHead>Nome</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredClients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-12 text-slate-500">
+                  Nenhum cliente encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredClients.map(client => (
+                <TableRow key={client.id} className="hover:bg-slate-50">
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{client.full_name}</p>
+                      <p className="text-xs text-slate-500">{client.cpf || '-'}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{client.phone || '-'}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      client.status === 'cliente_ativo' ? 'bg-emerald-100 text-emerald-700' :
+                      client.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
+                      client.status === 'lead' ? 'bg-amber-100 text-amber-700' :
+                      'bg-slate-100 text-slate-700'
+                    }`}>
+                      {statusLabels[client.status]}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex items-center">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Detalhes
                           </Link>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12 text-slate-500">
-                      Nenhum cliente encontrado
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedClient(client); setFormOpen(true); }}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        {client.phone && (
+                          <DropdownMenuItem onClick={() => sendWhatsApp(client)}>
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            WhatsApp
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Cards - Mobile */}
+      <div className="lg:hidden space-y-3">
+        {filteredClients.length === 0 ? (
+          <Card className="p-8 text-center text-slate-500">
+            Nenhum cliente encontrado
+          </Card>
+        ) : (
+          filteredClients.map(client => (
+            <Card key={client.id} className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-slate-900">{client.full_name}</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        client.status === 'cliente_ativo' ? 'bg-emerald-100 text-emerald-700' :
+                        client.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
+                        client.status === 'lead' ? 'bg-amber-100 text-amber-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {statusLabels[client.status]}
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {client.phone || 'Sem telefone'}
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex items-center">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Detalhes
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSelectedClient(client); setFormOpen(true); }}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      {client.phone && (
+                        <DropdownMenuItem onClick={() => sendWhatsApp(client)}>
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          WhatsApp
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
 
       <ClientForm
         open={formOpen}
