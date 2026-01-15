@@ -3,54 +3,26 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import StatCard from '@/components/ui/StatCard';
-import StatusBadge from '@/components/ui/StatusBadge';
-import WarrantyAlerts from '@/components/dashboard/WarrantyAlerts';
 import {
-  Users,
-  Calendar,
-  ShoppingCart,
-  Package,
-  TrendingUp,
-  Clock,
-  AlertTriangle,
-  ArrowRight,
-  Ear,
   DollarSign,
-  UserPlus
+  TrendingUp,
+  Users,
+  ShoppingCart,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  Ear,
+  Package
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalClients: 0,
-    activeClients: 0,
-    todayAppointments: 0,
-    monthSales: 0,
-    monthRevenue: 0,
-    lowStockProducts: 0
-  });
+  const [stats, setStats] = useState({});
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentSales, setRecentSales] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
-  const [salesByCategory, setSalesByCategory] = useState([]);
-  const [oldestTestClientId, setOldestTestClientId] = useState(null);
-  const [oldestOverdueClientId, setOldestOverdueClientId] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -72,57 +44,22 @@ export default function Dashboard() {
       const currentMonth = todayDate.getMonth();
       const currentYear = todayDate.getFullYear();
 
-      // PIX parcelado atrasado
+      // Filtros
       const overduePixInstallments = installments.filter(inst => {
         const dueDate = new Date(inst.due_date);
         return inst.payment_method === 'pix_parcelado' && inst.payment_status !== 'pago' && dueDate < todayDate;
       });
-      const totalOverduePixAmount = overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0);
 
-      // Cartão de crédito atrasado
       const overdueCardInstallments = installments.filter(inst => {
         const dueDate = new Date(inst.due_date);
         return inst.payment_method === 'cartao_credito' && inst.payment_status !== 'pago' && dueDate < todayDate;
       });
-      const totalOverdueCardAmount = overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0);
 
-      // Cliente com PIX mais antigo atrasado
-      const oldestOverdueInstallment = overduePixInstallments.sort((a, b) => 
-        new Date(a.due_date) - new Date(b.due_date)
-      )[0];
-      if (oldestOverdueInstallment) {
-        setOldestOverdueClientId(oldestOverdueInstallment.client_id);
-      }
-
-      // Cliente com cartão mais antigo atrasado
-      const [oldestOverdueCardClientId, setOldestOverdueCardClientId] = [null, null];
-      const oldestOverdueCardInstallment = overdueCardInstallments.sort((a, b) => 
-        new Date(a.due_date) - new Date(b.due_date)
-      )[0];
-      const oldestCardClientId = oldestOverdueCardInstallment?.client_id;
-
-      // Clients with device test appointments
-      const testAppointments = appointments.filter(a => a.type === 'teste');
-      const clientsWithTestAppointments = new Set(testAppointments.map(a => a.client_id)).size;
-
-      // Cliente com teste mais antigo
-      const oldestTestAppointment = testAppointments.sort((a, b) => 
-        new Date(a.date) - new Date(b.date)
-      )[0];
-      if (oldestTestAppointment) {
-        setOldestTestClientId(oldestTestAppointment.client_id);
-      }
-
-      // Stats
-      const activeClients = clients.filter(c => c.status === 'cliente_ativo').length;
-      const todayAppts = appointments.filter(a => a.date === today);
       const monthSalesData = sales.filter(s => {
         const saleDate = new Date(s.sale_date || s.created_date);
         return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
       });
-      const monthRevenue = monthSalesData.reduce((sum, s) => sum + (s.total || 0), 0);
 
-      // Receita do mês (PIX, Dinheiro e recebimentos do contas a receber)
       const monthActualRevenue = monthSalesData.reduce((sum, s) => {
         const pixDinheiro = s.payment_details
           ?.filter(p => p.method === 'pix' || p.method === 'dinheiro')
@@ -140,7 +77,6 @@ export default function Dashboard() {
 
       const totalMonthRevenue = monthActualRevenue + monthInstallmentRevenue;
 
-      // Contas a pagar do mês
       const monthExpenses = expenses
         .filter(e => {
           const dueDate = new Date(e.due_date);
@@ -148,82 +84,33 @@ export default function Dashboard() {
         })
         .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-      // Resultado do mês
       const monthResult = totalMonthRevenue - monthExpenses;
+
       const lowStock = products.filter(p => 
         (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
         (p.stock_type === 'serializado' && p.status === 'disponivel' && p.quantity <= 1)
       );
 
-      // Produtos por categoria específica
-      const aparelhos = products.filter(p => p.category === 'aparelho_auditivo' && (p.stock_type === 'serializado' ? p.status === 'disponivel' : p.quantity > 0)).length;
-      const carregadores = products.filter(p => p.category === 'carregador' && (p.stock_type === 'serializado' ? p.status === 'disponivel' : p.quantity > 0)).length;
-      const baterias = products.filter(p => p.category === 'bateria').reduce((sum, p) => sum + (p.quantity || 0), 0);
-      const receptores = products.filter(p => p.category === 'receptor').reduce((sum, p) => sum + (p.quantity || 0), 0);
-      
-      // Valor total em estoque
-      const totalStockValue = products.reduce((sum, p) => {
-        if (p.stock_type === 'serializado' && p.status === 'disponivel') {
-          return sum + (p.cost_price || 0);
-        } else if (p.stock_type === 'nao_serializado') {
-          return sum + ((p.quantity || 0) * (p.cost_price || 0));
-        }
-        return sum;
-      }, 0);
+      const todayAppts = appointments.filter(a => a.date === today);
 
       setStats({
         totalClients: clients.length,
-        activeClients,
-        leadClients: clients.filter(c => c.status === 'lead').length,
-        clientsWithTests: clientsWithTestAppointments,
+        activeClients: clients.filter(c => c.status === 'cliente_ativo').length,
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
-        monthRevenue,
         totalMonthRevenue,
         monthExpenses,
         monthResult,
         lowStockProducts: lowStock.length,
-        aparelhos,
-        carregadores,
-        baterias,
-        receptores,
-        totalStockValue,
         overduePixCount: overduePixInstallments.length,
-        overduePixAmount: totalOverduePixAmount,
+        overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
         overdueCardCount: overdueCardInstallments.length,
-        overdueCardAmount: totalOverdueCardAmount,
-        oldestCardClientId
+        overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0)
       });
 
       setTodayAppointments(todayAppts.slice(0, 5));
       setRecentSales(sales.slice(0, 5));
       setLowStockProducts(lowStock.slice(0, 5));
-
-      // Sales by category
-      const categoryMap = {};
-      sales.forEach(sale => {
-        sale.items?.forEach(item => {
-          const product = products.find(p => p.id === item.product_id);
-          const category = product?.category || 'outros';
-          categoryMap[category] = (categoryMap[category] || 0) + (item.total || 0);
-        });
-      });
-
-      const categoryLabels = {
-        aparelho_auditivo: 'Aparelhos',
-        acessorio: 'Acessórios',
-        molde: 'Moldes',
-        bateria: 'Baterias',
-        outros: 'Outros'
-      };
-
-      setSalesByCategory(
-        Object.entries(categoryMap).map(([key, value]) => ({
-          name: categoryLabels[key] || key,
-          value
-        }))
-      );
-
     } catch (error) {
       console.error(error);
     } finally {
@@ -238,430 +125,188 @@ export default function Dashboard() {
     }).format(value || 0);
   };
 
-  const COLORS = ['#1e3a5f', '#c9a227', '#3b82f6', '#10b981', '#8b5cf6'];
-
-  const typeLabels = {
-    avaliacao: 'Avaliação',
-    teste: 'Teste',
-    ajuste: 'Ajuste',
-    manutencao: 'Manutenção',
-    retorno: 'Retorno'
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3a5f]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B3FA0]"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-slate-500 mt-1">
-            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#c9a227]/10 flex items-center justify-center">
-            <Ear className="h-6 w-6 text-[#c9a227]" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-800">Sonatta</p>
-            <p className="text-xs text-slate-500">Soluções Auditivas</p>
-          </div>
-        </div>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+        </p>
       </div>
 
-      {/* Stats Grid - Financeiro */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-sm bg-emerald-50">
-          <CardHeader className="pb-2">
+      {/* KPIs Financeiros */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Link to={createPageUrl('AccountsReceivable')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">Receita do Mês</CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-emerald-600" />
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Receita do Mês</p>
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalMonthRevenue)}</p>
               </div>
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {formatCurrency(stats.totalMonthRevenue || 0)}
-            </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </Link>
 
-        <Card className="border-0 shadow-sm bg-red-50">
-          <CardHeader className="pb-2">
+        <Link to={createPageUrl('AccountsPayable')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">Contas a Pagar</CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-red-600" />
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Contas a Pagar</p>
+                <p className="text-lg sm:text-2xl font-bold text-red-600">{formatCurrency(stats.monthExpenses)}</p>
               </div>
+              <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 opacity-60" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {formatCurrency(stats.monthExpenses || 0)}
-            </div>
-          </CardContent>
-        </Card>
+          </Card>
+        </Link>
 
-        <Card className={`border-0 shadow-sm ${(stats.monthResult || 0) >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between">
-              <CardTitle className="text-sm font-medium text-slate-600">Resultado</CardTitle>
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${(stats.monthResult || 0) >= 0 ? 'bg-blue-100' : 'bg-orange-100'}`}>
-                <TrendingUp className={`h-5 w-5 ${(stats.monthResult || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`} />
-              </div>
+        <Card className={`p-4 ${(stats.monthResult || 0) >= 0 ? '' : 'bg-red-50/50'}`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Resultado</p>
+              <p className={`text-lg sm:text-2xl font-bold ${(stats.monthResult || 0) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                {formatCurrency(stats.monthResult)}
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {formatCurrency(stats.monthResult || 0)}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">Receita - Despesas</p>
-          </CardContent>
-        </Card>
-
-        <StatCard
-          title="Receita Faturada do Mês"
-          value={formatCurrency(stats.monthRevenue)}
-          icon={ShoppingCart}
-          color="purple"
-        />
-      </div>
-
-      {/* Stats Grid - Vendas e Leads */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Vendas do Mês"
-          value={stats.monthSales}
-          icon={ShoppingCart}
-          color="blue"
-        />
-        <StatCard
-          title="Leads"
-          value={stats.leadClients}
-          icon={UserPlus}
-          color="gold"
-        />
-        <StatCard
-          title="Clientes Ativos"
-          value={stats.activeClients}
-          icon={Users}
-          color="purple"
-        />
-        <StatCard
-          title="Agendamentos Hoje"
-          value={stats.todayAppointments}
-          icon={Calendar}
-          color="blue"
-        />
-      </div>
-
-      {/* Card de Clientes em Teste */}
-      <Link 
-        to={oldestTestClientId ? createPageUrl(`ClientDetail?id=${oldestTestClientId}`) : '#'}
-        className={oldestTestClientId ? 'cursor-pointer' : 'cursor-default'}
-      >
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-md transition-shadow">
-          <div className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-purple-500 flex items-center justify-center">
-                <Calendar className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-purple-700 font-medium">Clientes em Teste de Aparelho</p>
-                <p className="text-3xl font-bold text-purple-900">{stats.clientsWithTests || 0}</p>
-                <p className="text-xs text-purple-600 mt-1">Agendamentos de teste cadastrados</p>
-              </div>
-            </div>
+            <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 opacity-60 ${(stats.monthResult || 0) >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
           </div>
         </Card>
-      </Link>
 
-      {/* Alertas de Pagamento */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Link 
-          to={createPageUrl('AccountsReceivable')}
-          className="cursor-pointer"
-        >
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:shadow-md transition-shadow">
-            <div className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center">
-                  <AlertTriangle className="h-7 w-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-red-700 font-medium">PIX Parcelado Atrasado</p>
-                  <p className="text-2xl font-bold text-red-900">{stats.overduePixCount || 0}</p>
-                  <p className="text-sm text-red-600 font-semibold mt-1">
-                    Total: {formatCurrency(stats.overduePixAmount || 0)}
-                  </p>
-                </div>
+        <Link to={createPageUrl('Sales')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Vendas do Mês</p>
+                <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.monthSales || 0}</p>
+              </div>
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 opacity-60" />
+            </div>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Alertas Críticos */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Link to={createPageUrl('AccountsReceivable')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md border-l-4 border-red-500">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <div>
+                <p className="text-sm text-slate-600">PIX Atrasado</p>
+                <p className="text-xl font-bold text-red-600">{formatCurrency(stats.overduePixAmount)}</p>
+                <p className="text-xs text-slate-500">{stats.overduePixCount} parcelas</p>
               </div>
             </div>
           </Card>
         </Link>
 
-        <Link 
-          to={createPageUrl('AccountsReceivable')}
-          className="cursor-pointer"
-        >
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-md transition-shadow">
-            <div className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center">
-                  <AlertTriangle className="h-7 w-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-orange-700 font-medium">Cartão de Crédito Atrasado</p>
-                  <p className="text-2xl font-bold text-orange-900">{stats.overdueCardCount || 0}</p>
-                  <p className="text-sm text-orange-600 font-semibold mt-1">
-                    Total: {formatCurrency(stats.overdueCardAmount || 0)}
-                  </p>
-                </div>
+        <Link to={createPageUrl('AccountsReceivable')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md border-l-4 border-amber-500">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-8 w-8 text-amber-500" />
+              <div>
+                <p className="text-sm text-slate-600">Cartão Atrasado</p>
+                <p className="text-xl font-bold text-amber-600">{formatCurrency(stats.overdueCardAmount)}</p>
+                <p className="text-xs text-slate-500">{stats.overdueCardCount} parcelas</p>
+              </div>
+            </div>
+          </Card>
+        </Link>
+
+        <Link to={createPageUrl('Inventory')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md border-l-4 border-blue-500">
+            <div className="flex items-center gap-3">
+              <Package className="h-8 w-8 text-blue-500" />
+              <div>
+                <p className="text-sm text-slate-600">Estoque Baixo</p>
+                <p className="text-xl font-bold text-blue-600">{stats.lowStockProducts || 0}</p>
+                <p className="text-xs text-slate-500">produtos</p>
               </div>
             </div>
           </Card>
         </Link>
       </div>
 
-      {/* Stats Grid - Estoque */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card className="border-0 shadow-sm p-4">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center mx-auto mb-2">
-              <Ear className="h-6 w-6 text-[#6B3FA0]" />
-            </div>
-            <p className="text-2xl font-bold text-slate-800">{stats.aparelhos || 0}</p>
-            <p className="text-xs text-slate-500">Aparelhos</p>
-          </div>
-        </Card>
-        
-        <Card className="border-0 shadow-sm p-4">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2">
-              <Package className="h-6 w-6 text-blue-600" />
-            </div>
-            <p className="text-2xl font-bold text-slate-800">{stats.carregadores || 0}</p>
-            <p className="text-xs text-slate-500">Carregadores</p>
-          </div>
-        </Card>
-
-        <Card className="border-0 shadow-sm p-4">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-2">
-              <Package className="h-6 w-6 text-emerald-600" />
-            </div>
-            <p className="text-2xl font-bold text-slate-800">{stats.baterias || 0}</p>
-            <p className="text-xs text-slate-500">Baterias</p>
-          </div>
-        </Card>
-
-        <Card className="border-0 shadow-sm p-4">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-2">
-              <Package className="h-6 w-6 text-purple-600" />
-            </div>
-            <p className="text-2xl font-bold text-slate-800">{stats.receptores || 0}</p>
-            <p className="text-xs text-slate-500">Receptores</p>
-          </div>
-        </Card>
-
-        <Card className="border-0 shadow-sm p-4">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-2">
-              <AlertTriangle className="h-6 w-6 text-amber-600" />
-            </div>
-            <p className="text-2xl font-bold text-amber-600">{stats.lowStockProducts || 0}</p>
-            <p className="text-xs text-slate-500">Alertas</p>
-          </div>
-        </Card>
-
-        <Card className="border-0 shadow-sm p-4">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-2">
-              <TrendingUp className="h-6 w-6 text-slate-600" />
-            </div>
-            <p className="text-lg font-bold text-slate-800">{formatCurrency(stats.totalStockValue || 0)}</p>
-            <p className="text-xs text-slate-500">Valor Estoque</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Charts and Lists */}
+      {/* Listas Operacionais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Warranty Alerts */}
-        <div className="lg:col-span-2">
-          <WarrantyAlerts />
-        </div>
-
-        {/* Today's Appointments */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-semibold">Agendamentos de Hoje</CardTitle>
-            <Link to={createPageUrl('Appointments')}>
-              <Button variant="ghost" size="sm" className="text-[#1e3a5f]">
-                Ver todos <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </Link>
+        {/* Agendamentos Hoje */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold flex items-center justify-between">
+              <span>Agendamentos Hoje</span>
+              <Clock className="h-5 w-5 text-slate-400" />
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {todayAppointments.length > 0 ? (
               <div className="space-y-3">
                 {todayAppointments.map((appt) => (
-                  <div
-                    key={appt.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#1e3a5f]/10 flex items-center justify-center">
-                        <Clock className="h-5 w-5 text-[#1e3a5f]" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-800">{appt.client_name}</p>
-                        <p className="text-sm text-slate-500">
-                          {appt.time} - {typeLabels[appt.type]}
-                        </p>
-                      </div>
+                  <div key={appt.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                    <div>
+                      <p className="font-medium text-slate-800">{appt.client_name}</p>
+                      <p className="text-sm text-slate-500">{appt.time} • {appt.type}</p>
                     </div>
-                    <StatusBadge status={appt.status} />
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      appt.status === 'confirmado' ? 'bg-emerald-100 text-emerald-700' :
+                      appt.status === 'realizado' ? 'bg-blue-100 text-blue-700' :
+                      'bg-slate-100 text-slate-700'
+                    }`}>
+                      {appt.status}
+                    </span>
                   </div>
                 ))}
+                <Link to={createPageUrl('Appointments')}>
+                  <p className="text-sm text-[#6B3FA0] hover:underline text-center pt-2">Ver todos →</p>
+                </Link>
               </div>
             ) : (
-              <p className="text-center text-slate-500 py-8">
-                Nenhum agendamento para hoje
-              </p>
+              <p className="text-center text-slate-500 py-8">Nenhum agendamento para hoje</p>
             )}
           </CardContent>
         </Card>
 
-        {/* Sales by Category */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Vendas por Categoria</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {salesByCategory.length > 0 ? (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={salesByCategory}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {salesByCategory.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <p className="text-center text-slate-500 py-8">
-                Nenhuma venda registrada
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Sales */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-semibold">Vendas Recentes</CardTitle>
-            <Link to={createPageUrl('Sales')}>
-              <Button variant="ghost" size="sm" className="text-[#1e3a5f]">
-                Ver todas <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </Link>
+        {/* Vendas Recentes */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold flex items-center justify-between">
+              <span>Vendas Recentes</span>
+              <ShoppingCart className="h-5 w-5 text-slate-400" />
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {recentSales.length > 0 ? (
               <div className="space-y-3">
                 {recentSales.map((sale) => (
-                  <div
-                    key={sale.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                        <ShoppingCart className="h-5 w-5 text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-800">{sale.client_name}</p>
-                        <p className="text-sm text-slate-500">{sale.sale_number}</p>
-                      </div>
+                  <div key={sale.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                    <div>
+                      <p className="font-medium text-slate-800">{sale.client_name}</p>
+                      <p className="text-sm text-slate-500">{sale.sale_number}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-slate-800">{formatCurrency(sale.total)}</p>
-                      <StatusBadge status={sale.status} />
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {sale.status}
+                      </span>
                     </div>
                   </div>
                 ))}
+                <Link to={createPageUrl('Sales')}>
+                  <p className="text-sm text-[#6B3FA0] hover:underline text-center pt-2">Ver todas →</p>
+                </Link>
               </div>
             ) : (
-              <p className="text-center text-slate-500 py-8">
-                Nenhuma venda registrada
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Low Stock Alert */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Estoque Baixo
-            </CardTitle>
-            <Link to={createPageUrl('Inventory')}>
-              <Button variant="ghost" size="sm" className="text-[#1e3a5f]">
-                Ver estoque <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {lowStockProducts.length > 0 ? (
-              <div className="space-y-3">
-                {lowStockProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                        <Package className="h-5 w-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-800">{product.name}</p>
-                        <p className="text-sm text-slate-500">{product.brand} {product.model}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-amber-600">{product.quantity} un.</p>
-                      <p className="text-xs text-slate-500">Mín: {product.min_stock || 5}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-slate-500 py-8">
-                Todos os produtos com estoque adequado
-              </p>
+              <p className="text-center text-slate-500 py-8">Nenhuma venda registrada</p>
             )}
           </CardContent>
         </Card>
