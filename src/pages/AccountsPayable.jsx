@@ -1,26 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { format, isAfter, isBefore, addDays, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DollarSign, AlertTriangle, Clock, CheckCircle2, Plus, Eye, Edit, Trash2 } from 'lucide-react';
-import PageHeader from '@/components/ui/PageHeader';
-import ExpenseForm from '../components/financial/ExpenseForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Plus, Filter, MoreVertical, Eye, Edit, Trash2, DollarSign, AlertCircle, Clock, CheckCircle2, Search, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import ExpenseForm from '@/components/financial/ExpenseForm';
 
 export default function AccountsPayable() {
-  const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState([]);
-  const [filter, setFilter] = useState('todos');
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('todos');
+  const [filterCategory, setFilterCategory] = useState('todas');
+  const [filterCounterparty, setFilterCounterparty] = useState('todos');
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [paymentData, setPaymentData] = useState({ date: '', fees: 0 });
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [counterparties, setCounterparties] = useState([]);
 
   useEffect(() => {
     loadExpenses();
+    loadFilters();
   }, []);
 
   const loadExpenses = async () => {
@@ -29,9 +75,22 @@ export default function AccountsPayable() {
       const data = await base44.entities.Expense.list('-due_date');
       setExpenses(data);
     } catch (error) {
-      console.error('Erro ao carregar despesas:', error);
+      toast.error('Erro ao carregar despesas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFilters = async () => {
+    try {
+      const [cats, counters] = await Promise.all([
+        base44.entities.ExpenseCategory.filter({ type: 'despesa' }),
+        base44.entities.Counterparty.list()
+      ]);
+      setCategories(cats);
+      setCounterparties(counters);
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -42,330 +101,552 @@ export default function AccountsPayable() {
     }).format(value || 0);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pago': return 'bg-emerald-100 text-emerald-700';
-      case 'atrasado': return 'bg-red-100 text-red-700';
-      default: return 'bg-amber-100 text-amber-700';
-    }
-  };
-
-  const updateExpenseStatus = (expense) => {
-    const today = new Date();
+  const getStatusBadge = (expense) => {
     const dueDate = new Date(expense.due_date);
-    
-    if (expense.status === 'pago') return 'pago';
-    if (isBefore(dueDate, today)) return 'atrasado';
-    return 'a_pagar';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+
+    if (expense.status === 'pago') {
+      return { label: 'Pago', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 };
+    } else if (dueDate < today) {
+      return { label: 'Atrasado', color: 'bg-red-100 text-red-700', icon: AlertCircle };
+    } else if (dueDate.getTime() === today.getTime() || (dueDate - today) / (1000 * 60 * 60 * 24) <= 7) {
+      return { label: 'Vence em breve', color: 'bg-amber-100 text-amber-700', icon: Clock };
+    }
+    return { label: 'A Pagar', color: 'bg-blue-100 text-blue-700', icon: Clock };
   };
 
-  const filteredExpenses = expenses.filter(expense => {
-    const status = updateExpenseStatus(expense);
-    const matchesFilter = filter === 'todos' || status === filter;
-    const matchesSearch = expense.category_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          expense.counterparty_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+  const filteredExpenses = expenses.filter(exp => {
+    const matchSearch = searchTerm === '' || 
+      exp.category_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exp.counterparty_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exp.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const dueDate = new Date(exp.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+
+    let matchStatus = true;
+    if (filterStatus === 'pago') matchStatus = exp.status === 'pago';
+    else if (filterStatus === 'atrasado') matchStatus = exp.status !== 'pago' && dueDate < today;
+    else if (filterStatus === 'vence_breve') matchStatus = exp.status !== 'pago' && dueDate >= today && (dueDate - today) / (1000 * 60 * 60 * 24) <= 7;
+    else if (filterStatus === 'a_pagar') matchStatus = exp.status !== 'pago';
+
+    const matchCategory = filterCategory === 'todas' || exp.category_id === filterCategory;
+    const matchCounterparty = filterCounterparty === 'todos' || exp.counterparty_id === filterCounterparty;
+
+    const matchDate = (!dateStart || !dateEnd) || (
+      new Date(exp.due_date) >= new Date(dateStart) &&
+      new Date(exp.due_date) <= new Date(dateEnd)
+    );
+
+    return matchSearch && matchStatus && matchCategory && matchCounterparty && matchDate;
   });
 
-  const toPay = expenses.filter(e => updateExpenseStatus(e) === 'a_pagar').reduce((sum, e) => sum + e.amount, 0);
-  const overdue = expenses.filter(e => updateExpenseStatus(e) === 'atrasado').reduce((sum, e) => sum + e.amount, 0);
-  const dueSoon = expenses.filter(e => {
-    const status = updateExpenseStatus(e);
-    const dueDate = new Date(e.due_date);
-    const in7Days = addDays(new Date(), 7);
-    return status === 'a_pagar' && isBefore(dueDate, in7Days);
-  }).length;
-  const paid = expenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + e.amount, 0);
+  const stats = {
+    toPay: expenses.filter(e => e.status !== 'pago').reduce((sum, e) => sum + (e.amount || 0), 0),
+    overdue: expenses.filter(e => {
+      if (e.status === 'pago') return false;
+      const dueDate = new Date(e.due_date);
+      const today = new Date();
+      return dueDate < today;
+    }).reduce((sum, e) => sum + (e.amount || 0), 0),
+    dueSoon: expenses.filter(e => {
+      if (e.status === 'pago') return false;
+      const dueDate = new Date(e.due_date);
+      const today = new Date();
+      const diff = (dueDate - today) / (1000 * 60 * 60 * 24);
+      return diff >= 0 && diff <= 7;
+    }).reduce((sum, e) => sum + (e.amount || 0), 0),
+    paid: expenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + (e.amount || 0), 0)
+  };
 
-  const [paymentDialog, setPaymentDialog] = useState(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [additionalFees, setAdditionalFees] = useState('');
-  const [feeDescription, setFeeDescription] = useState('');
-  const [showDetails, setShowDetails] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState(null);
-  const [editingExpense, setEditingExpense] = useState(null);
+  const handlePay = async () => {
+    if (!paymentData.date) {
+      toast.error('Informe a data de pagamento');
+      return;
+    }
 
-  const handlePayExpense = async () => {
-    if (!paymentDialog) return;
-    
     try {
-      const baseAmount = paymentDialog.amount;
-      const fees = parseFloat(additionalFees) || 0;
-      const totalAmount = baseAmount + fees;
-      
-      await base44.entities.Expense.update(paymentDialog.id, {
+      const totalAmount = selectedExpense.amount + (Number(paymentData.fees) || 0);
+      await base44.entities.Expense.update(selectedExpense.id, {
         status: 'pago',
-        payment_date: format(new Date(), 'yyyy-MM-dd'),
-        amount: totalAmount,
-        notes: feeDescription ? `${paymentDialog.notes || ''}\n${feeDescription}`.trim() : paymentDialog.notes
+        payment_date: paymentData.date,
+        amount: totalAmount
       });
-      
-      setPaymentDialog(null);
-      setPaymentAmount('');
-      setAdditionalFees('');
-      setFeeDescription('');
+      toast.success('Pagamento registrado!');
+      setPaymentOpen(false);
+      setPaymentData({ date: '', fees: 0 });
       loadExpenses();
     } catch (error) {
-      console.error('Erro ao dar baixa:', error);
+      toast.error('Erro ao registrar pagamento');
     }
   };
 
   const handleDelete = async () => {
-    await base44.entities.Expense.delete(expenseToDelete.id);
-    setShowDeleteDialog(false);
-    setExpenseToDelete(null);
-    loadExpenses();
+    try {
+      await base44.entities.Expense.delete(selectedExpense.id);
+      toast.success('Despesa excluída!');
+      setDeleteOpen(false);
+      loadExpenses();
+    } catch (error) {
+      toast.error('Erro ao excluir despesa');
+    }
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('todos');
+    setFilterCategory('todas');
+    setFilterCounterparty('todos');
+    setDateStart('');
+    setDateEnd('');
+  };
+
+  const FiltersContent = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm">Status</Label>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="a_pagar">A Pagar</SelectItem>
+            <SelectItem value="atrasado">Atrasado</SelectItem>
+            <SelectItem value="vence_breve">Vence em Breve</SelectItem>
+            <SelectItem value="pago">Pago</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Categoria</Label>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas</SelectItem>
+            {categories.map(cat => (
+              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Fornecedor</Label>
+        <Select value={filterCounterparty} onValueChange={setFilterCounterparty}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            {counterparties.map(cp => (
+              <SelectItem key={cp.id} value={cp.id}>{cp.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Período</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} />
+          <Input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" onClick={clearFilters} className="flex-1">
+          Limpar
+        </Button>
+        <Button onClick={() => setFilterOpen(false)} className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]">
+          Aplicar
+        </Button>
+      </div>
+    </div>
+  );
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Carregando...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B3FA0]"></div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Contas a Pagar"
-        description="Acompanhe despesas e vencimentos"
-        action={() => setShowForm(true)}
-        actionLabel="Nova Despesa"
-      />
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Contas a Pagar</h1>
+          <p className="text-sm text-slate-500 mt-1">Gerencie suas despesas e pagamentos</p>
+        </div>
+        <Button onClick={() => { setSelectedExpense(null); setFormOpen(true); }} className="bg-[#6B3FA0] hover:bg-[#834CB8] w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Despesa
+        </Button>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">A Pagar</CardTitle>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="h-5 w-5 text-blue-600" />
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setFilterStatus('a_pagar')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">A Pagar</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.toPay)}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(toPay)}</div>
-          </CardContent>
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Atrasado</CardTitle>
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setFilterStatus('atrasado')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Atrasado</p>
+              <p className="text-lg sm:text-2xl font-bold text-red-600">{formatCurrency(stats.overdue)}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(overdue)}</div>
-          </CardContent>
+            <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-500 opacity-60" />
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Vence em 7 dias</CardTitle>
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <Clock className="h-5 w-5 text-amber-600" />
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setFilterStatus('vence_breve')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Vence em Breve</p>
+              <p className="text-lg sm:text-2xl font-bold text-amber-600">{formatCurrency(stats.dueSoon)}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dueSoon}</div>
-          </CardContent>
+            <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 opacity-60" />
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pago</CardTitle>
-            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setFilterStatus('pago')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Pago</p>
+              <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.paid)}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(paid)}</div>
-          </CardContent>
+            <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
+          </div>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row gap-4">
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-full md:w-48">
+      {/* Filters - Desktop */}
+      <Card className="p-4 hidden lg:block">
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <Label className="text-sm mb-2">Buscar</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por categoria, fornecedor..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="w-40">
+            <Label className="text-sm mb-2">Status</Label>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="a_pagar">A Pagar</SelectItem>
                 <SelectItem value="atrasado">Atrasado</SelectItem>
+                <SelectItem value="vence_breve">Vence em Breve</SelectItem>
                 <SelectItem value="pago">Pago</SelectItem>
               </SelectContent>
             </Select>
-            <Input
-              placeholder="Buscar por categoria ou fornecedor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
           </div>
-        </CardHeader>
-        <CardContent>
-          {filteredExpenses.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              <DollarSign className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <p>Nenhuma despesa encontrada</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredExpenses.map((expense) => {
-                const status = updateExpenseStatus(expense);
-                return (
-                  <div
-                    key={expense.id}
-                    className="flex flex-col gap-3 p-4 border rounded-lg hover:bg-slate-50"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-semibold">{expense.category_name}</span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(status)}`}>
-                            {status === 'a_pagar' ? 'A Pagar' : status === 'atrasado' ? 'Atrasado' : 'Pago'}
-                          </span>
-                        </div>
-                        <div className="text-sm text-slate-600">
-                          {expense.counterparty_name && <span>{expense.counterparty_name} • </span>}
-                          Vencimento: {format(new Date(expense.due_date), "dd/MM/yyyy", { locale: ptBR })}
-                          {expense.installment_number && <span> • Parcela {expense.installment_number}/{expense.installments}</span>}
-                        </div>
-                        <div className="font-bold text-lg mt-2">{formatCurrency(expense.amount)}</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        onClick={() => {
-                          setSelectedExpense(expense);
-                          setShowDetails(true);
-                        }}
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Detalhes
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setEditingExpense(expense);
-                          setShowForm(true);
-                        }}
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                      {status !== 'pago' && (
-                        <Button
-                          onClick={() => {
-                            setPaymentDialog(expense);
-                            setPaymentAmount(expense.amount.toString());
-                            setAdditionalFees('');
-                            setFeeDescription('');
-                          }}
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 w-full"
-                        >
-                          Dar Baixa
-                        </Button>
-                      )}
-                      <Button
-                        onClick={() => {
-                          setExpenseToDelete(expense);
-                          setShowDeleteDialog(true);
-                        }}
-                        size="sm"
-                        variant="destructive"
-                        className="w-full"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Excluir
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
+
+          <div className="w-48">
+            <Label className="text-sm mb-2">Categoria</Label>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-48">
+            <Label className="text-sm mb-2">Fornecedor</Label>
+            <Select value={filterCounterparty} onValueChange={setFilterCounterparty}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {counterparties.map(cp => (
+                  <SelectItem key={cp.id} value={cp.id}>{cp.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex gap-2">
+            <Input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} className="w-36" />
+            <Input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="w-36" />
+          </div>
+
+          <Button variant="outline" onClick={clearFilters}>
+            Limpar
+          </Button>
+        </div>
       </Card>
 
-      {showForm && (
-        <ExpenseForm
-          expense={editingExpense}
-          open={showForm}
-          onClose={() => {
-            setShowForm(false);
-            setEditingExpense(null);
-          }}
-          onSuccess={() => {
-            setShowForm(false);
-            setEditingExpense(null);
-            loadExpenses();
-          }}
-        />
-      )}
+      {/* Filters - Mobile */}
+      <div className="lg:hidden space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearchTerm('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
-      <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-2xl">
+        <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+              {(filterStatus !== 'todos' || filterCategory !== 'todas' || filterCounterparty !== 'todos' || dateStart || dateEnd) && (
+                <span className="ml-2 bg-[#6B3FA0] text-white text-xs px-2 py-0.5 rounded-full">
+                  Ativos
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[80vh]">
+            <SheetHeader>
+              <SheetTitle>Filtros</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <FiltersContent />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Table - Desktop */}
+      <Card className="hidden lg:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50">
+              <TableHead>Status</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredExpenses.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-12 text-slate-500">
+                  Nenhuma despesa encontrada
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredExpenses.map(exp => {
+                const badge = getStatusBadge(exp);
+                const Icon = badge.icon;
+                return (
+                  <TableRow key={exp.id} className="hover:bg-slate-50">
+                    <TableCell>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badge.color}`}>
+                        <Icon className="h-3.5 w-3.5" />
+                        {badge.label}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-medium">{exp.category_name}</TableCell>
+                    <TableCell>{exp.counterparty_name || '-'}</TableCell>
+                    <TableCell>{format(new Date(exp.due_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(exp.amount)}</TableCell>
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setDetailsOpen(true); }}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setFormOpen(true); }}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          {exp.status !== 'pago' && (
+                            <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setPaymentData({ date: format(new Date(), 'yyyy-MM-dd'), fees: 0 }); setPaymentOpen(true); }}>
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Registrar Pagamento
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setDeleteOpen(true); }} className="text-red-600">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Cards - Mobile */}
+      <div className="lg:hidden space-y-3">
+        {filteredExpenses.length === 0 ? (
+          <Card className="p-8 text-center text-slate-500">
+            Nenhuma despesa encontrada
+          </Card>
+        ) : (
+          filteredExpenses.map(exp => {
+            const badge = getStatusBadge(exp);
+            const Icon = badge.icon;
+            return (
+              <Card key={exp.id} className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-slate-900">{exp.counterparty_name || 'Sem fornecedor'}</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
+                          <Icon className="h-3 w-3" />
+                          {badge.label}
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-600">
+                        {exp.category_name} • {format(new Date(exp.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setDetailsOpen(true); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setFormOpen(true); }}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        {exp.status !== 'pago' && (
+                          <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setPaymentData({ date: format(new Date(), 'yyyy-MM-dd'), fees: 0 }); setPaymentOpen(true); }}>
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            Pagar
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setDeleteOpen(true); }} className="text-red-600">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(exp.amount)}</div>
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      {/* Modals */}
+      <ExpenseForm 
+        open={formOpen} 
+        onClose={() => setFormOpen(false)} 
+        expense={selectedExpense}
+        onSuccess={loadExpenses}
+      />
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Detalhes da Despesa</DialogTitle>
           </DialogHeader>
           {selectedExpense && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Categoria</p>
-                  <p className="font-medium">{selectedExpense.category_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Fornecedor</p>
-                  <p className="font-medium">{selectedExpense.counterparty_name || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Valor</p>
-                  <p className="font-medium">{formatCurrency(selectedExpense.amount)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <p className="font-medium capitalize">{updateExpenseStatus(selectedExpense).replace('_', ' ')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Vencimento</p>
-                  <p className="font-medium">{format(new Date(selectedExpense.due_date), 'dd/MM/yyyy')}</p>
-                </div>
-                {selectedExpense.payment_date && (
-                  <div>
-                    <p className="text-sm text-slate-500">Data de Pagamento</p>
-                    <p className="font-medium">{format(new Date(selectedExpense.payment_date), 'dd/MM/yyyy')}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm text-slate-500">Método de Pagamento</p>
-                  <p className="font-medium capitalize">{selectedExpense.payment_method?.replace('_', ' ')}</p>
-                </div>
-                {selectedExpense.installment_number && (
-                  <div>
-                    <p className="text-sm text-slate-500">Parcela</p>
-                    <p className="font-medium">{selectedExpense.installment_number}/{selectedExpense.installments}</p>
-                  </div>
-                )}
-                {selectedExpense.invoice_number && (
-                  <div>
-                    <p className="text-sm text-slate-500">Nota Fiscal</p>
-                    <p className="font-medium">{selectedExpense.invoice_number}</p>
-                  </div>
-                )}
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-slate-500">Categoria:</span>
+                <p className="font-medium">{selectedExpense.category_name}</p>
+              </div>
+              <div>
+                <span className="text-slate-500">Fornecedor:</span>
+                <p className="font-medium">{selectedExpense.counterparty_name || '-'}</p>
+              </div>
+              <div>
+                <span className="text-slate-500">Vencimento:</span>
+                <p className="font-medium">{format(new Date(selectedExpense.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+              </div>
+              <div>
+                <span className="text-slate-500">Valor:</span>
+                <p className="font-medium text-lg">{formatCurrency(selectedExpense.amount)}</p>
               </div>
               {selectedExpense.notes && (
                 <div>
-                  <p className="text-sm text-slate-500">Observações</p>
-                  <p className="text-sm mt-1 whitespace-pre-wrap">{selectedExpense.notes}</p>
+                  <span className="text-slate-500">Observações:</span>
+                  <p className="font-medium">{selectedExpense.notes}</p>
                 </div>
               )}
             </div>
@@ -373,105 +654,46 @@ export default function AccountsPayable() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão de Despesa</AlertDialogTitle>
-            <AlertDialogDescription>
-              {expenseToDelete && (
-                <div className="mt-4 space-y-3">
-                  <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-                    <p className="font-semibold text-slate-900 text-lg">
-                      {expenseToDelete.category_name}
-                    </p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {formatCurrency(expenseToDelete.amount)}
-                    </p>
-                    <div className="text-sm text-slate-600 space-y-1">
-                      {expenseToDelete.counterparty_name && (
-                        <p>Fornecedor: {expenseToDelete.counterparty_name}</p>
-                      )}
-                      <p>Vencimento: {format(new Date(expenseToDelete.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                      {expenseToDelete.installment_number && (
-                        <p>Parcela: {expenseToDelete.installment_number}/{expenseToDelete.installments}</p>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-red-600 font-semibold text-center py-2">
-                    ⚠️ Esta ação é irreversível! A despesa será permanentemente excluída.
-                  </p>
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete} 
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Sim, Excluir Despesa
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={!!paymentDialog} onOpenChange={() => setPaymentDialog(null)}>
+      <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Registrar Pagamento</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Categoria</label>
-              <p className="text-lg">{paymentDialog?.category_name}</p>
+              <Label>Data do Pagamento</Label>
+              <Input type="date" value={paymentData.date} onChange={(e) => setPaymentData({ ...paymentData, date: e.target.value })} />
             </div>
             <div>
-              <label className="text-sm font-medium">Valor Original</label>
-              <p className="text-xl font-bold">{formatCurrency(paymentDialog?.amount)}</p>
+              <Label>Juros/Multa (R$)</Label>
+              <Input type="number" step="0.01" value={paymentData.fees} onChange={(e) => setPaymentData({ ...paymentData, fees: e.target.value })} />
             </div>
-            {paymentDialog && new Date(paymentDialog.due_date) < new Date() && (
-              <>
-                <div>
-                  <label className="text-sm font-medium">Juros/Multas</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={additionalFees}
-                    onChange={(e) => setAdditionalFees(e.target.value)}
-                    placeholder="0,00"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Adicionar valor de juros ou multas por atraso
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Descrição dos Juros/Multas</label>
-                  <Input
-                    value={feeDescription}
-                    onChange={(e) => setFeeDescription(e.target.value)}
-                    placeholder="Ex: Juros 2% + Multa R$ 10,00"
-                  />
-                </div>
-              </>
-            )}
-            {additionalFees && parseFloat(additionalFees) > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-amber-800">Total a Pagar</p>
-                <p className="text-2xl font-bold text-amber-900">
-                  {formatCurrency((paymentDialog?.amount || 0) + parseFloat(additionalFees))}
-                </p>
+            {selectedExpense && (
+              <div className="bg-slate-50 p-3 rounded">
+                <p className="text-sm text-slate-600">Valor Total</p>
+                <p className="text-xl font-bold">{formatCurrency((selectedExpense.amount || 0) + (Number(paymentData.fees) || 0))}</p>
               </div>
             )}
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setPaymentDialog(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handlePayExpense} className="bg-emerald-600 hover:bg-emerald-700">
-                Confirmar Pagamento
-              </Button>
-            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentOpen(false)}>Cancelar</Button>
+            <Button onClick={handlePay} className="bg-emerald-600 hover:bg-emerald-700">Confirmar Pagamento</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            Tem certeza que deseja excluir esta despesa? Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
