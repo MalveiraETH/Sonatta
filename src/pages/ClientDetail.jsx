@@ -47,10 +47,12 @@ export default function ClientDetail() {
   const [sales, setSales] = useState([]);
   const [history, setHistory] = useState([]);
   const [clientDevices, setClientDevices] = useState([]);
+  const [tests, setTests] = useState([]);
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
   const [saleFormOpen, setSaleFormOpen] = useState(false);
   const [newSaleFormOpen, setNewSaleFormOpen] = useState(false);
+  const [testFormOpen, setTestFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -68,12 +70,13 @@ export default function ClientDetail() {
     }
 
     try {
-      const [clientData, appointmentsData, quotesData, salesData, historyData, user] = await Promise.all([
+      const [clientData, appointmentsData, quotesData, salesData, historyData, testsData, user] = await Promise.all([
         base44.entities.Client.filter({ id: clientId }),
         base44.entities.Appointment.filter({ client_id: clientId }, '-date'),
         base44.entities.Quote.filter({ client_id: clientId }, '-created_date'),
         base44.entities.Sale.filter({ client_id: clientId }, '-created_date'),
         base44.entities.ServiceHistory.filter({ client_id: clientId }, '-created_date'),
+        base44.entities.Test.filter({ client_id: clientId }, '-created_date'),
         base44.auth.me()
       ]);
 
@@ -82,6 +85,7 @@ export default function ClientDetail() {
       setQuotes(quotesData);
       setSales(salesData);
       setHistory(historyData);
+      setTests(testsData);
       setCurrentUser(user);
 
       // Extrair aparelhos comprados pelo cliente
@@ -262,6 +266,7 @@ export default function ClientDetail() {
       <Tabs defaultValue="devices" className="space-y-4">
         <TabsList className="bg-slate-100 flex-wrap h-auto">
           <TabsTrigger value="devices">Aparelhos</TabsTrigger>
+          <TabsTrigger value="tests">Testes</TabsTrigger>
           <TabsTrigger value="installments">Parcelas PIX</TabsTrigger>
           <TabsTrigger value="card-installments">Parcelas Cartão</TabsTrigger>
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
@@ -353,6 +358,49 @@ export default function ClientDetail() {
                 </div>
               ) : (
                 <p className="text-center text-slate-500 py-4">Nenhum aparelho comprado ainda</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tests">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Testes Realizados</CardTitle>
+              <Button
+                size="sm"
+                onClick={() => setTestFormOpen(true)}
+                className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Novo Teste
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {tests.length > 0 ? (
+                <div className="space-y-3">
+                  {tests.map((test) => (
+                    <div
+                      key={test.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
+                          <BeakerIcon className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{test.test_number}</p>
+                          <p className="text-sm text-slate-500">
+                            {format(new Date(test.start_date), "dd/MM/yyyy", { locale: ptBR })} - {format(new Date(test.end_date), "dd/MM/yyyy", { locale: ptBR })}
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge status={test.status} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-4">Nenhum teste realizado</p>
               )}
             </CardContent>
           </Card>
@@ -540,6 +588,13 @@ export default function ClientDetail() {
         onOpenChange={setNewSaleFormOpen}
         preselectedClient={client}
         onSuccess={loadData}
+      />
+
+      <TestForm
+        open={testFormOpen}
+        onClose={() => setTestFormOpen(false)}
+        onSuccess={loadData}
+        preselectedClientId={client.id}
       />
 
         {/* Delete Confirmation Dialog */}

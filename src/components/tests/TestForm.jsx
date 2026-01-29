@@ -21,7 +21,7 @@ import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-export default function TestForm({ open, onClose, test, onSuccess, extendMode = false }) {
+export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
@@ -53,7 +53,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         });
       } else {
         setFormData({
-          client_id: '',
+          client_id: preselectedClientId || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
           end_date: '',
           devices: [],
@@ -108,6 +108,26 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     }
   };
 
+  const updateClientStatus = async (clientId, testStatus) => {
+    try {
+      let clientStatus = 'em_teste';
+      
+      if (testStatus === 'em_teste') {
+        clientStatus = 'em_teste';
+      } else if (testStatus === 'teste_estendido') {
+        clientStatus = 'em_teste';
+      } else if (testStatus === 'teste_finalizado') {
+        clientStatus = 'cliente_ativo';
+      } else if (testStatus === 'teste_pendente') {
+        clientStatus = 'em_teste';
+      }
+      
+      await base44.entities.Client.update(clientId, { status: clientStatus });
+    } catch (error) {
+      console.error('Erro ao atualizar status do cliente:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -132,15 +152,23 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
+        
+        // Atualizar status do cliente baseado no status do teste
+        await updateClientStatus(formData.client_id, testData.status);
+        
         toast.success('Teste atualizado');
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
+        
+        // Atualizar status do cliente baseado no status do teste
+        await updateClientStatus(formData.client_id, testData.status);
+        
         toast.success('Teste cadastrado');
       }
 
-      onSuccess();
+      if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       toast.error('Erro ao salvar teste');

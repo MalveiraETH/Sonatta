@@ -32,6 +32,7 @@ export default function Reports() {
   const [dateEnd, setDateEnd] = useState('');
   const [installments, setInstallments] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [tests, setTests] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -39,14 +40,15 @@ export default function Reports() {
 
   const loadData = async () => {
     try {
-      const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData] = await Promise.all([
+      const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData, testsData] = await Promise.all([
         base44.entities.Product.list(),
         base44.entities.Client.list(),
         base44.entities.Sale.list('-created_date'),
         base44.entities.Professional.list(),
         base44.entities.Appointment.list(),
         base44.entities.Installment.list(),
-        base44.entities.Expense.list()
+        base44.entities.Expense.list(),
+        base44.entities.Test.list()
       ]);
       setProducts(productsData);
       setClients(clientsData);
@@ -55,6 +57,7 @@ export default function Reports() {
       setAppointments(appointmentsData);
       setInstallments(installmentsData);
       setExpenses(expensesData);
+      setTests(testsData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -261,6 +264,7 @@ export default function Reports() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="stock">Estoque</TabsTrigger>
           <TabsTrigger value="clients">Clientes</TabsTrigger>
+          <TabsTrigger value="tests">Testes</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
           <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
@@ -397,6 +401,85 @@ export default function Reports() {
                         <TableCell>{client.email}</TableCell>
                         <TableCell><StatusBadge status={client.status} /></TableCell>
                         <TableCell>{formatLocalDate(client.created_date)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TESTES */}
+        <TabsContent value="tests" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Total Testes</p>
+              <p className="text-2xl font-bold text-[#1e3a5f] mt-1">{tests.length}</p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Em Teste</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{tests.filter(t => t.status === 'em_teste').length}</p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Estendidos</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">{tests.filter(t => t.status === 'teste_estendido').length}</p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Finalizados</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">{tests.filter(t => t.status === 'teste_finalizado').length}</p>
+            </Card>
+          </div>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Testes Cadastrados</CardTitle>
+              <Button onClick={() => {
+                const data = tests.map(t => ({
+                  'Número': t.test_number,
+                  'Cliente': t.client_name,
+                  'Data Início': format(new Date(t.start_date), 'dd/MM/yyyy'),
+                  'Data Final': format(new Date(t.end_date), 'dd/MM/yyyy'),
+                  'Profissional': t.professional_name || '',
+                  'Indicação': t.referral_professional_name || '',
+                  'Aparelhos': t.devices?.map(d => d.product_name).join(', ') || '',
+                  'Status': t.status === 'em_teste' ? 'Em Teste' :
+                           t.status === 'teste_estendido' ? 'Teste Estendido' :
+                           t.status === 'teste_finalizado' ? 'Teste Finalizado' : 'Teste Pendente',
+                  'Observações': t.notes || ''
+                }));
+                exportToExcel(data, 'relatorio_testes');
+              }} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Número</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Data Início</TableHead>
+                      <TableHead>Data Final</TableHead>
+                      <TableHead>Profissional</TableHead>
+                      <TableHead>Aparelhos</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tests.map(test => (
+                      <TableRow key={test.id}>
+                        <TableCell className="font-medium">{test.test_number}</TableCell>
+                        <TableCell>{test.client_name}</TableCell>
+                        <TableCell>{formatLocalDate(test.start_date)}</TableCell>
+                        <TableCell>{formatLocalDate(test.end_date)}</TableCell>
+                        <TableCell className="text-sm">{test.professional_name || '-'}</TableCell>
+                        <TableCell className="text-sm">
+                          {test.devices?.length || 0} aparelho(s)
+                        </TableCell>
+                        <TableCell><StatusBadge status={test.status} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
