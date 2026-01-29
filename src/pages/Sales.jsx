@@ -73,7 +73,7 @@ export default function Sales() {
   const loadData = async () => {
     try {
       const [salesData, user] = await Promise.all([
-        base44.entities.Sale.list('-created_date'),
+        base44.entities.Sale.list('-sale_date'),
         base44.auth.me()
       ]);
       setSales(salesData);
@@ -109,6 +109,10 @@ export default function Sales() {
       style: 'currency',
       currency: 'BRL'
     }).format(value || 0);
+  };
+
+  const getTotalPayments = (sale) => {
+    return sale.payment_details?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
   };
 
   const sendWhatsApp = (sale) => {
@@ -399,7 +403,7 @@ export default function Sales() {
                       {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(sale.total)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(getTotalPayments(sale))}</TableCell>
                   <TableCell className="text-center">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -510,7 +514,7 @@ export default function Sales() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <div className="text-2xl font-bold text-slate-900">{formatCurrency(sale.total)}</div>
+                <div className="text-2xl font-bold text-slate-900">{formatCurrency(getTotalPayments(sale))}</div>
               </div>
             </Card>
           ))
