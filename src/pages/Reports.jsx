@@ -72,6 +72,10 @@ export default function Reports() {
     }).format(value || 0);
   };
 
+  const getTotalPayments = (sale) => {
+    return sale.payment_details?.reduce((sum, p) => sum + (p.amount || 0), 0) || sale.total || 0;
+  };
+
   const exportToExcel = async (data, filename) => {
     if (data.length === 0) return;
     
@@ -122,8 +126,8 @@ export default function Reports() {
   // Estatísticas de Vendas
   const salesStats = {
     total: filteredSales.length,
-    valorTotal: filteredSales.reduce((sum, s) => sum + (s.total || 0), 0),
-    valorMedio: filteredSales.length > 0 ? filteredSales.reduce((sum, s) => sum + (s.total || 0), 0) / filteredSales.length : 0,
+    valorTotal: filteredSales.reduce((sum, s) => sum + getTotalPayments(s), 0),
+    valorMedio: filteredSales.length > 0 ? filteredSales.reduce((sum, s) => sum + getTotalPayments(s), 0) / filteredSales.length : 0,
     pago: filteredSales.filter(s => s.status === 'pago').length,
     pendente: filteredSales.filter(s => s.status === 'pendente').length
   };
@@ -623,7 +627,7 @@ export default function Reports() {
             />
             <StatCard
               title="Ticket Médio"
-              value={formatCurrency(sales.length > 0 ? sales.reduce((sum, s) => sum + (s.total || 0), 0) / sales.length : 0)}
+              value={formatCurrency(sales.length > 0 ? sales.reduce((sum, s) => sum + getTotalPayments(s), 0) / sales.length : 0)}
               color="green"
               icon={DollarSign}
             />
@@ -1059,9 +1063,9 @@ export default function Reports() {
                           <TableCell className="capitalize">{prof.specialty}</TableCell>
                           <TableCell>{sale.client_name}</TableCell>
                           <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(sale.total)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
                           <TableCell className="text-right font-bold text-[#A4D233]">
-                            {formatCurrency(sale.total * 0.10)}
+                            {formatCurrency(getTotalPayments(sale) * 0.10)}
                           </TableCell>
                         </TableRow>
                       );
