@@ -45,7 +45,7 @@ import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatLocalDate } from '@/utils/dateHelpers';
+import { formatLocalDate } from '@/components/utils/dateHelpers';
 
 export default function Contracts() {
   const [loading, setLoading] = useState(true);

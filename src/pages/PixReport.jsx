@@ -38,7 +38,7 @@ import { Search, Filter, MoreVertical, Eye, MessageCircle, FileDown, X, AlertCir
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatLocalDate } from '@/utils/dateHelpers';
+import { formatLocalDate } from '@/components/utils/dateHelpers';
 import PixReportPDF from '@/components/reports/PixReportPDF';
 
 export default function PixReport() {

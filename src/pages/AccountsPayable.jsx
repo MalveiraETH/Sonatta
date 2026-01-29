@@ -43,7 +43,7 @@ import { Plus, Filter, MoreVertical, Eye, Edit, Trash2, DollarSign, AlertCircle,
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatLocalDate } from '@/utils/dateHelpers';
+import { formatLocalDate } from '@/components/utils/dateHelpers';
 import ExpenseForm from '@/components/financial/ExpenseForm';
 
 export default function AccountsPayable() {

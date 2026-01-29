@@ -47,7 +47,7 @@ import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plu
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatLocalDate } from '@/utils/dateHelpers';
+import { formatLocalDate } from '@/components/utils/dateHelpers';
 
 export default function Sales() {
   const [loading, setLoading] = useState(true);

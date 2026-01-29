@@ -19,7 +19,7 @@ import StatCard from '@/components/ui/StatCard';
 import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { formatLocalDate } from '@/utils/dateHelpers';
+import { formatLocalDate } from '@/components/utils/dateHelpers';
 
 export default function Reports() {
   const [loading, setLoading] = useState(true);
