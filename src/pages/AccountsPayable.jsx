@@ -616,7 +616,7 @@ export default function AccountsPayable() {
       {/* Modals */}
       <ExpenseForm 
         open={formOpen} 
-        onClose={() => setFormOpen(false)} 
+        onOpenChange={setFormOpen}
         expense={selectedExpense}
         onSuccess={loadExpenses}
       />
