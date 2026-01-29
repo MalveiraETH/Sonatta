@@ -238,6 +238,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
                 <SelectContent>
                   <SelectItem value="lead">Lead</SelectItem>
                   <SelectItem value="em_teste">Em Teste</SelectItem>
+                  <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
+                  <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
+                  <SelectItem value="teste_pendente">Teste Pendente</SelectItem>
                   <SelectItem value="cliente_ativo">Cliente Ativo</SelectItem>
                   <SelectItem value="pos_venda">Pós-Venda</SelectItem>
                 </SelectContent>

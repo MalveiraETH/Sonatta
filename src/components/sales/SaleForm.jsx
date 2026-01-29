@@ -330,9 +330,9 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
           await base44.entities.Quote.update(formData.quote_id, { status: 'convertido' });
         }
 
-        // Atualizar status do cliente
+        // Atualizar status do cliente para Cliente Ativo
         const client = clients.find(c => c.id === formData.client_id);
-        if (client && client.status !== 'cliente_ativo') {
+        if (client) {
           await base44.entities.Client.update(client.id, { status: 'cliente_ativo' });
         }
 
