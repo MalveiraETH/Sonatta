@@ -277,8 +277,11 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
 
     // Validar soma dos pagamentos
     const totalPayments = formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-    if (Math.abs(totalPayments - formData.total) > 0.02) {
-      toast.error(`Total dos pagamentos (${formatCurrency(totalPayments)}) não corresponde ao total da venda (${formatCurrency(formData.total)})`);
+    const hasDifference = Math.abs(totalPayments - formData.total) > 0.02;
+    
+    // Se houver diferença, exigir justificativa
+    if (hasDifference && !formData.notes?.trim()) {
+      toast.error('O valor dos pagamentos difere do total da venda. Por favor, adicione uma justificativa no campo de observações.');
       return;
     }
 
@@ -634,13 +637,30 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
           </div>
 
           <div className="space-y-2">
-            <Label>Observações</Label>
+            <Label>
+              Observações
+              {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && (
+                <span className="text-red-600 ml-1">*</span>
+              )}
+            </Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Observações da venda"
+              placeholder={
+                Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02
+                  ? "Justifique a diferença entre o total e os pagamentos..."
+                  : "Observações da venda"
+              }
               rows={2}
+              className={
+                Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && !formData.notes?.trim()
+                  ? "border-red-500 focus-visible:ring-red-500"
+                  : ""
+              }
             />
+            {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && !formData.notes?.trim() && (
+              <p className="text-xs text-red-600">Justificativa obrigatória quando há diferença no valor</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
