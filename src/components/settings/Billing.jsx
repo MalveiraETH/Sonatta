@@ -4,22 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, DollarSign, Percent } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Loader2, DollarSign, Percent, Calculator, Save, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Billing() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [billingConfig, setBillingConfig] = useState({
     fixed_cost: 0,
     markup_category_90: 0,
     markup_category_70: 0,
     markup_category_50: 0,
     markup_category_30: 0,
+    markup_category_10: 0,
     credit_card_fee: 0,
     tax_percentage: 0,
     referral_percentage: 10
   });
+  const [simulatorCategory, setSimulatorCategory] = useState('90');
+  const [simulatorCost, setSimulatorCost] = useState(1000);
 
   useEffect(() => {
     loadBillingConfig();
@@ -43,7 +49,8 @@ export default function Billing() {
     setSaving(true);
     try {
       await base44.auth.updateMe({ billing_config: billingConfig });
-      toast.success('Configurações de faturamento salvas!');
+      toast.success('Configurações salvas com sucesso!');
+      setHasChanges(false);
     } catch (error) {
       toast.error('Erro ao salvar configurações');
     } finally {
@@ -52,10 +59,12 @@ export default function Billing() {
   };
 
   const updateField = (field, value) => {
+    const numValue = parseFloat(value) || 0;
     setBillingConfig(prev => ({
       ...prev,
-      [field]: parseFloat(value) || 0
+      [field]: numValue
     }));
+    setHasChanges(true);
   };
 
   const formatCurrency = (value) => {
@@ -64,6 +73,30 @@ export default function Billing() {
       currency: 'BRL'
     }).format(value || 0);
   };
+
+  const calculateSimulation = () => {
+    const cost = parseFloat(simulatorCost) || 0;
+    const markup = billingConfig[`markup_category_${simulatorCategory}`] || 0;
+    const costWithMarkup = cost * (1 + markup / 100);
+    
+    const cardFee = costWithMarkup * (billingConfig.credit_card_fee / 100);
+    const tax = costWithMarkup * (billingConfig.tax_percentage / 100);
+    const referral = costWithMarkup * (billingConfig.referral_percentage / 100);
+    
+    const finalPrice = costWithMarkup + cardFee + tax + referral;
+    
+    return {
+      cost,
+      markup: cost * (markup / 100),
+      markupPercent: markup,
+      cardFee,
+      tax,
+      referral,
+      finalPrice
+    };
+  };
+
+  const simulation = calculateSimulation();
 
   if (loading) {
     return (
@@ -74,250 +107,446 @@ export default function Billing() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-[#6B3FA0]" />
-            <CardTitle>Custos e Tarifas</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Coluna Esquerda - Markups e Custo Fixo */}
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-[#6B3FA0]/10 to-[#834CB8]/5 rounded-lg p-4 border-2 border-[#6B3FA0]/20">
-                <h3 className="font-semibold text-[#6B3FA0] mb-4 flex items-center gap-2">
-                  <Percent className="h-4 w-4" />
-                  Margens de Lucro (Markups)
-                </h3>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="markup_category_90" className="text-[#6B3FA0] font-medium">
-                      Markup Categoria 90 (%)
-                    </Label>
-                    <Input
-                      id="markup_category_90"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1000"
-                      value={billingConfig.markup_category_90}
-                      onChange={(e) => updateField('markup_category_90', e.target.value)}
-                      placeholder="0.00"
-                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
-                    />
-                    <p className="text-xs text-slate-500">Margem de lucro para categoria 90</p>
-                  </div>
+    <div className="space-y-6 pb-20 lg:pb-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Custos e Tarifas</h2>
+          <p className="text-sm text-slate-500 mt-1">Configure as margens de lucro, taxas e impostos</p>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={saving || !hasChanges}
+          className="hidden lg:flex bg-[#6B3FA0] hover:bg-[#834CB8] text-white"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Salvar Configurações
+            </>
+          )}
+        </Button>
+      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="markup_category_70" className="text-[#6B3FA0] font-medium">
-                      Markup Categoria 70 (%)
-                    </Label>
-                    <Input
-                      id="markup_category_70"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1000"
-                      value={billingConfig.markup_category_70}
-                      onChange={(e) => updateField('markup_category_70', e.target.value)}
-                      placeholder="0.00"
-                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
-                    />
-                    <p className="text-xs text-slate-500">Margem de lucro para categoria 70</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="markup_category_50" className="text-[#6B3FA0] font-medium">
-                      Markup Categoria 50 (%)
-                    </Label>
-                    <Input
-                      id="markup_category_50"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1000"
-                      value={billingConfig.markup_category_50}
-                      onChange={(e) => updateField('markup_category_50', e.target.value)}
-                      placeholder="0.00"
-                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
-                    />
-                    <p className="text-xs text-slate-500">Margem de lucro para categoria 50</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="markup_category_30" className="text-[#6B3FA0] font-medium">
-                      Markup Categoria 30 (%)
-                    </Label>
-                    <Input
-                      id="markup_category_30"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="1000"
-                      value={billingConfig.markup_category_30}
-                      onChange={(e) => updateField('markup_category_30', e.target.value)}
-                      placeholder="0.00"
-                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
-                    />
-                    <p className="text-xs text-slate-500">Margem de lucro para categoria 30</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-4 border-2 border-blue-200">
-                <h3 className="font-semibold text-blue-700 mb-3 flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Custo Operacional
-                </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="fixed_cost" className="text-blue-700 font-medium">
-                    Custo Fixo (R$)
+      {/* Desktop Layout */}
+      <div className="hidden lg:grid lg:grid-cols-2 gap-6">
+        {/* Seção A - Margens de Lucro */}
+        <Card className="border-0 shadow-sm col-span-2">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-[#6B3FA0]" />
+              <CardTitle className="text-lg">Margens de Lucro (Markups por Categoria)</CardTitle>
+            </div>
+            <p className="text-sm text-slate-500 mt-1">Defina o markup padrão aplicado sobre o custo em cada categoria</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-5 gap-4">
+              {['90', '70', '50', '30', '10'].map((cat) => (
+                <div key={cat} className="space-y-2">
+                  <Label htmlFor={`markup_${cat}`} className="text-sm font-semibold text-slate-700">
+                    Categoria {cat}
                   </Label>
+                  <div className="relative">
+                    <Input
+                      id={`markup_${cat}`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1000"
+                      value={billingConfig[`markup_category_${cat}`]}
+                      onChange={(e) => updateField(`markup_category_${cat}`, e.target.value)}
+                      className="pr-8"
+                    />
+                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  </div>
+                  <p className="text-xs text-slate-500">Markup {cat}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Seção B - Taxas e Impostos */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Percent className="h-5 w-5 text-amber-600" />
+              <CardTitle className="text-lg">Taxas e Impostos</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="credit_card_fee" className="text-sm font-medium">
+                Taxa de Cartão de Crédito
+              </Label>
+              <div className="relative">
+                <Input
+                  id="credit_card_fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={billingConfig.credit_card_fee}
+                  onChange={(e) => updateField('credit_card_fee', e.target.value)}
+                  className="pr-8"
+                />
+                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              </div>
+              <p className="text-xs text-slate-500">Taxa cobrada pela operadora</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tax_percentage" className="text-sm font-medium">
+                Percentual de Imposto
+              </Label>
+              <div className="relative">
+                <Input
+                  id="tax_percentage"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={billingConfig.tax_percentage}
+                  onChange={(e) => updateField('tax_percentage', e.target.value)}
+                  className="pr-8"
+                />
+                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              </div>
+              <p className="text-xs text-slate-500">Impostos sobre a venda</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="referral_percentage" className="text-sm font-medium">
+                Percentual de Indicação
+              </Label>
+              <div className="relative">
+                <Input
+                  id="referral_percentage"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={billingConfig.referral_percentage}
+                  onChange={(e) => updateField('referral_percentage', e.target.value)}
+                  className="pr-8"
+                />
+                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              </div>
+              <p className="text-xs text-slate-500">Comissão ao profissional indicador</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Seção C - Custo Operacional */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-lg">Custo Operacional</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="fixed_cost" className="text-sm font-medium">
+                Custo Fixo Mensal
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
+                <Input
+                  id="fixed_cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={billingConfig.fixed_cost}
+                  onChange={(e) => updateField('fixed_cost', e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <p className="text-xs text-slate-500">Custo fixo mensal da operação</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Seção D - Simulador */}
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-[#6B3FA0]/5 to-[#A4D233]/5 col-span-2">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-[#6B3FA0]" />
+              <CardTitle className="text-lg">Simulador de Cálculo</CardTitle>
+            </div>
+            <p className="text-sm text-slate-500 mt-1">Simule o preço final com base nos custos e taxas configurados</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Categoria do Exemplo</Label>
+                <Select value={simulatorCategory} onValueChange={setSimulatorCategory}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="90">Categoria 90</SelectItem>
+                    <SelectItem value="70">Categoria 70</SelectItem>
+                    <SelectItem value="50">Categoria 50</SelectItem>
+                    <SelectItem value="30">Categoria 30</SelectItem>
+                    <SelectItem value="10">Categoria 10</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Custo do Produto</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
                   <Input
-                    id="fixed_cost"
                     type="number"
                     step="0.01"
                     min="0"
+                    value={simulatorCost}
+                    onChange={(e) => setSimulatorCost(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                <span className="text-sm text-slate-600">Custo do produto</span>
+                <span className="text-sm font-medium">{formatCurrency(simulation.cost)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                <span className="text-sm text-slate-600">Markup ({simulation.markupPercent}%)</span>
+                <span className="text-sm font-medium text-[#6B3FA0]">+ {formatCurrency(simulation.markup)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                <span className="text-sm text-slate-600">Taxa cartão ({billingConfig.credit_card_fee}%)</span>
+                <span className="text-sm font-medium text-amber-600">+ {formatCurrency(simulation.cardFee)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                <span className="text-sm text-slate-600">Imposto ({billingConfig.tax_percentage}%)</span>
+                <span className="text-sm font-medium text-red-600">+ {formatCurrency(simulation.tax)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 px-3 bg-white rounded-lg">
+                <span className="text-sm text-slate-600">Indicação ({billingConfig.referral_percentage}%)</span>
+                <span className="text-sm font-medium text-purple-600">+ {formatCurrency(simulation.referral)}</span>
+              </div>
+              <div className="flex justify-between items-center py-3 px-4 bg-[#A4D233]/20 rounded-lg border-2 border-[#A4D233] mt-3">
+                <span className="text-sm font-semibold text-slate-800">Preço Final Sugerido</span>
+                <span className="text-lg font-bold text-[#6B3FA0]">{formatCurrency(simulation.finalPrice)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden space-y-4">
+        <Accordion type="multiple" defaultValue={["markups", "simulator"]} className="space-y-4">
+          {/* Margens de Lucro */}
+          <AccordionItem value="markups" className="border-0 shadow-sm rounded-lg bg-white">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-[#6B3FA0]" />
+                <span className="font-semibold">Margens de Lucro</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-3">
+                {['90', '70', '50', '30', '10'].map((cat) => (
+                  <Card key={cat} className="border border-slate-200">
+                    <CardContent className="p-3">
+                      <Label className="text-sm font-medium mb-2 block">Categoria {cat}</Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={billingConfig[`markup_category_${cat}`]}
+                          onChange={(e) => updateField(`markup_category_${cat}`, e.target.value)}
+                          className="pr-8"
+                        />
+                        <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Taxas e Impostos */}
+          <AccordionItem value="taxes" className="border-0 shadow-sm rounded-lg bg-white">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <Percent className="h-5 w-5 text-amber-600" />
+                <span className="font-semibold">Taxas e Impostos</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4 space-y-3">
+              <div className="space-y-2">
+                <Label className="text-sm">Taxa de Cartão</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={billingConfig.credit_card_fee}
+                    onChange={(e) => updateField('credit_card_fee', e.target.value)}
+                    className="pr-8"
+                  />
+                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Imposto</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={billingConfig.tax_percentage}
+                    onChange={(e) => updateField('tax_percentage', e.target.value)}
+                    className="pr-8"
+                  />
+                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Indicação</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={billingConfig.referral_percentage}
+                    onChange={(e) => updateField('referral_percentage', e.target.value)}
+                    className="pr-8"
+                  />
+                  <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Custo Operacional */}
+          <AccordionItem value="cost" className="border-0 shadow-sm rounded-lg bg-white">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-blue-600" />
+                <span className="font-semibold">Custo Operacional</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-2">
+                <Label className="text-sm">Custo Fixo Mensal</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
                     value={billingConfig.fixed_cost}
                     onChange={(e) => updateField('fixed_cost', e.target.value)}
-                    placeholder="0.00"
-                    className="border-blue-300 focus:border-blue-500"
+                    className="pl-10"
                   />
-                  <p className="text-xs text-slate-500">Custo fixo mensal da operação</p>
                 </div>
               </div>
-            </div>
+            </AccordionContent>
+          </AccordionItem>
 
-            {/* Coluna Direita - Taxas e Impostos */}
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border-2 border-amber-200">
-                <h3 className="font-semibold text-amber-700 mb-4 flex items-center gap-2">
-                  <Percent className="h-4 w-4" />
-                  Taxas e Impostos
-                </h3>
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="credit_card_fee" className="text-amber-700 font-medium">
-                      Taxa de Cartão de Crédito (%)
-                    </Label>
+          {/* Simulador */}
+          <AccordionItem value="simulator" className="border-0 shadow-sm rounded-lg bg-gradient-to-br from-[#6B3FA0]/5 to-[#A4D233]/5">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <div className="flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-[#6B3FA0]" />
+                <span className="font-semibold">Simulador</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-3 mb-4">
+                <div className="space-y-2">
+                  <Label className="text-sm">Categoria</Label>
+                  <Select value={simulatorCategory} onValueChange={setSimulatorCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="90">Categoria 90</SelectItem>
+                      <SelectItem value="70">Categoria 70</SelectItem>
+                      <SelectItem value="50">Categoria 50</SelectItem>
+                      <SelectItem value="30">Categoria 30</SelectItem>
+                      <SelectItem value="10">Categoria 10</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Custo</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
                     <Input
-                      id="credit_card_fee"
                       type="number"
                       step="0.01"
-                      min="0"
-                      max="100"
-                      value={billingConfig.credit_card_fee}
-                      onChange={(e) => updateField('credit_card_fee', e.target.value)}
-                      placeholder="0.00"
-                      className="border-amber-300 focus:border-amber-500"
+                      value={simulatorCost}
+                      onChange={(e) => setSimulatorCost(e.target.value)}
+                      className="pl-10"
                     />
-                    <p className="text-xs text-slate-500">Taxa cobrada pela operadora de cartão</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="tax_percentage" className="text-amber-700 font-medium">
-                      Percentual de Imposto (%)
-                    </Label>
-                    <Input
-                      id="tax_percentage"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      value={billingConfig.tax_percentage}
-                      onChange={(e) => updateField('tax_percentage', e.target.value)}
-                      placeholder="0.00"
-                      className="border-amber-300 focus:border-amber-500"
-                    />
-                    <p className="text-xs text-slate-500">Impostos sobre a venda</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="referral_percentage" className="text-amber-700 font-medium">
-                      Percentual de Indicação (%)
-                    </Label>
-                    <Input
-                      id="referral_percentage"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      value={billingConfig.referral_percentage}
-                      onChange={(e) => updateField('referral_percentage', e.target.value)}
-                      placeholder="10.00"
-                      className="border-amber-300 focus:border-amber-500"
-                    />
-                    <p className="text-xs text-slate-500">Comissão paga ao profissional que indicou</p>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div className="pt-4 flex justify-end">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-[#6B3FA0] hover:bg-[#834CB8]"
-            >
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Salvar Configurações
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <div className="flex justify-between py-2 px-3 bg-white rounded-lg">
+                  <span className="text-xs text-slate-600">Custo</span>
+                  <span className="text-xs font-medium">{formatCurrency(simulation.cost)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-3 bg-white rounded-lg">
+                  <span className="text-xs text-slate-600">Markup</span>
+                  <span className="text-xs font-medium text-[#6B3FA0]">+ {formatCurrency(simulation.markup)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-3 bg-white rounded-lg">
+                  <span className="text-xs text-slate-600">Taxa</span>
+                  <span className="text-xs font-medium text-amber-600">+ {formatCurrency(simulation.cardFee)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-3 bg-white rounded-lg">
+                  <span className="text-xs text-slate-600">Imposto</span>
+                  <span className="text-xs font-medium text-red-600">+ {formatCurrency(simulation.tax)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-3 bg-white rounded-lg">
+                  <span className="text-xs text-slate-600">Indicação</span>
+                  <span className="text-xs font-medium text-purple-600">+ {formatCurrency(simulation.referral)}</span>
+                </div>
+                <div className="flex justify-between py-3 px-4 bg-[#A4D233]/20 rounded-lg border-2 border-[#A4D233] mt-2">
+                  <span className="text-xs font-semibold">Preço Final</span>
+                  <span className="text-base font-bold text-[#6B3FA0]">{formatCurrency(simulation.finalPrice)}</span>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
 
-      {/* Preview Card */}
-      <Card className="border-0 shadow-sm bg-gradient-to-br from-[#6B3FA0]/5 to-[#A4D233]/5">
-        <CardHeader>
-          <CardTitle className="text-lg">Exemplo de Cálculo - Categoria 90</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-              <span className="text-slate-600">Custo do Produto:</span>
-              <span className="font-semibold">{formatCurrency(1000)}</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-              <span className="text-slate-600">Markup Cat. 90 ({billingConfig.markup_category_90}%):</span>
-              <span className="font-semibold text-[#6B3FA0]">
-                + {formatCurrency(1000 * (billingConfig.markup_category_90 / 100))}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-              <span className="text-slate-600">Taxa Cartão ({billingConfig.credit_card_fee}%):</span>
-              <span className="font-semibold text-amber-600">
-                + {formatCurrency((1000 * (1 + billingConfig.markup_category_90 / 100)) * (billingConfig.credit_card_fee / 100))}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-              <span className="text-slate-600">Imposto ({billingConfig.tax_percentage}%):</span>
-              <span className="font-semibold text-red-600">
-                + {formatCurrency((1000 * (1 + billingConfig.markup_category_90 / 100)) * (billingConfig.tax_percentage / 100))}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-              <span className="text-slate-600">Indicação ({billingConfig.referral_percentage}%):</span>
-              <span className="font-semibold text-purple-600">
-                + {formatCurrency((1000 * (1 + billingConfig.markup_category_90 / 100)) * (billingConfig.referral_percentage / 100))}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-[#A4D233]/20 rounded-lg border-2 border-[#A4D233]">
-              <span className="font-semibold text-slate-800">Preço Final Sugerido:</span>
-              <span className="font-bold text-lg text-[#6B3FA0]">
-                {formatCurrency(
-                  1000 * (1 + billingConfig.markup_category_90 / 100) * 
-                  (1 + billingConfig.credit_card_fee / 100) * 
-                  (1 + billingConfig.tax_percentage / 100) *
-                  (1 + billingConfig.referral_percentage / 100)
-                )}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Mobile Fixed Save Button */}
+      {hasChanges && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-50">
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full bg-[#6B3FA0] hover:bg-[#834CB8] text-white h-12"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="h-5 w-5 mr-2" />
+                Salvar Configurações
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
