@@ -29,7 +29,7 @@ import { logCreation, logEdit } from '@/components/utils/auditLogger';
 export default function QuoteForm({ open, onOpenChange, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [referenceProducts, setReferenceProducts] = useState([]);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [quoteDate, setQuoteDate] = useState(new Date());
   const [formData, setFormData] = useState({
@@ -42,7 +42,6 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     subtotal: 0,
     discount: 0,
     total: 0,
-    payment_details: [],
     validity_days: 30,
     status: 'rascunho',
     notes: ''
@@ -58,8 +57,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     if (quote) {
       setFormData({
         ...quote,
-        items: quote.items || [],
-        payment_details: quote.payment_details || []
+        items: quote.items || []
       });
       // Calcular percentual inicial se houver desconto
       if (quote.subtotal > 0 && quote.discount > 0) {
@@ -78,8 +76,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         items: [],
         subtotal: 0,
         discount: 0,
-        total: 0,
-        payment_details: []
+        total: 0
       }));
       setDiscountPercent(0);
     } else {
@@ -93,7 +90,6 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         subtotal: 0,
         discount: 0,
         total: 0,
-        payment_details: [],
         validity_days: 30,
         status: 'rascunho',
         notes: ''
@@ -104,17 +100,28 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
 
   const loadData = async () => {
     try {
-      const [clientsData, productsData] = await Promise.all([
+      const [clientsData, refProductsData, user] = await Promise.all([
         base44.entities.Client.list(),
-        base44.entities.Product.list()
+        base44.entities.ReferenceProduct.list(),
+        base44.auth.me()
       ]);
       setClients(clientsData);
-      // Filtrar apenas produtos disponíveis para orçamento
-      setProducts(productsData.filter(p => 
-        p.status !== 'vendido' && 
-        p.status !== 'esgotado' && 
-        (p.stock_type === 'serializado' || (p.stock_type === 'nao_serializado' && p.quantity > 0))
-      ));
+      
+      // Calcular valor final de cada produto referência
+      const productsWithPrice = refProductsData.map(p => {
+        const billingConfig = user.billing_config || {};
+        const fixedCost = billingConfig.fixed_cost || 0;
+        const totalCost = p.cost + fixedCost;
+        const markup = billingConfig[`markup_category_${p.category}`] || 0;
+        const finalPrice = totalCost + (totalCost * (markup / 100));
+        
+        return {
+          ...p,
+          finalPrice
+        };
+      });
+      
+      setReferenceProducts(productsWithPrice);
     } catch (e) {
       console.error(e);
     }
@@ -151,21 +158,11 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     newItems[index] = { ...newItems[index], [field]: value };
 
     if (field === 'product_id') {
-      const product = products.find(p => p.id === value);
+      const product = referenceProducts.find(p => p.id === value);
       if (product) {
-        // Verificar se produto está vendido ou fora de estoque
-        if (product.status === 'vendido') {
-          toast.error(`O produto ${product.name} (${product.serial_number || ''}) já foi vendido!`);
-          return;
-        }
-        if (product.status === 'esgotado' || (product.stock_type === 'nao_serializado' && product.quantity <= 0)) {
-          toast.error(`O produto ${product.name} está fora de estoque!`);
-          return;
-        }
-        
         newItems[index].product_name = product.name;
-        newItems[index].unit_price = product.sale_price;
-        newItems[index].total = product.sale_price * newItems[index].quantity;
+        newItems[index].unit_price = product.finalPrice;
+        newItems[index].total = product.finalPrice * newItems[index].quantity;
       }
     }
 
@@ -199,24 +196,6 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
       discount: discountValue,
       total
     }));
-  };
-
-  const addPayment = () => {
-    setFormData({
-      ...formData,
-      payment_details: [...formData.payment_details, { method: 'pix', amount: 0, installments: 1 }]
-    });
-  };
-
-  const removePayment = (index) => {
-    const newPayments = formData.payment_details.filter((_, i) => i !== index);
-    setFormData({ ...formData, payment_details: newPayments });
-  };
-
-  const updatePayment = (index, field, value) => {
-    const newPayments = [...formData.payment_details];
-    newPayments[index] = { ...newPayments[index], [field]: value };
-    setFormData({ ...formData, payment_details: newPayments });
   };
 
   const generateQuoteNumber = () => {
@@ -253,16 +232,8 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         await logEdit('Orçamento', `${dataToSave.quote_number} - ${dataToSave.client_name}`, quote.id);
         toast.success('Orçamento atualizado!');
       } else {
-        const newQuote = await base44.entities.Quote.create(dataToSave);
-        await logCreation('Orçamento', `${dataToSave.quote_number} - ${dataToSave.client_name}`, newQuote.id);
-        
-        // Marcar produtos como reservados
-        for (const item of formData.items) {
-          if (item.product_id) {
-            await base44.entities.Product.update(item.product_id, { status: 'reservado' });
-          }
-        }
-        
+        await base44.entities.Quote.create(dataToSave);
+        await logCreation('Orçamento', `${dataToSave.quote_number} - ${dataToSave.client_name}`, dataToSave.quote_number);
         toast.success('Orçamento criado!');
       }
       await onSuccess();
@@ -360,9 +331,9 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
               <Card key={index} className="p-4">
                 <div className="grid grid-cols-12 gap-3 items-end">
                   <div className="col-span-5">
-                    <Label className="text-xs">Buscar Produto</Label>
+                    <Label className="text-xs">Nome do Aparelho</Label>
                     <Input
-                      placeholder="Digite o nome do produto..."
+                      placeholder="Digite o nome do aparelho..."
                       value={item.product_name || ''}
                       onChange={(e) => {
                         const searchValue = e.target.value;
@@ -371,7 +342,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                         setFormData({ ...formData, items: newItems });
                         
                         const searchTerm = searchValue.toLowerCase();
-                        const foundProduct = products.find(p => 
+                        const foundProduct = referenceProducts.find(p => 
                           p.name?.toLowerCase() === searchTerm
                         );
                         if (foundProduct) {
@@ -381,9 +352,9 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                       list={`product-list-${index}`}
                     />
                     <datalist id={`product-list-${index}`}>
-                      {products.map((product) => (
+                      {referenceProducts.map((product) => (
                         <option key={product.id} value={product.name}>
-                          {product.name} - {product.brand} {product.model}
+                          {product.name} - Cat. {product.category} - {formatCurrency(product.finalPrice)}
                         </option>
                       ))}
                     </datalist>
@@ -451,79 +422,6 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
               </div>
             </div>
           </Card>
-
-          {/* Formas de Pagamento */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Formas de Pagamento</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addPayment}>
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar Pagamento
-              </Button>
-            </div>
-
-            {formData.payment_details && formData.payment_details.map((payment, index) => (
-              <Card key={index} className="p-4">
-                <div className="grid grid-cols-12 gap-3 items-end">
-                  <div className="col-span-5">
-                    <Label className="text-xs">Método</Label>
-                    <Select
-                      value={payment.method}
-                      onValueChange={(value) => updatePayment(index, 'method', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(paymentMethods).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-3">
-                    <Label className="text-xs">Valor</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={payment.amount}
-                      onChange={(e) => updatePayment(index, 'amount', Number(e.target.value))}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  {(payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && (
-                    <div className="col-span-3">
-                      <Label className="text-xs">Parcelas</Label>
-                      <Select
-                        value={String(payment.installments)}
-                        onValueChange={(value) => updatePayment(index, 'installments', Number(value))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((n) => (
-                            <SelectItem key={n} value={String(n)}>{n}x de {formatCurrency(payment.amount / n)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removePayment(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
 
           <div className="space-y-2">
             <Label>Observações</Label>
