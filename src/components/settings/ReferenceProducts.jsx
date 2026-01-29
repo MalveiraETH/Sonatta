@@ -151,8 +151,9 @@ export default function ReferenceProducts() {
     if (!billingConfig) return 0;
 
     const finalPrice = calculateFinalPrice(cost, category);
+    const totalCost = calculateTotalCost(cost);
     const discounts = calculateDiscounts(cost, category);
-    const netRevenue = finalPrice - discounts;
+    const netRevenue = finalPrice - (totalCost + discounts);
     
     return netRevenue;
   };
