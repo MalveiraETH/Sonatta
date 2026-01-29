@@ -178,7 +178,7 @@ Temos uma ótima notícia para você: seu orçamento personalizado para redescob
 
 *Pensamos nas melhores formas para você realizar esse investimento na sua saúde:*
 * Parcelamento Super Facilitado:* Leve seus aparelhos em até *18X SEM JUROS no cartão!* São parcelas pequenas de apenas *{{installment_value}}* que cabem no seu bolso.
-* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de {{discount_percent}}% ({{discount_value}})*! Valor à vista: *{{total}}*
+* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de {{discount_percent}}%*! Valor à vista: *{{total}}*
 
 *Sua tranquilidade é nossa prioridade:*
 Todos os aparelhos vêm com *{{warranty}}* de garantia, garantindo sua segurança e nosso suporte total.
