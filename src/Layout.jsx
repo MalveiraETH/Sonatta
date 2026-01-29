@@ -48,6 +48,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
     { name: 'Clientes', page: 'Clients', icon: Users },
     { name: 'Agendamentos', page: 'Appointments', icon: Calendar },
+    { name: 'Teste', page: 'Tests', icon: Ear },
     { name: 'Profissionais', page: 'Professionals', icon: Users },
     { name: 'Estoque', page: 'Inventory', icon: Package },
     { name: 'Orçamentos', page: 'Quotes', icon: FileText },
