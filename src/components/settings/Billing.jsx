@@ -83,140 +83,176 @@ export default function Billing() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="fixed_cost">Custo Fixo (R$)</Label>
-              <Input
-                id="fixed_cost"
-                type="number"
-                step="0.01"
-                min="0"
-                value={billingConfig.fixed_cost}
-                onChange={(e) => updateField('fixed_cost', e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-slate-500">
-                Custo fixo mensal da operação
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Coluna Esquerda - Markups e Custo Fixo */}
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-[#6B3FA0]/10 to-[#834CB8]/5 rounded-lg p-4 border-2 border-[#6B3FA0]/20">
+                <h3 className="font-semibold text-[#6B3FA0] mb-4 flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  Margens de Lucro (Markups)
+                </h3>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="markup_category_90" className="text-[#6B3FA0] font-medium">
+                      Markup Categoria 90 (%)
+                    </Label>
+                    <Input
+                      id="markup_category_90"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1000"
+                      value={billingConfig.markup_category_90}
+                      onChange={(e) => updateField('markup_category_90', e.target.value)}
+                      placeholder="0.00"
+                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
+                    />
+                    <p className="text-xs text-slate-500">Margem de lucro para categoria 90</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="markup_category_70" className="text-[#6B3FA0] font-medium">
+                      Markup Categoria 70 (%)
+                    </Label>
+                    <Input
+                      id="markup_category_70"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1000"
+                      value={billingConfig.markup_category_70}
+                      onChange={(e) => updateField('markup_category_70', e.target.value)}
+                      placeholder="0.00"
+                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
+                    />
+                    <p className="text-xs text-slate-500">Margem de lucro para categoria 70</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="markup_category_50" className="text-[#6B3FA0] font-medium">
+                      Markup Categoria 50 (%)
+                    </Label>
+                    <Input
+                      id="markup_category_50"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1000"
+                      value={billingConfig.markup_category_50}
+                      onChange={(e) => updateField('markup_category_50', e.target.value)}
+                      placeholder="0.00"
+                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
+                    />
+                    <p className="text-xs text-slate-500">Margem de lucro para categoria 50</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="markup_category_30" className="text-[#6B3FA0] font-medium">
+                      Markup Categoria 30 (%)
+                    </Label>
+                    <Input
+                      id="markup_category_30"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="1000"
+                      value={billingConfig.markup_category_30}
+                      onChange={(e) => updateField('markup_category_30', e.target.value)}
+                      placeholder="0.00"
+                      className="border-[#6B3FA0]/30 focus:border-[#6B3FA0]"
+                    />
+                    <p className="text-xs text-slate-500">Margem de lucro para categoria 30</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-4 border-2 border-blue-200">
+                <h3 className="font-semibold text-blue-700 mb-3 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Custo Operacional
+                </h3>
+                <div className="space-y-2">
+                  <Label htmlFor="fixed_cost" className="text-blue-700 font-medium">
+                    Custo Fixo (R$)
+                  </Label>
+                  <Input
+                    id="fixed_cost"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={billingConfig.fixed_cost}
+                    onChange={(e) => updateField('fixed_cost', e.target.value)}
+                    placeholder="0.00"
+                    className="border-blue-300 focus:border-blue-500"
+                  />
+                  <p className="text-xs text-slate-500">Custo fixo mensal da operação</p>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="markup_category_90">Markup Categoria 90 (%)</Label>
-              <Input
-                id="markup_category_90"
-                type="number"
-                step="0.01"
-                min="0"
-                max="1000"
-                value={billingConfig.markup_category_90}
-                onChange={(e) => updateField('markup_category_90', e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-slate-500">
-                Margem de lucro para categoria 90
-              </p>
-            </div>
+            {/* Coluna Direita - Taxas e Impostos */}
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border-2 border-amber-200">
+                <h3 className="font-semibold text-amber-700 mb-4 flex items-center gap-2">
+                  <Percent className="h-4 w-4" />
+                  Taxas e Impostos
+                </h3>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="credit_card_fee" className="text-amber-700 font-medium">
+                      Taxa de Cartão de Crédito (%)
+                    </Label>
+                    <Input
+                      id="credit_card_fee"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={billingConfig.credit_card_fee}
+                      onChange={(e) => updateField('credit_card_fee', e.target.value)}
+                      placeholder="0.00"
+                      className="border-amber-300 focus:border-amber-500"
+                    />
+                    <p className="text-xs text-slate-500">Taxa cobrada pela operadora de cartão</p>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="markup_category_70">Markup Categoria 70 (%)</Label>
-              <Input
-                id="markup_category_70"
-                type="number"
-                step="0.01"
-                min="0"
-                max="1000"
-                value={billingConfig.markup_category_70}
-                onChange={(e) => updateField('markup_category_70', e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-slate-500">
-                Margem de lucro para categoria 70
-              </p>
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax_percentage" className="text-amber-700 font-medium">
+                      Percentual de Imposto (%)
+                    </Label>
+                    <Input
+                      id="tax_percentage"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={billingConfig.tax_percentage}
+                      onChange={(e) => updateField('tax_percentage', e.target.value)}
+                      placeholder="0.00"
+                      className="border-amber-300 focus:border-amber-500"
+                    />
+                    <p className="text-xs text-slate-500">Impostos sobre a venda</p>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="markup_category_50">Markup Categoria 50 (%)</Label>
-              <Input
-                id="markup_category_50"
-                type="number"
-                step="0.01"
-                min="0"
-                max="1000"
-                value={billingConfig.markup_category_50}
-                onChange={(e) => updateField('markup_category_50', e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-slate-500">
-                Margem de lucro para categoria 50
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="markup_category_30">Markup Categoria 30 (%)</Label>
-              <Input
-                id="markup_category_30"
-                type="number"
-                step="0.01"
-                min="0"
-                max="1000"
-                value={billingConfig.markup_category_30}
-                onChange={(e) => updateField('markup_category_30', e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-slate-500">
-                Margem de lucro para categoria 30
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="credit_card_fee">Taxa de Cartão de Crédito (%)</Label>
-              <Input
-                id="credit_card_fee"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={billingConfig.credit_card_fee}
-                onChange={(e) => updateField('credit_card_fee', e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-slate-500">
-                Taxa cobrada pela operadora de cartão
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tax_percentage">Percentual de Imposto (%)</Label>
-              <Input
-                id="tax_percentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={billingConfig.tax_percentage}
-                onChange={(e) => updateField('tax_percentage', e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-slate-500">
-                Impostos sobre a venda
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="referral_percentage">Percentual de Indicação (%)</Label>
-              <Input
-                id="referral_percentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={billingConfig.referral_percentage}
-                onChange={(e) => updateField('referral_percentage', e.target.value)}
-                placeholder="10.00"
-              />
-              <p className="text-xs text-slate-500">
-                Comissão paga ao profissional que indicou
-              </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="referral_percentage" className="text-amber-700 font-medium">
+                      Percentual de Indicação (%)
+                    </Label>
+                    <Input
+                      id="referral_percentage"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={billingConfig.referral_percentage}
+                      onChange={(e) => updateField('referral_percentage', e.target.value)}
+                      placeholder="10.00"
+                      className="border-amber-300 focus:border-amber-500"
+                    />
+                    <p className="text-xs text-slate-500">Comissão paga ao profissional que indicou</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
