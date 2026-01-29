@@ -30,13 +30,14 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses, tests] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
         base44.entities.Product.list(),
         base44.entities.Installment.list(),
-        base44.entities.Expense.list()
+        base44.entities.Expense.list(),
+        base44.entities.Test.list()
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -105,7 +106,8 @@ export default function Dashboard() {
         overduePixCount: overduePixInstallments.length,
         overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
         overdueCardCount: overdueCardInstallments.length,
-        overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0)
+        overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
+        testsActive: tests.filter(t => t.status === 'em_teste' || t.status === 'teste_estendido').length
       });
 
       setTodayAppointments(todayAppts.slice(0, 5));
@@ -189,6 +191,57 @@ export default function Dashboard() {
                 <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.monthSales || 0}</p>
               </div>
               <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 opacity-60" />
+            </div>
+          </Card>
+        </Link>
+      </div>
+
+      {/* KPIs Operacionais */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Link to={createPageUrl('Clients')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Clientes</p>
+                <p className="text-lg sm:text-2xl font-bold text-slate-900">{stats.totalClients || 0}</p>
+              </div>
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 opacity-60" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link to={createPageUrl('Tests')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Em Teste</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">{stats.testsActive || 0}</p>
+              </div>
+              <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link to={createPageUrl('Appointments')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Agendamentos Hoje</p>
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.todayAppointments || 0}</p>
+              </div>
+              <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
+            </div>
+          </Card>
+        </Link>
+
+        <Link to={createPageUrl('Clients')} state={{ filter: 'cliente_ativo' }}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Clientes Ativos</p>
+                <p className="text-lg sm:text-2xl font-bold text-[#6B3FA0]">{stats.activeClients || 0}</p>
+              </div>
+              <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#6B3FA0] opacity-60" />
             </div>
           </Card>
         </Link>
