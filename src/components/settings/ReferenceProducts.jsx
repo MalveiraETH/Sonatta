@@ -131,6 +131,29 @@ export default function ReferenceProducts() {
     return finalPrice;
   };
 
+  const calculateDiscounts = (cost, category) => {
+    if (!billingConfig) return 0;
+
+    const markup = billingConfig[`markup_category_${category}`] || 0;
+    const creditCardFee = billingConfig.credit_card_fee || 0;
+    const tax = billingConfig.tax_percentage || 0;
+    const referral = billingConfig.referral_percentage || 0;
+
+    const priceWithMarkup = cost * (1 + markup / 100);
+    const discounts = priceWithMarkup * (creditCardFee / 100) + priceWithMarkup * (tax / 100) + priceWithMarkup * (referral / 100);
+    
+    return discounts;
+  };
+
+  const calculateNetRevenue = (cost, category) => {
+    if (!billingConfig) return 0;
+
+    const finalPrice = calculateFinalPrice(cost, category);
+    const netRevenue = finalPrice - cost;
+    
+    return netRevenue;
+  };
+
   const getCategoryLabel = (category) => {
     const labels = {
       '90': 'Categoria 90',
@@ -263,14 +286,16 @@ export default function ReferenceProducts() {
                   <TableHead>Nome do Aparelho</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Descontos</TableHead>
                   <TableHead className="text-right">Valor Final</TableHead>
+                  <TableHead className="text-right">Receita Líquida</TableHead>
                   <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {products.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-slate-500 py-8">
+                    <TableCell colSpan={8} className="text-center text-slate-500 py-8">
                       Nenhum produto cadastrado
                     </TableCell>
                   </TableRow>
@@ -285,8 +310,14 @@ export default function ReferenceProducts() {
                         </span>
                       </TableCell>
                       <TableCell className="text-right">{formatCurrency(product.cost)}</TableCell>
+                      <TableCell className="text-right text-red-600">
+                        {formatCurrency(calculateDiscounts(product.cost, product.category))}
+                      </TableCell>
                       <TableCell className="text-right font-semibold text-[#A4D233]">
                         {formatCurrency(calculateFinalPrice(product.cost, product.category))}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-blue-600">
+                        {formatCurrency(calculateNetRevenue(product.cost, product.category))}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
