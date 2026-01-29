@@ -518,7 +518,7 @@ export default function Sales() {
       </div>
 
       {/* Modals */}
-      <NewSaleForm open={formOpen} onClose={() => setFormOpen(false)} onSuccess={loadData} />
+      <NewSaleForm open={formOpen} onOpenChange={setFormOpen} onSuccess={loadData} />
 
       <ContractGenerator 
         open={contractOpen}
