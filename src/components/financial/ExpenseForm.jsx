@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
 
-export default function ExpenseForm({ open, onClose, onSuccess, expense = null }) {
+export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = null }) {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [counterparties, setCounterparties] = useState([]);
@@ -102,7 +102,7 @@ export default function ExpenseForm({ open, onClose, onSuccess, expense = null }
       }
 
       if (onSuccess) onSuccess();
-      if (onClose) onClose();
+      if (onOpenChange) onOpenChange(false);
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
       toast.error('Erro ao salvar despesa');
@@ -117,7 +117,7 @@ export default function ExpenseForm({ open, onClose, onSuccess, expense = null }
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{expense ? 'Editar Despesa' : 'Nova Despesa'}</DialogTitle>
@@ -292,7 +292,7 @@ export default function ExpenseForm({ open, onClose, onSuccess, expense = null }
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange && onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
