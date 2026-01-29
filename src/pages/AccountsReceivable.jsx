@@ -456,7 +456,7 @@ export default function AccountsReceivable() {
                     <TableCell className="font-medium">{inst.client_name}</TableCell>
                     <TableCell>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</TableCell>
                     <TableCell>{inst.installment_number}</TableCell>
-                    <TableCell>{format(new Date(inst.due_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                    <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(inst.remaining_amount)}</TableCell>
                     <TableCell className="text-center">
@@ -511,7 +511,7 @@ export default function AccountsReceivable() {
                         </span>
                       </div>
                       <div className="text-sm text-slate-600">
-                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'} • Parcela {inst.installment_number} • {format(new Date(inst.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'} • Parcela {inst.installment_number} • {formatLocalDate(inst.due_date)}
                       </div>
                     </div>
                     <DropdownMenu>
@@ -564,7 +564,7 @@ export default function AccountsReceivable() {
               </div>
               <div>
                 <span className="text-slate-500">Vencimento:</span>
-                <p className="font-medium">{format(new Date(selectedInstallment.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                <p className="font-medium">{formatLocalDate(selectedInstallment.due_date)}</p>
               </div>
               <div>
                 <span className="text-slate-500">Valor Original:</span>
