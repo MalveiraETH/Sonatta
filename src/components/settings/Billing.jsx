@@ -12,7 +12,10 @@ export default function Billing() {
   const [saving, setSaving] = useState(false);
   const [billingConfig, setBillingConfig] = useState({
     fixed_cost: 0,
-    markup_percentage: 0,
+    markup_category_90: 0,
+    markup_category_70: 0,
+    markup_category_50: 0,
+    markup_category_30: 0,
     credit_card_fee: 0,
     tax_percentage: 0,
     referral_percentage: 10
@@ -76,7 +79,7 @@ export default function Billing() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-[#6B3FA0]" />
-            <CardTitle>Configurações de Faturamento</CardTitle>
+            <CardTitle>Custos e Tarifas</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -98,19 +101,70 @@ export default function Billing() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="markup_percentage">Percentual de Markup (%)</Label>
+              <Label htmlFor="markup_category_90">Markup Categoria 90 (%)</Label>
               <Input
-                id="markup_percentage"
+                id="markup_category_90"
                 type="number"
                 step="0.01"
                 min="0"
-                max="100"
-                value={billingConfig.markup_percentage}
-                onChange={(e) => updateField('markup_percentage', e.target.value)}
+                max="1000"
+                value={billingConfig.markup_category_90}
+                onChange={(e) => updateField('markup_category_90', e.target.value)}
                 placeholder="0.00"
               />
               <p className="text-xs text-slate-500">
-                Margem de lucro sobre o custo
+                Margem de lucro para categoria 90
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="markup_category_70">Markup Categoria 70 (%)</Label>
+              <Input
+                id="markup_category_70"
+                type="number"
+                step="0.01"
+                min="0"
+                max="1000"
+                value={billingConfig.markup_category_70}
+                onChange={(e) => updateField('markup_category_70', e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-slate-500">
+                Margem de lucro para categoria 70
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="markup_category_50">Markup Categoria 50 (%)</Label>
+              <Input
+                id="markup_category_50"
+                type="number"
+                step="0.01"
+                min="0"
+                max="1000"
+                value={billingConfig.markup_category_50}
+                onChange={(e) => updateField('markup_category_50', e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-slate-500">
+                Margem de lucro para categoria 50
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="markup_category_30">Markup Categoria 30 (%)</Label>
+              <Input
+                id="markup_category_30"
+                type="number"
+                step="0.01"
+                min="0"
+                max="1000"
+                value={billingConfig.markup_category_30}
+                onChange={(e) => updateField('markup_category_30', e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-slate-500">
+                Margem de lucro para categoria 30
               </p>
             </div>
 
@@ -182,7 +236,7 @@ export default function Billing() {
       {/* Preview Card */}
       <Card className="border-0 shadow-sm bg-gradient-to-br from-[#6B3FA0]/5 to-[#A4D233]/5">
         <CardHeader>
-          <CardTitle className="text-lg">Exemplo de Cálculo</CardTitle>
+          <CardTitle className="text-lg">Exemplo de Cálculo - Categoria 90</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm">
@@ -191,30 +245,37 @@ export default function Billing() {
               <span className="font-semibold">{formatCurrency(1000)}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-              <span className="text-slate-600">Markup ({billingConfig.markup_percentage}%):</span>
+              <span className="text-slate-600">Markup Cat. 90 ({billingConfig.markup_category_90}%):</span>
               <span className="font-semibold text-[#6B3FA0]">
-                + {formatCurrency(1000 * (billingConfig.markup_percentage / 100))}
+                + {formatCurrency(1000 * (billingConfig.markup_category_90 / 100))}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-white rounded-lg">
               <span className="text-slate-600">Taxa Cartão ({billingConfig.credit_card_fee}%):</span>
               <span className="font-semibold text-amber-600">
-                - {formatCurrency((1000 + 1000 * (billingConfig.markup_percentage / 100)) * (billingConfig.credit_card_fee / 100))}
+                + {formatCurrency((1000 * (1 + billingConfig.markup_category_90 / 100)) * (billingConfig.credit_card_fee / 100))}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-white rounded-lg">
               <span className="text-slate-600">Imposto ({billingConfig.tax_percentage}%):</span>
               <span className="font-semibold text-red-600">
-                - {formatCurrency((1000 + 1000 * (billingConfig.markup_percentage / 100)) * (billingConfig.tax_percentage / 100))}
+                + {formatCurrency((1000 * (1 + billingConfig.markup_category_90 / 100)) * (billingConfig.tax_percentage / 100))}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+              <span className="text-slate-600">Indicação ({billingConfig.referral_percentage}%):</span>
+              <span className="font-semibold text-purple-600">
+                + {formatCurrency((1000 * (1 + billingConfig.markup_category_90 / 100)) * (billingConfig.referral_percentage / 100))}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-[#A4D233]/20 rounded-lg border-2 border-[#A4D233]">
               <span className="font-semibold text-slate-800">Preço Final Sugerido:</span>
               <span className="font-bold text-lg text-[#6B3FA0]">
                 {formatCurrency(
-                  1000 * (1 + billingConfig.markup_percentage / 100) * 
+                  1000 * (1 + billingConfig.markup_category_90 / 100) * 
                   (1 + billingConfig.credit_card_fee / 100) * 
-                  (1 + billingConfig.tax_percentage / 100)
+                  (1 + billingConfig.tax_percentage / 100) *
+                  (1 + billingConfig.referral_percentage / 100)
                 )}
               </span>
             </div>
