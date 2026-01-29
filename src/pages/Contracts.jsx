@@ -45,6 +45,7 @@ import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/utils/dateHelpers';
 
 export default function Contracts() {
   const [loading, setLoading] = useState(true);
@@ -396,7 +397,7 @@ export default function Contracts() {
                 <TableRow key={contract.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{contract.contract_number}</TableCell>
                   <TableCell>{contract.client_name}</TableCell>
-                  <TableCell>{format(new Date(contract.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                  <TableCell>{formatLocalDate(contract.created_date)}</TableCell>
                   <TableCell className="text-right font-semibold">{formatCurrency(contract.total_value)}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -485,7 +486,7 @@ export default function Contracts() {
                       </span>
                     </div>
                     <div className="text-sm text-slate-600">
-                      {contract.client_name} • {format(new Date(contract.created_date), 'dd/MM/yyyy', { locale: ptBR })}
+                      {contract.client_name} • {formatLocalDate(contract.created_date)}
                     </div>
                   </div>
                   <DropdownMenu>

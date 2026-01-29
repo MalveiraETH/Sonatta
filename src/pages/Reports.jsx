@@ -19,6 +19,7 @@ import StatCard from '@/components/ui/StatCard';
 import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/utils/dateHelpers';
 
 export default function Reports() {
   const [loading, setLoading] = useState(true);
@@ -395,7 +396,7 @@ export default function Reports() {
                         <TableCell>{client.phone}</TableCell>
                         <TableCell>{client.email}</TableCell>
                         <TableCell><StatusBadge status={client.status} /></TableCell>
-                        <TableCell>{format(new Date(client.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                        <TableCell>{formatLocalDate(client.created_date)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -735,7 +736,7 @@ export default function Reports() {
                           <TableCell className="font-medium">{inst.client_name}</TableCell>
                           <TableCell>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</TableCell>
                           <TableCell>{inst.installment_number}</TableCell>
-                          <TableCell>{format(new Date(inst.due_date), 'dd/MM/yyyy')}</TableCell>
+                          <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
                           <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
                           <TableCell className="text-right">{formatCurrency(inst.paid_amount)}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(inst.remaining_amount)}</TableCell>
@@ -882,7 +883,7 @@ export default function Reports() {
                           <TableRow key={exp.id}>
                             <TableCell className="font-medium">{exp.category_name}</TableCell>
                             <TableCell>{exp.counterparty_name || '-'}</TableCell>
-                            <TableCell>{format(dueDate, 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>{formatLocalDate(exp.due_date)}</TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(exp.amount)}</TableCell>
                             <TableCell className="capitalize">{exp.payment_method?.replace('_', ' ')}</TableCell>
                             <TableCell>

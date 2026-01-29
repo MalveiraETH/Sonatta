@@ -60,6 +60,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/utils/dateHelpers';
 
 export default function Tests() {
   const [loading, setLoading] = useState(true);
@@ -393,8 +394,8 @@ export default function Tests() {
               filteredTests.map(test => (
                 <TableRow key={test.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{test.test_number}</TableCell>
-                  <TableCell>{format(new Date(test.start_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                  <TableCell>{format(new Date(test.end_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                  <TableCell>{formatLocalDate(test.start_date)}</TableCell>
+                  <TableCell>{formatLocalDate(test.end_date)}</TableCell>
                   <TableCell>{test.client_name}</TableCell>
                   <TableCell className="text-center">{test.devices?.length || 0}</TableCell>
                   <TableCell className="text-sm">{test.professional_name || '-'}</TableCell>
@@ -520,7 +521,7 @@ export default function Tests() {
                   </DropdownMenu>
                 </div>
                 <div className="text-xs text-slate-500">
-                  {format(new Date(test.start_date), 'dd/MM/yyyy', { locale: ptBR })} - {format(new Date(test.end_date), 'dd/MM/yyyy', { locale: ptBR })}
+                  {formatLocalDate(test.start_date)} - {formatLocalDate(test.end_date)}
                 </div>
               </div>
             </Card>
@@ -551,11 +552,11 @@ export default function Tests() {
                 </div>
                 <div>
                   <span className="text-slate-500">Data Início:</span>
-                  <p className="font-medium">{format(new Date(selectedTest.start_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                  <p className="font-medium">{formatLocalDate(selectedTest.start_date)}</p>
                 </div>
                 <div>
                   <span className="text-slate-500">Data Final:</span>
-                  <p className="font-medium">{format(new Date(selectedTest.end_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                  <p className="font-medium">{formatLocalDate(selectedTest.end_date)}</p>
                 </div>
                 <div>
                   <span className="text-slate-500">Profissional:</span>

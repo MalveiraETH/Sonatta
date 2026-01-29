@@ -47,6 +47,7 @@ import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plu
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/utils/dateHelpers';
 
 export default function Sales() {
   const [loading, setLoading] = useState(true);
@@ -370,7 +371,7 @@ export default function Sales() {
               filteredSales.map(sale => (
                 <TableRow key={sale.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{sale.sale_number}</TableCell>
-                  <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                  <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
                   <TableCell>{sale.client_name}</TableCell>
                   <TableCell className="text-sm">{sale.seller_name || '-'}</TableCell>
                   <TableCell className="text-center">{sale.items?.length || 0}</TableCell>
@@ -468,7 +469,7 @@ export default function Sales() {
                       </span>
                     </div>
                     <div className="text-sm text-slate-600">
-                      {sale.client_name} • {format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}
+                      {sale.client_name} • {formatLocalDate(sale.sale_date || sale.created_date)}
                     </div>
                   </div>
                   <DropdownMenu>

@@ -67,6 +67,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/utils/dateHelpers';
 import {
   PieChart,
   Pie,
@@ -937,7 +938,7 @@ export default function Inventory() {
                 ) : (
                   filteredMovements.map(movement => (
                     <TableRow key={movement.id} className="hover:bg-slate-50">
-                      <TableCell>{format(new Date(movement.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell>{formatLocalDate(movement.created_date)}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                           movement.type === 'entrada' ? 'bg-emerald-100 text-emerald-700' :
@@ -980,7 +981,7 @@ export default function Inventory() {
                          movement.type === 'saida' ? <TrendingDown className="h-3 w-3" /> : <Edit3 className="h-3 w-3" />}
                         {movement.type === 'entrada' ? 'Entrada' : movement.type === 'saida' ? 'Saída' : 'Ajuste'}
                       </span>
-                      <span className="text-sm text-slate-600">{format(new Date(movement.created_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                      <span className="text-sm text-slate-600">{formatLocalDate(movement.created_date)}</span>
                     </div>
                     <div>
                       <p className="font-medium">{movement.product_name}</p>
