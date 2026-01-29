@@ -158,7 +158,10 @@ export default function Quotes() {
       productList += '\n';
     });
 
-    // Calcular valores
+    // Calcular valores e obter configurações
+    const user = await base44.auth.me();
+    const discountPercent = quote.discount && quote.subtotal ? ((quote.discount / quote.subtotal) * 100).toFixed(2) : 0;
+    const discountValue = quote.discount || 0;
     const installmentValue = quote.subtotal / 18;
     const warrantyText = '2 a 4 anos (conforme fabricante)';
     
@@ -175,7 +178,7 @@ Temos uma ótima notícia para você: seu orçamento personalizado para redescob
 
 *Pensamos nas melhores formas para você realizar esse investimento na sua saúde:*
 * Parcelamento Super Facilitado:* Leve seus aparelhos em até *18X SEM JUROS no cartão!* São parcelas pequenas de apenas *{{installment_value}}* que cabem no seu bolso.
-* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de 10%*! Valor à vista: *{{total}}*
+* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de {{discount_percent}}% ({{discount_value}})*! Valor à vista: *{{total}}*
 
 *Sua tranquilidade é nossa prioridade:*
 Todos os aparelhos vêm com *{{warranty}}* de garantia, garantindo sua segurança e nosso suporte total.
@@ -191,7 +194,6 @@ Equipe Sonatta Soluções Auditivas
     let contactPhone = '(48) 99999-9999';
 
     try {
-      const user = await base44.auth.me();
       if (user.whatsapp_quote_template) {
         template = user.whatsapp_quote_template;
       }
@@ -209,6 +211,8 @@ Equipe Sonatta Soluções Auditivas
       .replace(/{{product_list}}/g, productList)
       .replace(/{{subtotal}}/g, formatCurrency(quote.subtotal))
       .replace(/{{total}}/g, formatCurrency(quote.total))
+      .replace(/{{discount_percent}}/g, discountPercent)
+      .replace(/{{discount_value}}/g, formatCurrency(discountValue))
       .replace(/{{installment_value}}/g, formatCurrency(installmentValue))
       .replace(/{{warranty}}/g, warrantyText)
       .replace(/{{contact_phone}}/g, contactPhone);
