@@ -101,7 +101,8 @@ export default function ExpenseForm({ open, onClose, onSuccess, expense = null }
         toast.success('Despesa cadastrada!');
       }
 
-      onSuccess();
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
       toast.error('Erro ao salvar despesa');
