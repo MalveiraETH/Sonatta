@@ -11,6 +11,7 @@ import QuoteForm from '@/components/quotes/QuoteForm';
 import SaleForm from '@/components/sales/SaleForm';
 import NewSaleForm from '@/components/sales/NewSaleForm';
 import InstallmentsControl from '@/components/clients/InstallmentsControl';
+import TestForm from '@/components/tests/TestForm';
 import {
   ArrowLeft,
   MessageCircle,
@@ -23,7 +24,8 @@ import {
   User,
   Plus,
   Ear,
-  Trash2
+  Trash2,
+  BeakerIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
