@@ -57,6 +57,7 @@ export default function AccountsReceivable() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
@@ -67,7 +68,27 @@ export default function AccountsReceivable() {
     setLoading(true);
     try {
       const data = await base44.entities.Installment.list('due_date');
-      setInstallments(data);
+      // Ordenar: atrasados primeiro, depois pendentes, depois pagos
+      const sortedData = data.sort((a, b) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const dueDateA = new Date(a.due_date);
+        dueDateA.setHours(0, 0, 0, 0);
+        const dueDateB = new Date(b.due_date);
+        dueDateB.setHours(0, 0, 0, 0);
+        
+        const isOverdueA = a.payment_status !== 'pago' && dueDateA < today;
+        const isOverdueB = b.payment_status !== 'pago' && dueDateB < today;
+        
+        // Atrasados primeiro
+        if (isOverdueA && !isOverdueB) return -1;
+        if (!isOverdueA && isOverdueB) return 1;
+        
+        // Dentro do mesmo grupo, ordenar por data de vencimento
+        return dueDateA - dueDateB;
+      });
+      setInstallments(sortedData);
     } catch (error) {
       toast.error('Erro ao carregar parcelas');
     } finally {
@@ -141,6 +162,11 @@ export default function AccountsReceivable() {
       return;
     }
 
+    if (!paymentDate) {
+      toast.error('Informe a data do pagamento');
+      return;
+    }
+
     const amount = Number(paymentAmount);
     if (amount > selectedInstallment.remaining_amount) {
       toast.error('Valor maior que o saldo devedor');
@@ -153,7 +179,7 @@ export default function AccountsReceivable() {
       const paymentHistory = selectedInstallment.payment_history || [];
       
       paymentHistory.push({
-        date: new Date().toISOString().split('T')[0],
+        date: paymentDate,
         amount: amount,
         note: 'Pagamento recebido'
       });
@@ -162,13 +188,14 @@ export default function AccountsReceivable() {
         paid_amount: newPaidAmount,
         remaining_amount: newRemainingAmount,
         payment_status: newRemainingAmount === 0 ? 'pago' : 'parcialmente_pago',
-        last_payment_date: new Date().toISOString().split('T')[0],
+        last_payment_date: paymentDate,
         payment_history: paymentHistory
       });
 
       toast.success('Pagamento registrado!');
       setPaymentOpen(false);
       setPaymentAmount('');
+      setPaymentDate('');
       loadInstallments();
     } catch (error) {
       toast.error('Erro ao registrar pagamento');
@@ -472,7 +499,12 @@ export default function AccountsReceivable() {
                             Detalhes
                           </DropdownMenuItem>
                           {inst.payment_status !== 'pago' && (
-                            <DropdownMenuItem onClick={() => { setSelectedInstallment(inst); setPaymentAmount(String(inst.remaining_amount)); setPaymentOpen(true); }}>
+                            <DropdownMenuItem onClick={() => { 
+                              setSelectedInstallment(inst); 
+                              setPaymentAmount(String(inst.remaining_amount)); 
+                              setPaymentDate(new Date().toISOString().split('T')[0]); 
+                              setPaymentOpen(true); 
+                            }}>
                               <DollarSign className="h-4 w-4 mr-2" />
                               Receber Pagamento
                             </DropdownMenuItem>
@@ -526,7 +558,12 @@ export default function AccountsReceivable() {
                           Detalhes
                         </DropdownMenuItem>
                         {inst.payment_status !== 'pago' && (
-                          <DropdownMenuItem onClick={() => { setSelectedInstallment(inst); setPaymentAmount(String(inst.remaining_amount)); setPaymentOpen(true); }}>
+                          <DropdownMenuItem onClick={() => { 
+                            setSelectedInstallment(inst); 
+                            setPaymentAmount(String(inst.remaining_amount)); 
+                            setPaymentDate(new Date().toISOString().split('T')[0]); 
+                            setPaymentOpen(true); 
+                          }}>
                             <DollarSign className="h-4 w-4 mr-2" />
                             Receber
                           </DropdownMenuItem>
@@ -590,7 +627,15 @@ export default function AccountsReceivable() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Valor a Receber (R$)</Label>
+              <Label>Data do Pagamento *</Label>
+              <Input 
+                type="date" 
+                value={paymentDate} 
+                onChange={(e) => setPaymentDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Valor a Receber (R$) *</Label>
               <Input 
                 type="number" 
                 step="0.01" 
