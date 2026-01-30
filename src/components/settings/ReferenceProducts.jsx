@@ -163,7 +163,8 @@ export default function ReferenceProducts() {
       '90': 'Categoria 90',
       '70': 'Categoria 70',
       '50': 'Categoria 50',
-      '30': 'Categoria 30'
+      '30': 'Categoria 30',
+      '10': 'Categoria 10'
     };
     return labels[category] || category;
   };
@@ -242,6 +243,7 @@ export default function ReferenceProducts() {
                         <SelectItem value="70">Categoria 70</SelectItem>
                         <SelectItem value="50">Categoria 50</SelectItem>
                         <SelectItem value="30">Categoria 30</SelectItem>
+                        <SelectItem value="10">Categoria 10</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

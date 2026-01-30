@@ -142,11 +142,13 @@ export default function ProductDetail() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link to={createPageUrl('Inventory')}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => window.location.href = createPageUrl('Inventory')}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold text-slate-800">{product.name}</h1>
             <div className="flex items-center gap-2 mt-1">

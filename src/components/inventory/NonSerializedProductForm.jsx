@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -91,6 +92,9 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
       if (product) {
         await base44.entities.Product.update(product.id, dataToSave);
         toast.success('Produto atualizado!');
+        await onSuccess();
+        onOpenChange(false);
+        window.location.href = createPageUrl('Inventory');
       } else {
         const newProduct = await base44.entities.Product.create(dataToSave);
         
@@ -106,9 +110,10 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
         }
 
         toast.success('Produto cadastrado!');
+        await onSuccess();
+        onOpenChange(false);
+        window.location.href = createPageUrl('Inventory');
       }
-      await onSuccess();
-      onOpenChange(false);
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Erro ao salvar: ${error.message || 'Tente novamente'}`);

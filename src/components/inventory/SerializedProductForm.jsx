@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -95,12 +96,15 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
       if (product) {
         await base44.entities.Product.update(product.id, dataToSave);
         toast.success('Produto atualizado!');
+        await onSuccess();
+        onOpenChange(false);
+        window.location.href = createPageUrl('Inventory');
       } else {
-        await base44.entities.Product.create(dataToSave);
+        const newProduct = await base44.entities.Product.create(dataToSave);
         
         // Registrar entrada no estoque
         await base44.entities.StockMovement.create({
-          product_id: product?.id,
+          product_id: newProduct.id,
           product_name: formData.name,
           type: 'entrada',
           quantity: 1,
@@ -108,9 +112,10 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         });
 
         toast.success('Produto cadastrado!');
+        await onSuccess();
+        onOpenChange(false);
+        window.location.href = createPageUrl('Inventory');
       }
-      await onSuccess();
-      onOpenChange(false);
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Erro ao salvar: ${error.message || 'Tente novamente'}`);
