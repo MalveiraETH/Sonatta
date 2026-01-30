@@ -325,24 +325,14 @@ Equipe Sonatta Soluções Auditivas
                   <p className="text-xs text-slate-500">{quote.client_phone}</p>
                 </div>
 
-                {/* Items & Values */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+                {/* Items & Value */}
+                <div className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-lg">
+                  <div>
                     <p className="text-xs text-slate-500">Itens</p>
                     <p className="text-sm font-medium">{quote.items?.length || 0} item(s)</p>
                   </div>
-                  <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
-                    <p className="text-xs text-slate-500">Subtotal</p>
-                    <p className="text-sm font-semibold text-slate-700">{formatCurrency(quote.subtotal)}</p>
-                  </div>
-                  {quote.discount > 0 && (
-                    <div className="flex items-center justify-between py-2 px-3 bg-emerald-50 rounded-lg">
-                      <p className="text-xs text-emerald-700">Desconto</p>
-                      <p className="text-sm font-semibold text-emerald-700">-{formatCurrency(quote.discount)}</p>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between py-2 px-3 bg-[#6B3FA0]/10 rounded-lg">
-                    <p className="text-xs text-[#6B3FA0] font-medium">Total</p>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-500">Valor Total</p>
                     <p className="text-lg font-bold text-[#6B3FA0]">{formatCurrency(quote.total)}</p>
                   </div>
                 </div>
