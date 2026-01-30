@@ -83,9 +83,10 @@ export default function ProductDetail() {
     }
 
     try {
+      const tab = product.stock_type === 'serializado' ? 'serialized' : 'non-serialized';
       await base44.entities.Product.delete(product.id);
       toast.success('Produto excluído com sucesso');
-      window.location.href = createPageUrl('Inventory');
+      window.location.href = createPageUrl('Inventory') + `?tab=${tab}`;
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
@@ -145,7 +146,10 @@ export default function ProductDetail() {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => window.location.href = createPageUrl('Inventory')}
+            onClick={() => {
+              const tab = product.stock_type === 'serializado' ? 'serialized' : 'non-serialized';
+              window.location.href = createPageUrl('Inventory') + `?tab=${tab}`;
+            }}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

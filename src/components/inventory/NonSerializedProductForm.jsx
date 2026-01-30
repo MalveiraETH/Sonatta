@@ -94,7 +94,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
         toast.success('Produto atualizado!');
         await onSuccess();
         onOpenChange(false);
-        window.location.href = createPageUrl('Inventory');
+        window.location.href = createPageUrl('Inventory') + '?tab=non-serialized';
       } else {
         const newProduct = await base44.entities.Product.create(dataToSave);
         
@@ -112,7 +112,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
         toast.success('Produto cadastrado!');
         await onSuccess();
         onOpenChange(false);
-        window.location.href = createPageUrl('Inventory');
+        window.location.href = createPageUrl('Inventory') + '?tab=non-serialized';
       }
     } catch (error) {
       console.error('Error:', error);

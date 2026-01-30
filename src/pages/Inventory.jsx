@@ -99,6 +99,16 @@ export default function Inventory() {
     loadData();
   }, []);
 
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, []);
+
   useEffect(() => {
     filterProducts();
   }, [products, searchTerm, categoryFilter, statusFilter]);
@@ -340,7 +350,7 @@ export default function Inventory() {
         <p className="text-sm text-slate-500 mt-1">Controle completo de produtos e movimentações</p>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="serialized">Produto (A)</TabsTrigger>
