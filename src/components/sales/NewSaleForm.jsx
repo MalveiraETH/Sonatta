@@ -380,8 +380,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       }
 
       toast.success('Venda registrada com sucesso!');
-      if (onSuccess) await onSuccess();
       onOpenChange(false);
+      if (onSuccess) await onSuccess();
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Erro ao processar venda: ${error.message || 'Tente novamente'}`);
