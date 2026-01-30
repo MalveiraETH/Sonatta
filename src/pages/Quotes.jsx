@@ -326,13 +326,17 @@ Equipe Sonatta Soluções Auditivas
                 </div>
 
                 {/* Items & Value */}
-                <div className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-lg">
-                  <div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
                     <p className="text-xs text-slate-500">Itens</p>
                     <p className="text-sm font-medium">{quote.items?.length || 0} item(s)</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500">Valor Total</p>
+                  <div className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500">Total Sem Desconto</p>
+                    <p className="text-sm font-semibold text-slate-700">{formatCurrency(quote.subtotal)}</p>
+                  </div>
+                  <div className="flex items-center justify-between py-2 px-3 bg-[#6B3FA0]/5 rounded-lg border border-[#6B3FA0]/20">
+                    <p className="text-xs font-medium text-[#6B3FA0]">Total com Desconto</p>
                     <p className="text-lg font-bold text-[#6B3FA0]">{formatCurrency(quote.total)}</p>
                   </div>
                 </div>
