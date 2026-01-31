@@ -61,15 +61,25 @@ export default function Dashboard() {
         return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
       });
 
-      // Receita total do mês = vendas do mês + contas a receber pagas no mês
-      const totalMonthRevenue = monthSalesData.reduce((sum, s) => sum + (s.total || 0), 0) +
-        installments
-          .filter(i => {
-            if (i.payment_status !== 'pago') return false;
-            const paymentDate = new Date(i.last_payment_date || i.created_date);
-            return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
-          })
-          .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+      // Receita total do mês = valores pagos à vista nas vendas + parcelas recebidas
+      // 1. Das vendas do mês: somar apenas pagamentos à vista (dinheiro, pix, cartao_debito, transferencia)
+      const cashPaymentsFromSales = monthSalesData.reduce((sum, sale) => {
+        const cashPayments = sale.payment_details?.filter(p => 
+          ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
+        ) || [];
+        return sum + cashPayments.reduce((pSum, p) => pSum + (p.amount || 0), 0);
+      }, 0);
+
+      // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no mês corrente
+      const installmentsPaidThisMonth = installments
+        .filter(i => {
+          if (i.payment_status !== 'pago') return false;
+          const paymentDate = new Date(i.last_payment_date || i.created_date);
+          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+        })
+        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+
+      const totalMonthRevenue = cashPaymentsFromSales + installmentsPaidThisMonth;
 
       const monthExpenses = expenses
         .filter(e => {
