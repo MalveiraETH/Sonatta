@@ -188,7 +188,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0 }, ...formData.items]
+      items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0, stock_type: '' }, ...formData.items]
     });
   };
 
@@ -204,8 +204,13 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     if (field === 'product_id') {
       const product = products.find(p => p.id === value);
       if (product) {
-        if (product.status === 'vendido') {
+        // Verificar disponibilidade
+        if (product.stock_type === 'serializado' && product.status === 'vendido') {
           toast.error(`O produto ${product.name} (${product.serial_number}) já foi vendido!`);
+          return;
+        }
+        if (product.stock_type === 'nao_serializado' && product.quantity <= 0) {
+          toast.error(`O produto ${product.name} está sem estoque!`);
           return;
         }
         
@@ -214,6 +219,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         newItems[index].model = product.model || '';
         newItems[index].unit_price = product.sale_price;
         newItems[index].serial_number = product.serial_number || '';
+        newItems[index].stock_type = product.stock_type;
         newItems[index].quantity = 1;
         newItems[index].total = product.sale_price;
       }
@@ -290,12 +296,18 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       return;
     }
 
-    // Verificar se produtos já foram vendidos
+    // Verificar se produtos já foram vendidos ou sem estoque
     for (const item of formData.items) {
       const product = products.find(p => p.id === item.product_id);
-      if (product && product.status === 'vendido') {
-        toast.error(`O produto ${product.name} (${product.serial_number}) já foi vendido!`);
-        return;
+      if (product) {
+        if (product.stock_type === 'serializado' && product.status === 'vendido') {
+          toast.error(`O produto ${product.name} (${product.serial_number}) já foi vendido!`);
+          return;
+        }
+        if (product.stock_type === 'nao_serializado' && product.quantity < item.quantity) {
+          toast.error(`Estoque insuficiente para ${product.name}. Disponível: ${product.quantity}`);
+          return;
+        }
       }
     }
 
@@ -355,20 +367,29 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         }
       }
 
-      // Atualizar estoque - marcar como vendido
+      // Atualizar estoque
       for (const item of formData.items) {
         const product = products.find(p => p.id === item.product_id);
         if (product) {
-          await base44.entities.Product.update(product.id, {
-            status: 'vendido'
-          });
+          if (product.stock_type === 'serializado') {
+            // Produto serializado: marcar como vendido
+            await base44.entities.Product.update(product.id, {
+              status: 'vendido'
+            });
+          } else if (product.stock_type === 'nao_serializado') {
+            // Produto não serializado: deduzir quantidade
+            await base44.entities.Product.update(product.id, {
+              quantity: product.quantity - item.quantity
+            });
+          }
 
           await base44.entities.StockMovement.create({
             product_id: product.id,
             product_name: product.name,
             type: 'saida',
-            quantity: 1,
-            reason: `Venda ${saleNumber}`
+            quantity: item.quantity,
+            reason: `Venda ${saleNumber}`,
+            reference_id: newSale.id
           });
         }
       }
@@ -508,37 +529,72 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               <Card key={index} className="p-3 sm:p-4">
                 <div className="space-y-3">
                   <div className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <Label className="text-xs">Buscar por Número de Série</Label>
-                      <Input
-                        placeholder="Digite o número de série..."
-                        value={item.serial_number || ''}
-                        onChange={(e) => {
-                          const searchValue = e.target.value;
-                          const newItems = [...formData.items];
-                          newItems[index].serial_number = searchValue;
-                          setFormData({ ...formData, items: newItems });
-                          
-                          const searchTerm = searchValue.toLowerCase();
-                          const foundProduct = products.find(p => 
-                            p.serial_number?.toLowerCase() === searchTerm && 
-                            p.status === 'disponivel'
-                          );
-                          if (foundProduct) {
-                            updateItem(index, 'product_id', foundProduct.id);
-                          }
-                        }}
-                        list={`serial-list-${index}`}
-                        className="text-sm"
-                      />
-                      <datalist id={`serial-list-${index}`}>
-                        {products.filter(p => p.status === 'disponivel').map((product) => (
-                          <option key={product.id} value={product.serial_number}>
-                            {product.name} ({product.brand} {product.model})
-                          </option>
-                        ))}
-                      </datalist>
-                    </div>
+                   <div className="flex-1 space-y-2">
+                     <div>
+                       <Label className="text-xs">Buscar por Número de Série</Label>
+                       <Input
+                         placeholder="Digite o número de série..."
+                         value={item.serial_number || ''}
+                         onChange={(e) => {
+                           const searchValue = e.target.value;
+                           const newItems = [...formData.items];
+                           newItems[index].serial_number = searchValue;
+                           setFormData({ ...formData, items: newItems });
+
+                           const searchTerm = searchValue.toLowerCase();
+                           const foundProduct = products.find(p => 
+                             p.serial_number?.toLowerCase() === searchTerm && 
+                             p.stock_type === 'serializado' &&
+                             p.status === 'disponivel'
+                           );
+                           if (foundProduct) {
+                             updateItem(index, 'product_id', foundProduct.id);
+                           }
+                         }}
+                         list={`serial-list-${index}`}
+                         className="text-sm"
+                       />
+                       <datalist id={`serial-list-${index}`}>
+                         {products.filter(p => p.stock_type === 'serializado' && p.status === 'disponivel').map((product) => (
+                           <option key={product.id} value={product.serial_number}>
+                             {product.name} ({product.brand} {product.model})
+                           </option>
+                         ))}
+                       </datalist>
+                     </div>
+                     <div>
+                       <Label className="text-xs">Ou Buscar por Nome (Produtos não serializados)</Label>
+                       <Input
+                         placeholder="Digite o nome do produto..."
+                         value={item.stock_type === 'nao_serializado' ? item.product_name : ''}
+                         onChange={(e) => {
+                           const searchValue = e.target.value;
+                           const newItems = [...formData.items];
+                           newItems[index].product_name = searchValue;
+                           setFormData({ ...formData, items: newItems });
+
+                           const searchTerm = searchValue.toLowerCase();
+                           const foundProduct = products.find(p => 
+                             p.name?.toLowerCase() === searchTerm && 
+                             p.stock_type === 'nao_serializado' &&
+                             p.quantity > 0
+                           );
+                           if (foundProduct) {
+                             updateItem(index, 'product_id', foundProduct.id);
+                           }
+                         }}
+                         list={`name-list-${index}`}
+                         className="text-sm"
+                       />
+                       <datalist id={`name-list-${index}`}>
+                         {products.filter(p => p.stock_type === 'nao_serializado' && p.quantity > 0).map((product) => (
+                           <option key={product.id} value={product.name}>
+                             {product.name} - Estoque: {product.quantity}
+                           </option>
+                         ))}
+                       </datalist>
+                     </div>
+                   </div>
                     <Button
                       type="button"
                       variant="ghost"
@@ -550,19 +606,44 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                     </Button>
                   </div>
                   {item.product_id && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm bg-slate-50 p-2 sm:p-3 rounded-lg">
-                      <div>
-                        <span className="text-slate-500 text-xs">Produto:</span>
-                        <p className="font-medium truncate">{item.product_name}</p>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm bg-slate-50 p-2 sm:p-3 rounded-lg">
+                        <div>
+                          <span className="text-slate-500 text-xs">Produto:</span>
+                          <p className="font-medium truncate">{item.product_name}</p>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-xs">Marca/Modelo:</span>
+                          <p className="font-medium truncate">{item.brand} {item.model}</p>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-xs">Valor Unit.:</span>
+                          <p className="font-bold text-[#1e3a5f]">{formatCurrency(item.unit_price)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-slate-500 text-xs">Marca/Modelo:</span>
-                        <p className="font-medium truncate">{item.brand} {item.model}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 text-xs">Valor:</span>
-                        <p className="font-bold text-[#1e3a5f]">{formatCurrency(item.unit_price)}</p>
-                      </div>
+                      {item.stock_type === 'nao_serializado' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Quantidade</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max={products.find(p => p.id === item.product_id)?.quantity || 1}
+                              value={item.quantity}
+                              onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Total</Label>
+                            <Input
+                              value={formatCurrency(item.total)}
+                              disabled
+                              className="text-sm font-bold"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
