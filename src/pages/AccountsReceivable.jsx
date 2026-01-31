@@ -145,15 +145,15 @@ export default function AccountsReceivable() {
   });
 
   const stats = {
-    toReceive: installments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
-    overdue: installments.filter(i => {
+    toReceive: filteredInstallments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
+    overdue: filteredInstallments.filter(i => {
       if (i.payment_status === 'pago') return false;
       const dueDate = new Date(i.due_date);
       const today = new Date();
       return dueDate < today;
     }).reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
-    pixParcelado: installments.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length,
-    cartaoCredito: installments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length
+    pixParcelado: filteredInstallments.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length,
+    cartaoCredito: filteredInstallments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length
   };
 
   const handlePayment = async () => {

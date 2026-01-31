@@ -61,22 +61,15 @@ export default function Dashboard() {
         return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
       });
 
-      const monthActualRevenue = monthSalesData.reduce((sum, s) => {
-        const pixDinheiro = s.payment_details
-          ?.filter(p => p.method === 'pix' || p.method === 'dinheiro')
-          .reduce((total, p) => total + (p.amount || 0), 0) || 0;
-        return sum + pixDinheiro;
-      }, 0);
-
-      const monthInstallmentRevenue = installments
-        .filter(i => {
-          if (i.payment_status !== 'pago') return false;
-          const paymentDate = new Date(i.last_payment_date || i.created_date);
-          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
-        })
-        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
-
-      const totalMonthRevenue = monthActualRevenue + monthInstallmentRevenue;
+      // Receita total do mês = vendas do mês + contas a receber pagas no mês
+      const totalMonthRevenue = monthSalesData.reduce((sum, s) => sum + (s.total || 0), 0) +
+        installments
+          .filter(i => {
+            if (i.payment_status !== 'pago') return false;
+            const paymentDate = new Date(i.last_payment_date || i.created_date);
+            return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+          })
+          .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
 
       const monthExpenses = expenses
         .filter(e => {

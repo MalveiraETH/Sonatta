@@ -147,21 +147,21 @@ export default function AccountsPayable() {
   });
 
   const stats = {
-    toPay: expenses.filter(e => e.status !== 'pago').reduce((sum, e) => sum + (e.amount || 0), 0),
-    overdue: expenses.filter(e => {
+    toPay: filteredExpenses.filter(e => e.status !== 'pago').reduce((sum, e) => sum + (e.amount || 0), 0),
+    overdue: filteredExpenses.filter(e => {
       if (e.status === 'pago') return false;
       const dueDate = new Date(e.due_date);
       const today = new Date();
       return dueDate < today;
     }).reduce((sum, e) => sum + (e.amount || 0), 0),
-    dueSoon: expenses.filter(e => {
+    dueSoon: filteredExpenses.filter(e => {
       if (e.status === 'pago') return false;
       const dueDate = new Date(e.due_date);
       const today = new Date();
       const diff = (dueDate - today) / (1000 * 60 * 60 * 24);
       return diff >= 0 && diff <= 7;
     }).reduce((sum, e) => sum + (e.amount || 0), 0),
-    paid: expenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + (e.amount || 0), 0)
+    paid: filteredExpenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + (e.amount || 0), 0)
   };
 
   const handlePay = async () => {

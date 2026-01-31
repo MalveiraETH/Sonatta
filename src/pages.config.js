@@ -58,12 +58,12 @@ import Inventory from './pages/Inventory';
 import PixReport from './pages/PixReport';
 import ProductDetail from './pages/ProductDetail';
 import Professionals from './pages/Professionals';
+import Quotes from './pages/Quotes';
 import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
 import Tests from './pages/Tests';
-import Quotes from './pages/Quotes';
 import __Layout from './Layout.jsx';
 
 
@@ -79,12 +79,12 @@ export const PAGES = {
     "PixReport": PixReport,
     "ProductDetail": ProductDetail,
     "Professionals": Professionals,
+    "Quotes": Quotes,
     "Registrations": Registrations,
     "Reports": Reports,
     "Sales": Sales,
     "Settings": Settings,
     "Tests": Tests,
-    "Quotes": Quotes,
 }
 
 export const pagesConfig = {

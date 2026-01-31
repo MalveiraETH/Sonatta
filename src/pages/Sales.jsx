@@ -115,16 +115,91 @@ export default function Sales() {
     return sale.payment_details?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
   };
 
-  const sendWhatsApp = (sale) => {
+  const sendWhatsApp = async (sale) => {
     if (!sale.client_phone) {
       toast.error('Cliente não possui telefone');
       return;
     }
     const phone = sale.client_phone.replace(/\D/g, '');
-    const message = encodeURIComponent(
-      `Olá ${sale.client_name}!\n\nSua compra foi confirmada!\n\n*Venda:* ${sale.sale_number}\n*Valor:* ${formatCurrency(sale.total)}\n\nObrigado pela preferência!\n\n*Sonatta*`
-    );
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+    
+    // Montar lista de aparelhos
+    let productsList = '';
+    sale.items?.forEach((item, idx) => {
+      productsList += `${idx + 1}. ${item.product_name}`;
+      if (item.serial_number) {
+        productsList += ` - S/N: ${item.serial_number}`;
+      }
+      productsList += `\n   ${formatCurrency(item.unit_price)}`;
+      productsList += '\n';
+    });
+
+    // Montar formas de pagamento
+    let paymentsList = '';
+    sale.payment_details?.forEach((payment, idx) => {
+      const methodLabels = {
+        dinheiro: 'Dinheiro',
+        pix: 'PIX à Vista',
+        pix_parcelado: 'PIX Parcelado',
+        cartao_credito: 'Cartão de Crédito',
+        cartao_debito: 'Cartão de Débito',
+        boleto: 'Boleto',
+        transferencia: 'Transferência'
+      };
+      
+      paymentsList += `• ${methodLabels[payment.method] || payment.method}: ${formatCurrency(payment.amount)}`;
+      if (payment.installments > 1) {
+        paymentsList += ` (${payment.installments}x de ${formatCurrency(payment.amount / payment.installments)})`;
+      }
+      paymentsList += '\n';
+    });
+
+    // Buscar template personalizado
+    let template = `🎉 *Parabéns pela sua compra!* 🎉
+
+Olá {{client_name}},
+
+Sua compra foi confirmada com sucesso!
+
+📋 *Detalhes da Venda*
+*Venda:* {{sale_number}}
+*Data:* {{sale_date}}
+
+🦻 *Aparelhos Adquiridos:*
+{{products_list}}
+
+💰 *Valores:*
+*Subtotal:* {{subtotal}}
+*Desconto:* {{discount}}
+*TOTAL:* {{total}}
+
+💳 *Formas de Pagamento:*
+{{payments_list}}
+
+Obrigado pela preferência!
+
+*Sonatta Soluções Auditivas*`;
+
+    try {
+      const user = await base44.auth.me();
+      if (user.whatsapp_sale_template) {
+        template = user.whatsapp_sale_template;
+      }
+    } catch (error) {
+      console.log('Usando template padrão');
+    }
+
+    // Substituir variáveis
+    const message = template
+      .replace(/{{client_name}}/g, sale.client_name)
+      .replace(/{{sale_number}}/g, sale.sale_number)
+      .replace(/{{sale_date}}/g, formatLocalDate(sale.sale_date || sale.created_date))
+      .replace(/{{products_list}}/g, productsList)
+      .replace(/{{subtotal}}/g, formatCurrency(sale.subtotal))
+      .replace(/{{discount}}/g, formatCurrency(sale.discount || 0))
+      .replace(/{{total}}/g, formatCurrency(sale.total))
+      .replace(/{{payments_list}}/g, paymentsList);
+
+    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleCancel = async (sale) => {

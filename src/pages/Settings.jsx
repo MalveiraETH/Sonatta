@@ -5,6 +5,7 @@ import WorkingHours from '@/components/settings/WorkingHours';
 import AuditLog from '@/components/settings/AuditLog';
 import Billing from '@/components/settings/Billing';
 import WhatsAppTemplate from '@/components/settings/WhatsAppTemplate';
+import WhatsAppSaleTemplate from '@/components/settings/WhatsAppSaleTemplate';
 import ContractTemplate from '@/components/settings/ContractTemplate';
 import ReferenceProducts from '@/components/settings/ReferenceProducts';
 import { Settings as SettingsIcon } from 'lucide-react';
@@ -21,7 +22,8 @@ export default function Settings() {
       <Tabs defaultValue="hours" className="space-y-6">
         <TabsList className="bg-slate-100 flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="hours" className="text-xs sm:text-sm">Horário</TabsTrigger>
-          <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">WhatsApp</TabsTrigger>
+          <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">WhatsApp Orçamento</TabsTrigger>
+          <TabsTrigger value="whatsapp_sale" className="text-xs sm:text-sm">WhatsApp Venda</TabsTrigger>
           <TabsTrigger value="contract" className="text-xs sm:text-sm">Contrato</TabsTrigger>
           <TabsTrigger value="billing" className="text-xs sm:text-sm">Custos e Tarifas</TabsTrigger>
           <TabsTrigger value="reference_products" className="text-xs sm:text-sm">Produtos Referência</TabsTrigger>
@@ -34,6 +36,10 @@ export default function Settings() {
 
         <TabsContent value="whatsapp">
           <WhatsAppTemplate />
+        </TabsContent>
+
+        <TabsContent value="whatsapp_sale">
+          <WhatsAppSaleTemplate />
         </TabsContent>
 
         <TabsContent value="contract">
