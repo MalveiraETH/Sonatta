@@ -43,6 +43,8 @@ import {
 } from '@/components/ui/dialog';
 import NewSaleForm from '@/components/sales/NewSaleForm';
 import ContractGenerator from '@/components/contracts/ContractGenerator';
+import PullToRefreshIndicator from '@/components/ui/PullToRefreshIndicator';
+import { usePullToRefresh } from '@/components/utils/usePullToRefresh';
 import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -62,14 +64,6 @@ export default function Sales() {
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    filterSales();
-  }, [sales, searchTerm, statusFilter]);
-
   const loadData = async () => {
     try {
       const [salesData, user] = await Promise.all([
@@ -78,12 +72,32 @@ export default function Sales() {
       ]);
       setSales(salesData);
       setCurrentUser(user);
+      return true;
     } catch (error) {
       console.error(error);
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
+
+  const handleRefresh = async () => {
+    try {
+      await loadData();
+      const now = new Date();
+      toast.success(`Atualizado às ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`);
+    } catch (error) {
+      toast.error('Não foi possível atualizar. Tente novamente.');
+    }
+  };
+
+  const { isRefreshing, pullDistance } = usePullToRefresh(handleRefresh);
+
+  useEffect(() => {
+    loadData().finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    filterSales();
+  }, [sales, searchTerm, statusFilter]);
 
   const filterSales = () => {
     let filtered = [...sales];
@@ -122,7 +136,6 @@ export default function Sales() {
     }
     const phone = sale.client_phone.replace(/\D/g, '');
     
-    // Montar lista de aparelhos
     let productsList = '';
     sale.items?.forEach((item, idx) => {
       productsList += `${idx + 1}. ${item.product_name}`;
@@ -133,7 +146,6 @@ export default function Sales() {
       productsList += '\n';
     });
 
-    // Montar formas de pagamento
     let paymentsList = '';
     sale.payment_details?.forEach((payment, idx) => {
       const methodLabels = {
@@ -153,7 +165,6 @@ export default function Sales() {
       paymentsList += '\n';
     });
 
-    // Buscar template personalizado
     let template = `🎉 *Parabéns pela sua compra!* 🎉
 
 Olá {{client_name}},
@@ -188,7 +199,6 @@ Obrigado pela preferência!
       console.log('Usando template padrão');
     }
 
-    // Substituir variáveis
     const message = template
       .replace(/{{client_name}}/g, sale.client_name)
       .replace(/{{sale_number}}/g, sale.sale_number)
@@ -274,212 +284,288 @@ Obrigado pela preferência!
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Vendas</h1>
-          <p className="text-sm text-slate-500 mt-1">{sales.length} vendas registradas</p>
-        </div>
-        <Button onClick={() => { setSelectedSale(null); setFormOpen(true); }} className="bg-[#6B3FA0] hover:bg-[#834CB8] w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Venda
-        </Button>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Vendas</p>
-              <p className="text-lg sm:text-2xl font-bold text-slate-900">{stats.total}</p>
-            </div>
-            <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 opacity-60" />
+      <PullToRefreshIndicator isRefreshing={isRefreshing} pullDistance={pullDistance} />
+      
+      <div 
+        className={isRefreshing ? 'opacity-60 pointer-events-none transition-opacity' : 'transition-opacity'}
+      >
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Vendas</h1>
+            <p className="text-sm text-slate-500 mt-1">{sales.length} vendas registradas</p>
           </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturamento</p>
-              <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalValue)}</p>
-            </div>
-            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Ticket Médio</p>
-              <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.avgTicket)}</p>
-            </div>
-            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
-          </div>
-        </Card>
-
-        <Card 
-          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
-          onClick={() => setStatusFilter('pendente')}
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Pendentes</p>
-              <p className="text-lg sm:text-2xl font-bold text-amber-600">{stats.pendentes}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Filters - Desktop */}
-      <Card className="p-4 hidden lg:block">
-        <div className="flex items-end gap-3">
-          <div className="flex-1">
-            <Label className="text-sm mb-2">Buscar</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Buscar por cliente, número ou vendedor..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-              {searchTerm && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setSearchTerm('')}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="w-40">
-            <Label className="text-sm mb-2">Status</Label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="pago">Pago</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button variant="outline" onClick={clearFilters}>
-            Limpar
+          <Button onClick={() => { setSelectedSale(null); setFormOpen(true); }} className="bg-[#6B3FA0] hover:bg-[#834CB8] w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Venda
           </Button>
         </div>
-      </Card>
 
-      {/* Filters - Mobile */}
-      <div className="lg:hidden space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Buscar..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-          {searchTerm && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-              onClick={() => setSearchTerm('')}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+        {/* KPIs */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6">
+          <Card className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Vendas</p>
+                <p className="text-lg sm:text-2xl font-bold text-slate-900">{stats.total}</p>
+              </div>
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 opacity-60" />
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturamento</p>
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalValue)}</p>
+              </div>
+              <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Ticket Médio</p>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.avgTicket)}</p>
+              </div>
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
+            </div>
+          </Card>
+
+          <Card 
+            className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+            onClick={() => setStatusFilter('pendente')}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Pendentes</p>
+                <p className="text-lg sm:text-2xl font-bold text-amber-600">{stats.pendentes}</p>
+              </div>
+            </div>
+          </Card>
         </div>
 
-        <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="w-full">
-              <Filter className="h-4 w-4 mr-2" />
-              Filtros
-              {statusFilter !== 'all' && (
-                <span className="ml-2 bg-[#6B3FA0] text-white text-xs px-2 py-0.5 rounded-full">
-                  Ativos
-                </span>
-              )}
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="h-[80vh]">
-            <SheetHeader>
-              <SheetTitle>Filtros</SheetTitle>
-            </SheetHeader>
-            <div className="mt-6">
-              <FiltersContent />
+        {/* Filters - Desktop */}
+        <Card className="p-4 hidden lg:block mt-6">
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <Label className="text-sm mb-2">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar por cliente, número ou vendedor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </SheetContent>
-        </Sheet>
-      </div>
 
-      {/* Table - Desktop */}
-      <Card className="hidden lg:block">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50">
-              <TableHead>Nº Venda</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Vendedor</TableHead>
-              <TableHead className="text-center">Itens</TableHead>
-              <TableHead>Pagamento</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="text-center">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSales.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-slate-500">
-                  Nenhuma venda encontrada
-                </TableCell>
+            <div className="w-40">
+              <Label className="text-sm mb-2">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button variant="outline" onClick={clearFilters}>
+              Limpar
+            </Button>
+          </div>
+        </Card>
+
+        {/* Filters - Mobile */}
+        <div className="lg:hidden space-y-3 mt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => setSearchTerm('')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <Filter className="h-4 w-4 mr-2" />
+                Filtros
+                {statusFilter !== 'all' && (
+                  <span className="ml-2 bg-[#6B3FA0] text-white text-xs px-2 py-0.5 rounded-full">
+                    Ativos
+                  </span>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[80vh]">
+              <SheetHeader>
+                <SheetTitle>Filtros</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <FiltersContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        {/* Table - Desktop */}
+        <Card className="hidden lg:block mt-6">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead>Nº Venda</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Vendedor</TableHead>
+                <TableHead className="text-center">Itens</TableHead>
+                <TableHead>Pagamento</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-center">Ações</TableHead>
               </TableRow>
-            ) : (
-              filteredSales.map(sale => (
-                <TableRow key={sale.id} className="hover:bg-slate-50">
-                  <TableCell className="font-medium">{sale.sale_number}</TableCell>
-                  <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
-                  <TableCell>{sale.client_name}</TableCell>
-                  <TableCell className="text-sm">{sale.seller_name || '-'}</TableCell>
-                  <TableCell className="text-center">{sale.items?.length || 0}</TableCell>
-                  <TableCell className="text-sm">
-                    {sale.payment_details && sale.payment_details.length > 0 ? (
-                      <div className="space-y-0.5">
-                        {sale.payment_details.map((pd, idx) => (
-                          <div key={idx}>
-                            {pd.method === 'pix' ? 'PIX' : 
-                             pd.method === 'pix_parcelado' ? 'PIX Parcelado' :
-                             pd.method === 'cartao_credito' ? 'Cartão' :
-                             pd.method === 'dinheiro' ? 'Dinheiro' : pd.method}
-                            {pd.installments > 1 && ` (${pd.installments}x)`}
-                          </div>
-                        ))}
+            </TableHeader>
+            <TableBody>
+              {filteredSales.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-12 text-slate-500">
+                    Nenhuma venda encontrada
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredSales.map(sale => (
+                  <TableRow key={sale.id} className="hover:bg-slate-50">
+                    <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                    <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
+                    <TableCell>{sale.client_name}</TableCell>
+                    <TableCell className="text-sm">{sale.seller_name || '-'}</TableCell>
+                    <TableCell className="text-center">{sale.items?.length || 0}</TableCell>
+                    <TableCell className="text-sm">
+                      {sale.payment_details && sale.payment_details.length > 0 ? (
+                        <div className="space-y-0.5">
+                          {sale.payment_details.map((pd, idx) => (
+                            <div key={idx}>
+                              {pd.method === 'pix' ? 'PIX' : 
+                               pd.method === 'pix_parcelado' ? 'PIX Parcelado' :
+                               pd.method === 'cartao_credito' ? 'Cartão' :
+                               pd.method === 'dinheiro' ? 'Dinheiro' : pd.method}
+                              {pd.installments > 1 && ` (${pd.installments}x)`}
+                            </div>
+                          ))}
+                        </div>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                        sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' :
+                        sale.status === 'cancelado' ? 'bg-red-100 text-red-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(getTotalPayments(sale))}</TableCell>
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Cliente
+                            </Link>
+                          </DropdownMenuItem>
+                          {sale.client_phone && (
+                            <DropdownMenuItem onClick={() => sendWhatsApp(sale)}>
+                              <MessageCircle className="h-4 w-4 mr-2" />
+                              WhatsApp
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => { setSelectedSale(sale); setContractOpen(true); }}>
+                            <FileSignature className="h-4 w-4 mr-2" />
+                            Gerar Contrato
+                          </DropdownMenuItem>
+                          {sale.status !== 'cancelado' && (
+                            <DropdownMenuItem onClick={() => handleCancel(sale)} className="text-amber-600">
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancelar Venda
+                            </DropdownMenuItem>
+                          )}
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenuItem onClick={() => { setSelectedSale(sale); setDeleteOpen(true); }} className="text-red-600">
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+
+        {/* Cards - Mobile */}
+        <div className="lg:hidden space-y-3 mt-6">
+          {filteredSales.length === 0 ? (
+            <Card className="p-8 text-center text-slate-500">
+              Nenhuma venda encontrada
+            </Card>
+          ) : (
+            filteredSales.map(sale => (
+              <Card key={sale.id} className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-slate-900">{sale.sale_number}</span>
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' :
+                          sale.status === 'cancelado' ? 'bg-red-100 text-red-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
+                        </span>
                       </div>
-                    ) : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' :
-                      sale.status === 'cancelado' ? 'bg-red-100 text-red-700' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>
-                      {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(getTotalPayments(sale))}</TableCell>
-                  <TableCell className="text-center">
+                      <div className="text-sm text-slate-600">
+                        {sale.client_name} • {formatLocalDate(sale.sale_date || sale.created_date)}
+                      </div>
+                    </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -494,19 +580,24 @@ Obrigado pela preferência!
                           </Link>
                         </DropdownMenuItem>
                         {sale.client_phone && (
-                          <DropdownMenuItem onClick={() => sendWhatsApp(sale)}>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              sendWhatsApp(sale);
+                            }}
+                          >
                             <MessageCircle className="h-4 w-4 mr-2" />
                             WhatsApp
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => { setSelectedSale(sale); setContractOpen(true); }}>
                           <FileSignature className="h-4 w-4 mr-2" />
-                          Gerar Contrato
+                          Contrato
                         </DropdownMenuItem>
                         {sale.status !== 'cancelado' && (
                           <DropdownMenuItem onClick={() => handleCancel(sale)} className="text-amber-600">
                             <XCircle className="h-4 w-4 mr-2" />
-                            Cancelar Venda
+                            Cancelar
                           </DropdownMenuItem>
                         )}
                         {currentUser?.role === 'admin' && (
@@ -517,88 +608,13 @@ Obrigado pela preferência!
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {/* Cards - Mobile */}
-      <div className="lg:hidden space-y-3">
-        {filteredSales.length === 0 ? (
-          <Card className="p-8 text-center text-slate-500">
-            Nenhuma venda encontrada
-          </Card>
-        ) : (
-          filteredSales.map(sale => (
-            <Card key={sale.id} className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-slate-900">{sale.sale_number}</span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' :
-                        sale.status === 'cancelado' ? 'bg-red-100 text-red-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
-                      </span>
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      {sale.client_name} • {formatLocalDate(sale.sale_date || sale.created_date)}
-                    </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Cliente
-                        </Link>
-                      </DropdownMenuItem>
-                      {sale.client_phone && (
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            sendWhatsApp(sale);
-                          }}
-                        >
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          WhatsApp
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => { setSelectedSale(sale); setContractOpen(true); }}>
-                        <FileSignature className="h-4 w-4 mr-2" />
-                        Contrato
-                      </DropdownMenuItem>
-                      {sale.status !== 'cancelado' && (
-                        <DropdownMenuItem onClick={() => handleCancel(sale)} className="text-amber-600">
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Cancelar
-                        </DropdownMenuItem>
-                      )}
-                      {currentUser?.role === 'admin' && (
-                        <DropdownMenuItem onClick={() => { setSelectedSale(sale); setDeleteOpen(true); }} className="text-red-600">
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(getTotalPayments(sale))}</div>
                 </div>
-                <div className="text-2xl font-bold text-slate-900">{formatCurrency(getTotalPayments(sale))}</div>
-              </div>
-            </Card>
-          ))
-        )}
+              </Card>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Modals */}
