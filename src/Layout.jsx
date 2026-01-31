@@ -30,10 +30,39 @@ import { cn } from '@/lib/utils';
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [startY, setStartY] = useState(0);
 
   useEffect(() => {
     loadUser();
   }, []);
+
+  useEffect(() => {
+    // Pull to refresh para mobile
+    const handleTouchStart = (e) => {
+      setStartY(e.touches[0].clientY);
+    };
+
+    const handleTouchMove = (e) => {
+      const currentY = e.touches[0].clientY;
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      
+      if (scrollTop === 0 && currentY > startY + 50 && !isRefreshing) {
+        setIsRefreshing(true);
+        window.location.reload();
+      }
+    };
+
+    if (window.innerWidth < 768) {
+      document.addEventListener('touchstart', handleTouchStart);
+      document.addEventListener('touchmove', handleTouchMove);
+    }
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [startY, isRefreshing]);
 
   const loadUser = async () => {
     try {

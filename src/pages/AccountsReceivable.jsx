@@ -153,7 +153,8 @@ export default function AccountsReceivable() {
       return dueDate < today;
     }).reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
     pixParcelado: filteredInstallments.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length,
-    cartaoCredito: filteredInstallments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length
+    cartaoCredito: filteredInstallments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length,
+    totalPaid: filteredInstallments.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + (i.original_amount || 0), 0)
   };
 
   const handlePayment = async () => {
@@ -279,7 +280,7 @@ export default function AccountsReceivable() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card 
           className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
           onClick={() => setFilterStatus('pendente')}
@@ -331,6 +332,19 @@ export default function AccountsReceivable() {
               <p className="text-xs text-slate-500">parcelas pendentes</p>
             </div>
             <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 opacity-60" />
+          </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setFilterStatus('pago')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Recebido</p>
+              <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalPaid)}</p>
+            </div>
+            <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
           </div>
         </Card>
       </div>

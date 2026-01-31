@@ -565,7 +565,12 @@ Obrigado pela preferência!
                         </Link>
                       </DropdownMenuItem>
                       {sale.client_phone && (
-                        <DropdownMenuItem onClick={() => sendWhatsApp(sale)}>
+                        <DropdownMenuItem 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendWhatsApp(sale);
+                          }}
+                        >
                           <MessageCircle className="h-4 w-4 mr-2" />
                           WhatsApp
                         </DropdownMenuItem>
@@ -601,7 +606,7 @@ Obrigado pela preferência!
 
       <ContractGenerator 
         open={contractOpen}
-        onClose={() => setContractOpen(false)}
+        onOpenChange={setContractOpen}
         sale={selectedSale}
         onSuccess={loadData}
       />
