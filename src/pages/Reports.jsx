@@ -270,6 +270,7 @@ export default function Reports() {
           <TabsTrigger value="clients">Clientes</TabsTrigger>
           <TabsTrigger value="tests">Testes</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
+          <TabsTrigger value="revenue">Receita Mês</TabsTrigger>
           <TabsTrigger value="receivables">Contas a Receber</TabsTrigger>
           <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
@@ -488,6 +489,201 @@ export default function Reports() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* RECEITA DO MÊS */}
+        <TabsContent value="revenue" className="space-y-6">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Detalhamento da Receita do Mês</CardTitle>
+              <Button onClick={() => {
+                const todayDate = new Date();
+                const currentMonth = todayDate.getMonth();
+                const currentYear = todayDate.getFullYear();
+
+                const monthSalesData = sales.filter(s => {
+                  const saleDate = new Date(s.sale_date || s.created_date);
+                  return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+                });
+
+                const data = [];
+
+                // 1. Pagamentos à vista das vendas do mês
+                monthSalesData.forEach(sale => {
+                  const cashPayments = sale.payment_details?.filter(p => 
+                    ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
+                  ) || [];
+                  cashPayments.forEach(p => {
+                    data.push({
+                      'Tipo': 'Pagamento à Vista',
+                      'Venda': sale.sale_number,
+                      'Cliente': sale.client_name,
+                      'Data': format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy'),
+                      'Método': p.method === 'pix' ? 'PIX' :
+                                p.method === 'dinheiro' ? 'Dinheiro' :
+                                p.method === 'cartao_debito' ? 'Cartão Débito' :
+                                p.method === 'transferencia' ? 'Transferência' : 'Boleto',
+                      'Valor': p.amount || 0
+                    });
+                  });
+                });
+
+                // 2. Parcelas pagas no mês
+                const installmentsPaidThisMonth = installments.filter(i => {
+                  if (i.payment_status !== 'pago') return false;
+                  const paymentDate = new Date(i.last_payment_date || i.created_date);
+                  return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+                });
+
+                installmentsPaidThisMonth.forEach(i => {
+                  data.push({
+                    'Tipo': 'Parcela Recebida',
+                    'Venda': i.sale_number,
+                    'Cliente': i.client_name,
+                    'Data': format(new Date(i.last_payment_date), 'dd/MM/yyyy'),
+                    'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
+                    'Valor': i.paid_amount || 0
+                  });
+                });
+
+                exportToExcel(data, 'relatorio_receita_mes');
+              }} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Venda</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const todayDate = new Date();
+                      const currentMonth = todayDate.getMonth();
+                      const currentYear = todayDate.getFullYear();
+
+                      const monthSalesData = sales.filter(s => {
+                        const saleDate = new Date(s.sale_date || s.created_date);
+                        return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+                      });
+
+                      const rows = [];
+
+                      // 1. Pagamentos à vista das vendas do mês
+                      monthSalesData.forEach(sale => {
+                        const cashPayments = sale.payment_details?.filter(p => 
+                          ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
+                        ) || [];
+                        cashPayments.forEach((p, idx) => {
+                          rows.push(
+                            <TableRow key={`sale-${sale.id}-${idx}`}>
+                              <TableCell>
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                  Pagamento à Vista
+                                </span>
+                              </TableCell>
+                              <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                              <TableCell>{sale.client_name}</TableCell>
+                              <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
+                              <TableCell>
+                                {p.method === 'pix' ? 'PIX' :
+                                 p.method === 'dinheiro' ? 'Dinheiro' :
+                                 p.method === 'cartao_debito' ? 'Cartão Débito' :
+                                 p.method === 'transferencia' ? 'Transferência' : 'Boleto'}
+                              </TableCell>
+                              <TableCell className="text-right font-semibold text-emerald-600">
+                                {formatCurrency(p.amount)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        });
+                      });
+
+                      // 2. Parcelas pagas no mês
+                      const installmentsPaidThisMonth = installments.filter(i => {
+                        if (i.payment_status !== 'pago') return false;
+                        const paymentDate = new Date(i.last_payment_date || i.created_date);
+                        return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+                      });
+
+                      installmentsPaidThisMonth.forEach(i => {
+                        rows.push(
+                          <TableRow key={`inst-${i.id}`}>
+                            <TableCell>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                Parcela Recebida
+                              </span>
+                            </TableCell>
+                            <TableCell className="font-medium">{i.sale_number}</TableCell>
+                            <TableCell>{i.client_name}</TableCell>
+                            <TableCell>{formatLocalDate(i.last_payment_date)}</TableCell>
+                            <TableCell>
+                              {i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}
+                              {' '}({i.installment_number}x)
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-blue-600">
+                              {formatCurrency(i.paid_amount)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      });
+
+                      return rows.length > 0 ? rows : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                            Nenhuma receita registrada este mês
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })()}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-700">Total Receita do Mês</span>
+                  <span className="text-2xl font-bold text-emerald-600">
+                    {formatCurrency((() => {
+                      const todayDate = new Date();
+                      const currentMonth = todayDate.getMonth();
+                      const currentYear = todayDate.getFullYear();
+
+                      const monthSalesData = sales.filter(s => {
+                        const saleDate = new Date(s.sale_date || s.created_date);
+                        return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+                      });
+
+                      const cashPaymentsFromSales = monthSalesData.reduce((sum, sale) => {
+                        const cashPayments = sale.payment_details?.filter(p => 
+                          ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
+                        ) || [];
+                        return sum + cashPayments.reduce((pSum, p) => pSum + (p.amount || 0), 0);
+                      }, 0);
+
+                      const installmentsPaidThisMonth = installments
+                        .filter(i => {
+                          if (i.payment_status !== 'pago') return false;
+                          const paymentDate = new Date(i.last_payment_date || i.created_date);
+                          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+                        })
+                        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+
+                      return cashPaymentsFromSales + installmentsPaidThisMonth;
+                    })())}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -555,7 +555,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                            }
                          }}
                          list={`serial-list-${index}`}
-                         className="text-sm"
+                         className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                        />
                        <datalist id={`serial-list-${index}`}>
                          {products.filter(p => p.stock_type === 'serializado' && p.status === 'disponivel').map((product) => (
@@ -566,10 +566,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                        </datalist>
                      </div>
                      <div>
-                       <Label className="text-xs">Ou Buscar por Nome (Produtos não serializados)</Label>
+                       <Label className="text-xs">Produto B (Buscar por Nome)</Label>
                        <Input
                          placeholder="Digite o nome do produto..."
-                         value={item.stock_type === 'nao_serializado' ? item.product_name : ''}
+                         value={item.product_name || ''}
                          onChange={(e) => {
                            const searchValue = e.target.value;
                            const newItems = [...formData.items];

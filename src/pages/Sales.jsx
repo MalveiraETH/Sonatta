@@ -492,6 +492,7 @@ Obrigado pela preferência!
                 <TableHead>Vendedor</TableHead>
                 <TableHead className="text-center">Itens</TableHead>
                 <TableHead>Pagamento</TableHead>
+                <TableHead>Nota Fiscal</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead className="text-center">Ações</TableHead>
