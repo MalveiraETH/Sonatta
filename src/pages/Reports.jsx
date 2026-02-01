@@ -496,17 +496,60 @@ export default function Reports() {
 
         {/* RECEITA DO MÊS */}
         <TabsContent value="revenue" className="space-y-6">
+          <Card className="p-4 border-0 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => setDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Fim</Label>
+                <Input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => setDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setDateStart('');
+                    setDateEnd('');
+                  }}
+                >
+                  Limpar Filtro
+                </Button>
+              </div>
+            </div>
+          </Card>
+
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Detalhamento da Receita do Mês</CardTitle>
+              <CardTitle>Detalhamento da Receita</CardTitle>
               <Button onClick={() => {
-                const todayDate = new Date();
-                const currentMonth = todayDate.getMonth();
-                const currentYear = todayDate.getFullYear();
+                const getFilteredDate = (date) => {
+                  const d = new Date(date);
+                  if (dateStart && dateEnd) {
+                    const start = new Date(dateStart);
+                    const end = new Date(dateEnd);
+                    return d >= start && d <= end;
+                  } else if (dateStart || dateEnd) {
+                    return false;
+                  } else {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                  }
+                };
 
                 const monthSalesData = sales.filter(s => {
                   const saleDate = new Date(s.sale_date || s.created_date);
-                  return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+                  return getFilteredDate(saleDate);
                 });
 
                 const data = [];
@@ -531,11 +574,11 @@ export default function Reports() {
                   });
                 });
 
-                // 2. Parcelas pagas no mês
+                // 2. Parcelas pagas no período
                 const installmentsPaidThisMonth = installments.filter(i => {
                   if (i.payment_status !== 'pago') return false;
                   const paymentDate = new Date(i.last_payment_date || i.created_date);
-                  return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+                  return getFilteredDate(paymentDate);
                 });
 
                 installmentsPaidThisMonth.forEach(i => {
@@ -570,18 +613,29 @@ export default function Reports() {
                   </TableHeader>
                   <TableBody>
                     {(() => {
-                      const todayDate = new Date();
-                      const currentMonth = todayDate.getMonth();
-                      const currentYear = todayDate.getFullYear();
+                      const getFilteredDate = (date) => {
+                        const d = new Date(date);
+                        if (dateStart && dateEnd) {
+                          const start = new Date(dateStart);
+                          const end = new Date(dateEnd);
+                          return d >= start && d <= end;
+                        } else if (dateStart || dateEnd) {
+                          return false;
+                        } else {
+                          const currentMonth = new Date().getMonth();
+                          const currentYear = new Date().getFullYear();
+                          return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                        }
+                      };
 
                       const monthSalesData = sales.filter(s => {
                         const saleDate = new Date(s.sale_date || s.created_date);
-                        return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+                        return getFilteredDate(saleDate);
                       });
 
                       const rows = [];
 
-                      // 1. Pagamentos à vista das vendas do mês
+                      // 1. Pagamentos à vista das vendas do período
                       monthSalesData.forEach(sale => {
                         const cashPayments = sale.payment_details?.filter(p => 
                           ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
@@ -611,11 +665,11 @@ export default function Reports() {
                         });
                       });
 
-                      // 2. Parcelas pagas no mês
+                      // 2. Parcelas pagas no período
                       const installmentsPaidThisMonth = installments.filter(i => {
                         if (i.payment_status !== 'pago') return false;
                         const paymentDate = new Date(i.last_payment_date || i.created_date);
-                        return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+                        return getFilteredDate(paymentDate);
                       });
 
                       installmentsPaidThisMonth.forEach(i => {
@@ -653,16 +707,27 @@ export default function Reports() {
               </div>
               <div className="mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700">Total Receita do Mês</span>
+                  <span className="text-sm font-medium text-slate-700">Total Receita do Período</span>
                   <span className="text-2xl font-bold text-emerald-600">
                     {formatCurrency((() => {
-                      const todayDate = new Date();
-                      const currentMonth = todayDate.getMonth();
-                      const currentYear = todayDate.getFullYear();
+                      const getFilteredDate = (date) => {
+                        const d = new Date(date);
+                        if (dateStart && dateEnd) {
+                          const start = new Date(dateStart);
+                          const end = new Date(dateEnd);
+                          return d >= start && d <= end;
+                        } else if (dateStart || dateEnd) {
+                          return false;
+                        } else {
+                          const currentMonth = new Date().getMonth();
+                          const currentYear = new Date().getFullYear();
+                          return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                        }
+                      };
 
                       const monthSalesData = sales.filter(s => {
                         const saleDate = new Date(s.sale_date || s.created_date);
-                        return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+                        return getFilteredDate(saleDate);
                       });
 
                       const cashPaymentsFromSales = monthSalesData.reduce((sum, sale) => {
@@ -676,7 +741,7 @@ export default function Reports() {
                         .filter(i => {
                           if (i.payment_status !== 'pago') return false;
                           const paymentDate = new Date(i.last_payment_date || i.created_date);
-                          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+                          return getFilteredDate(paymentDate);
                         })
                         .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
 
