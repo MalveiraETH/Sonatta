@@ -534,7 +534,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   <div className="flex gap-2 items-start">
                    <div className="flex-1 space-y-2">
                      <div>
-                       <Label className="text-xs">Buscar por Número de Série</Label>
+                       <Label className="text-xs">Produto A (Buscar por Número de Série)</Label>
                        <Input
                          placeholder="Digite o número de série..."
                          value={item.serial_number || ''}
