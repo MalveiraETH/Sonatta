@@ -501,7 +501,7 @@ Obrigado pela preferência!
             <TableBody>
               {filteredSales.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-slate-500">
+                  <TableCell colSpan={10} className="text-center py-12 text-slate-500">
                     Nenhuma venda encontrada
                   </TableCell>
                 </TableRow>
@@ -527,6 +527,23 @@ Obrigado pela preferência!
                           ))}
                         </div>
                       ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={sale.nota_fiscal || ''}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          base44.entities.Sale.update(sale.id, { nota_fiscal: newValue })
+                            .then(() => {
+                              const updatedSales = sales.map(s => 
+                                s.id === sale.id ? { ...s, nota_fiscal: newValue } : s
+                              );
+                              setSales(updatedSales);
+                            });
+                        }}
+                        placeholder="NF..."
+                        className="text-xs h-8 w-28"
+                      />
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
