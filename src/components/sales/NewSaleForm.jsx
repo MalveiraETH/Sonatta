@@ -437,9 +437,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 pt-2 sm:pt-4">
-          {/* Data, Cliente e Categoria */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 pt-2 sm:pt-4">
+          {/* SEÇÃO: INFORMAÇÕES BÁSICAS */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-700 border-b pb-2">Informações Básicas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label className="text-sm">Data da Venda *</Label>
               <Popover>
@@ -464,7 +466,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm">Cliente *</Label>
+              <Label className="text-sm">Cliente <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   placeholder="Digite o nome do cliente..."
@@ -482,7 +484,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                     }
                   }}
                   list="clients-list"
-                  className="text-sm"
+                  className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                 />
                 <datalist id="clients-list">
                   {clients.map((client) => (
@@ -494,7 +496,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm">Categoria *</Label>
+              <Label className="text-sm">Categoria <span className="text-red-500">*</span></Label>
               <Select
                 value={formData.category_id}
                 onValueChange={(value) => {
@@ -502,7 +504,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   setFormData({ ...formData, category_id: value, category_name: cat?.name });
                 }}
               >
-                <SelectTrigger className="text-sm">
+                <SelectTrigger className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -513,11 +515,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               </Select>
             </div>
           </div>
+          </div>
 
-          {/* Produtos */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Produtos</Label>
+          {/* SEÇÃO: PRODUTOS */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-sm font-semibold text-slate-700">Produtos <span className="text-red-500">*</span></h3>
               <Button type="button" variant="outline" size="sm" onClick={addItem} className="text-xs sm:text-sm">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 <span className="hidden sm:inline">Adicionar Produto</span>
@@ -570,28 +573,54 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                          onChange={(e) => {
                            const searchValue = e.target.value;
                            const newItems = [...formData.items];
-                           newItems[index].product_name = searchValue;
+                           
+                           // Se limpar o campo, resetar seleção
+                           if (searchValue === '') {
+                             newItems[index] = { 
+                               product_id: '', 
+                               product_name: '', 
+                               brand: '', 
+                               model: '', 
+                               serial_number: '', 
+                               quantity: 1, 
+                               unit_price: 0, 
+                               total: 0, 
+                               stock_type: '' 
+                             };
+                           } else {
+                             newItems[index].product_name = searchValue;
+                           }
+                           
                            setFormData({ ...formData, items: newItems });
 
-                           const searchTerm = searchValue.toLowerCase();
-                           const foundProduct = products.find(p => 
-                             p.name?.toLowerCase() === searchTerm && 
-                             p.stock_type === 'nao_serializado' &&
-                             p.quantity > 0
-                           );
-                           if (foundProduct) {
-                             updateItem(index, 'product_id', foundProduct.id);
+                           // Busca reativa: filtrar produtos conforme digita
+                           if (searchValue.length > 0) {
+                             const searchTerm = searchValue.toLowerCase();
+                             const foundProduct = products.find(p => 
+                               p.name?.toLowerCase().includes(searchTerm) && 
+                               p.stock_type === 'nao_serializado' &&
+                               p.quantity > 0
+                             );
+                             if (foundProduct && foundProduct.name?.toLowerCase() === searchTerm) {
+                               updateItem(index, 'product_id', foundProduct.id);
+                             }
                            }
                          }}
                          list={`name-list-${index}`}
-                         className="text-sm"
+                         className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                        />
                        <datalist id={`name-list-${index}`}>
-                         {products.filter(p => p.stock_type === 'nao_serializado' && p.quantity > 0).map((product) => (
-                           <option key={product.id} value={product.name}>
-                             {product.name} - Estoque: {product.quantity}
-                           </option>
-                         ))}
+                         {products
+                           .filter(p => {
+                             if (p.stock_type !== 'nao_serializado' || p.quantity <= 0) return false;
+                             if (!item.product_name) return true;
+                             return p.name?.toLowerCase().includes(item.product_name.toLowerCase());
+                           })
+                           .map((product) => (
+                             <option key={product.id} value={product.name}>
+                               {product.name} - Estoque: {product.quantity}
+                             </option>
+                           ))}
                        </datalist>
                      </div>
                    </div>
@@ -624,14 +653,20 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       {item.stock_type === 'nao_serializado' && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <Label className="text-xs">Quantidade</Label>
+                            <Label className="text-xs">Quantidade <span className="text-red-500">*</span></Label>
                             <Input
                               type="number"
+                              inputMode="numeric"
                               min="1"
                               max={products.find(p => p.id === item.product_id)?.quantity || 1}
                               value={item.quantity}
+                              onFocus={(e) => {
+                                if (e.target.value === '0' || e.target.value === '1') {
+                                  e.target.select();
+                                }
+                              }}
                               onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                              className="text-sm"
+                              className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                             />
                           </div>
                           <div>
@@ -651,8 +686,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
             ))}
           </div>
 
-          {/* Totais */}
-          <Card className="p-3 sm:p-4 bg-slate-50">
+          {/* SEÇÃO: VALORES E TOTAIS */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-700 border-b pb-2">Valores</h3>
+            <Card className="p-3 sm:p-4 bg-slate-50">
             <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <div>
                 <Label className="text-xs text-slate-500">Subtotal</Label>
@@ -662,13 +699,19 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <Label className="text-xs">Desconto (%)</Label>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min="0"
                   max="100"
                   value={discountPercent}
+                  onFocus={(e) => {
+                    if (e.target.value === '0') {
+                      e.target.select();
+                    }
+                  }}
                   onChange={(e) => updateDiscount(Number(e.target.value))}
                   placeholder="0"
-                  className="text-sm"
+                  className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                 />
               </div>
               <div>
@@ -677,11 +720,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               </div>
             </div>
           </Card>
+          </div>
 
-          {/* Formas de Pagamento */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Formas de Pagamento *</Label>
+          {/* SEÇÃO: PAGAMENTO */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-sm font-semibold text-slate-700">Formas de Pagamento <span className="text-red-500">*</span></h3>
               <Button type="button" variant="outline" size="sm" onClick={addPayment} className="text-xs sm:text-sm">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 <span className="hidden sm:inline">Adicionar Pagamento</span>
@@ -712,14 +756,20 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-xs">Valor</Label>
+                          <Label className="text-xs">Valor <span className="text-red-500">*</span></Label>
                           <Input
                             type="number"
+                            inputMode="decimal"
                             step="0.01"
                             value={payment.amount}
+                            onFocus={(e) => {
+                              if (e.target.value === '0') {
+                                e.target.select();
+                              }
+                            }}
                             onChange={(e) => updatePayment(index, 'amount', Number(e.target.value))}
                             placeholder="0.00"
-                            className="text-sm"
+                            className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                           />
                         </div>
                         {(payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && (
@@ -795,9 +845,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm">
-              Observações
+          {/* SEÇÃO: OBSERVAÇÕES */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-700 border-b pb-2">Observações</h3>
+            <div className="space-y-2">
+              <Label className="text-sm">
+                Observações
               {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && (
                 <span className="text-red-600 ml-1">*</span>
               )}
@@ -820,9 +873,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
             {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && !formData.notes?.trim() && (
               <p className="text-xs text-red-600">Justificativa obrigatória quando há diferença no valor</p>
             )}
+            </div>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t sticky bottom-0 bg-white pb-2 -mb-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-6 sm:pt-8 border-t sticky bottom-0 bg-white pb-2 -mb-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
