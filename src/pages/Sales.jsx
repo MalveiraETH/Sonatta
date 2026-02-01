@@ -209,7 +209,20 @@ Obrigado pela preferência!
       .replace(/{{total}}/g, formatCurrency(sale.total))
       .replace(/{{payments_list}}/g, paymentsList);
 
-    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    const waMeUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    const whatsappAppUrl = `whatsapp://send?phone=55${phone}&text=${encodeURIComponent(message)}`;
+
+    try {
+      window.location.href = whatsappAppUrl;
+      setTimeout(() => {
+        if (!document.hidden) {
+          window.open(waMeUrl, '_blank');
+        }
+      }, 500);
+    } catch (e) {
+      console.error("Erro ao tentar abrir WhatsApp:", e);
+      window.open(waMeUrl, '_blank');
+    }
   };
 
   const handleCancel = async (sale) => {
