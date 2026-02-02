@@ -193,6 +193,14 @@ export default function Reports() {
       // Se tem payment_details (novo formato), criar linha para cada método
       if (s.payment_details && s.payment_details.length > 0) {
         s.payment_details.forEach(pd => {
+          // PIX à vista usa data da venda como data de pagamento
+          let dataPagamento = '-';
+          if (pd.method === 'pix' && (!pd.installments || pd.installments === 1)) {
+            dataPagamento = format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy');
+          } else if (s.status === 'pago') {
+            dataPagamento = format(new Date(s.updated_date), 'dd/MM/yyyy');
+          }
+          
           data.push({
             'Número': s.sale_number,
             'Cliente': s.client_name,
@@ -204,13 +212,20 @@ export default function Reports() {
             'Método': paymentMethodLabels[pd.method] || pd.method,
             'Parcelas': pd.installments > 1 ? pd.installments : '',
             'Status': s.status,
-            'Data Pagamento': s.status === 'pago' ? format(new Date(s.updated_date), 'dd/MM/yyyy') : '-',
+            'Data Pagamento': dataPagamento,
             'NF': s.nota_fiscal || '',
             'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
           });
         });
       } else {
         // Formato antigo (compatibilidade)
+        let dataPagamento = '-';
+        if (s.payment_method === 'pix' && (!s.installments || s.installments === 1)) {
+          dataPagamento = format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy');
+        } else if (s.status === 'pago') {
+          dataPagamento = format(new Date(s.updated_date), 'dd/MM/yyyy');
+        }
+        
         data.push({
           'Número': s.sale_number,
           'Cliente': s.client_name,
@@ -222,7 +237,7 @@ export default function Reports() {
           'Método': paymentMethodLabels[s.payment_method] || s.payment_method || '',
           'Parcelas': s.installments > 1 ? s.installments : '',
           'Status': s.status,
-          'Data Pagamento': s.status === 'pago' ? format(new Date(s.updated_date), 'dd/MM/yyyy') : '-',
+          'Data Pagamento': dataPagamento,
           'NF': s.nota_fiscal || '',
           'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
         });
