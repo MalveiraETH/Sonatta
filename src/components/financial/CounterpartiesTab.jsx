@@ -84,7 +84,8 @@ export default function CounterpartiesTab() {
   const typeLabels = {
     fornecedor: 'Fornecedor',
     pessoal: 'Pessoal',
-    cliente: 'Cliente'
+    cliente: 'Cliente',
+    fisco: 'Fisco'
   };
 
   return (
@@ -164,6 +165,7 @@ export default function CounterpartiesTab() {
                   <SelectItem value="fornecedor">Fornecedor</SelectItem>
                   <SelectItem value="pessoal">Pessoal</SelectItem>
                   <SelectItem value="cliente">Cliente</SelectItem>
+                  <SelectItem value="fisco">Fisco</SelectItem>
                 </SelectContent>
               </Select>
             </div>
