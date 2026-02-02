@@ -30,6 +30,10 @@ export default function Reports() {
   const [appointments, setAppointments] = useState([]);
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
+  const [dueDateStart, setDueDateStart] = useState('');
+  const [dueDateEnd, setDueDateEnd] = useState('');
+  const [paymentDateStart, setPaymentDateStart] = useState('');
+  const [paymentDateEnd, setPaymentDateEnd] = useState('');
   const [installments, setInstallments] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [tests, setTests] = useState([]);
@@ -200,6 +204,7 @@ export default function Reports() {
             'Método': paymentMethodLabels[pd.method] || pd.method,
             'Parcelas': pd.installments > 1 ? pd.installments : '',
             'Status': s.status,
+            'Data Pagamento': s.status === 'pago' ? format(new Date(s.updated_date), 'dd/MM/yyyy') : '-',
             'NF': s.nota_fiscal || '',
             'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
           });
@@ -217,6 +222,7 @@ export default function Reports() {
           'Método': paymentMethodLabels[s.payment_method] || s.payment_method || '',
           'Parcelas': s.installments > 1 ? s.installments : '',
           'Status': s.status,
+          'Data Pagamento': s.status === 'pago' ? format(new Date(s.updated_date), 'dd/MM/yyyy') : '-',
           'NF': s.nota_fiscal || '',
           'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
         });
@@ -757,9 +763,9 @@ export default function Reports() {
         {/* VENDAS */}
         <TabsContent value="sales" className="space-y-6">
           <Card className="p-4 border-0 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-2">
-                <Label>Data Início</Label>
+                <Label>Data Venda Início</Label>
                 <Input
                   type="date"
                   value={dateStart}
@@ -767,11 +773,27 @@ export default function Reports() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data Fim</Label>
+                <Label>Data Venda Fim</Label>
                 <Input
                   type="date"
                   value={dateEnd}
                   onChange={(e) => setDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Pagto Início</Label>
+                <Input
+                  type="date"
+                  value={paymentDateStart}
+                  onChange={(e) => setPaymentDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Pagto Fim</Label>
+                <Input
+                  type="date"
+                  value={paymentDateEnd}
+                  onChange={(e) => setPaymentDateEnd(e.target.value)}
                 />
               </div>
               <div className="flex items-end">
@@ -780,9 +802,12 @@ export default function Reports() {
                   onClick={() => {
                     setDateStart('');
                     setDateEnd('');
+                    setPaymentDateStart('');
+                    setPaymentDateEnd('');
                   }}
+                  className="w-full"
                 >
-                  Limpar Filtro
+                  Limpar Filtros
                 </Button>
               </div>
             </div>
@@ -827,49 +852,76 @@ export default function Reports() {
                       <TableHead>Prof. Indicação</TableHead>
                       <TableHead>Prof. Responsável</TableHead>
                       <TableHead>Data</TableHead>
+                      <TableHead>Data Pagamento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Método</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSales.map(sale => {
-                      const client = clients.find(c => c.id === sale.client_id);
-                      const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
-                      const profResponsavel = professionals.find(p => p.id === client?.responsible_professional);
-                      
-                      return (
-                        <TableRow key={sale.id}>
-                          <TableCell className="font-medium">{sale.sale_number}</TableCell>
-                          <TableCell>{sale.client_name}</TableCell>
-                          <TableCell className="text-sm">{profIndicacao?.full_name || '-'}</TableCell>
-                          <TableCell className="text-sm">{profResponsavel?.full_name || '-'}</TableCell>
-                          <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
-                          <TableCell className="text-sm">
-                            {sale.payment_details && sale.payment_details.length > 0 ? (
-                              <div className="space-y-0.5">
-                                {sale.payment_details.map((pd, idx) => (
-                                  <div key={idx}>
-                                    {pd.method === 'pix' ? 'PIX' : 
-                                     pd.method === 'pix_parcelado' ? 'PIX Parcelado' :
-                                     pd.method === 'cartao_credito' ? 'Cartão Crédito' :
-                                     pd.method === 'cartao_debito' ? 'Cartão Débito' :
-                                     pd.method === 'dinheiro' ? 'Dinheiro' :
-                                     pd.method === 'boleto' ? 'Boleto' :
-                                     pd.method === 'transferencia' ? 'Transferência' : pd.method}
-                                    {pd.installments > 1 && ` (${pd.installments}x)`}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span>{sale.payment_method} {sale.installments > 1 && `(${sale.installments}x)`}</span>
-                            )}
-                          </TableCell>
-                          <TableCell><StatusBadge status={sale.status} /></TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {filteredSales
+                      .filter(sale => {
+                        let passesFilter = true;
+                        
+                        // Filtro de data de pagamento
+                        if (paymentDateStart || paymentDateEnd) {
+                          if (sale.status !== 'pago') {
+                            passesFilter = false;
+                          } else {
+                            const paymentDate = new Date(sale.updated_date);
+                            if (paymentDateStart) {
+                              const start = new Date(paymentDateStart);
+                              if (paymentDate < start) passesFilter = false;
+                            }
+                            if (paymentDateEnd) {
+                              const end = new Date(paymentDateEnd);
+                              if (paymentDate > end) passesFilter = false;
+                            }
+                          }
+                        }
+                        
+                        return passesFilter;
+                      })
+                      .map(sale => {
+                        const client = clients.find(c => c.id === sale.client_id);
+                        const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
+                        const profResponsavel = professionals.find(p => p.id === client?.responsible_professional);
+                        
+                        return (
+                          <TableRow key={sale.id}>
+                            <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                            <TableCell>{sale.client_name}</TableCell>
+                            <TableCell className="text-sm">{profIndicacao?.full_name || '-'}</TableCell>
+                            <TableCell className="text-sm">{profResponsavel?.full_name || '-'}</TableCell>
+                            <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                            <TableCell>
+                              {sale.status === 'pago' ? format(new Date(sale.updated_date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
+                            <TableCell className="text-sm">
+                              {sale.payment_details && sale.payment_details.length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {sale.payment_details.map((pd, idx) => (
+                                    <div key={idx}>
+                                      {pd.method === 'pix' ? 'PIX' : 
+                                       pd.method === 'pix_parcelado' ? 'PIX Parcelado' :
+                                       pd.method === 'cartao_credito' ? 'Cartão Crédito' :
+                                       pd.method === 'cartao_debito' ? 'Cartão Débito' :
+                                       pd.method === 'dinheiro' ? 'Dinheiro' :
+                                       pd.method === 'boleto' ? 'Boleto' :
+                                       pd.method === 'transferencia' ? 'Transferência' : pd.method}
+                                      {pd.installments > 1 && ` (${pd.installments}x)`}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span>{sale.payment_method} {sale.installments > 1 && `(${sale.installments}x)`}</span>
+                              )}
+                            </TableCell>
+                            <TableCell><StatusBadge status={sale.status} /></TableCell>
+                          </TableRow>
+                        );
+                      })}
                   </TableBody>
                 </Table>
               </div>
@@ -967,32 +1019,51 @@ export default function Reports() {
         {/* CONTAS A RECEBER */}
         <TabsContent value="receivables" className="space-y-6">
           <Card className="p-4 border-0 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-2">
-                <Label>Data Início</Label>
+                <Label>Data Vencto Início</Label>
                 <Input
                   type="date"
-                  value={dateStart}
-                  onChange={(e) => setDateStart(e.target.value)}
+                  value={dueDateStart}
+                  onChange={(e) => setDueDateStart(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data Fim</Label>
+                <Label>Data Vencto Fim</Label>
                 <Input
                   type="date"
-                  value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
+                  value={dueDateEnd}
+                  onChange={(e) => setDueDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Pagto Início</Label>
+                <Input
+                  type="date"
+                  value={paymentDateStart}
+                  onChange={(e) => setPaymentDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Pagto Fim</Label>
+                <Input
+                  type="date"
+                  value={paymentDateEnd}
+                  onChange={(e) => setPaymentDateEnd(e.target.value)}
                 />
               </div>
               <div className="flex items-end">
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setDateStart('');
-                    setDateEnd('');
+                    setDueDateStart('');
+                    setDueDateEnd('');
+                    setPaymentDateStart('');
+                    setPaymentDateEnd('');
                   }}
+                  className="w-full"
                 >
-                  Limpar Filtro
+                  Limpar Filtros
                 </Button>
               </div>
             </div>
@@ -1033,17 +1104,46 @@ export default function Reports() {
               <Button onClick={() => {
                 const data = installments
                   .filter(inst => {
-                    if (!dateStart || !dateEnd) return true;
-                    const dueDate = new Date(inst.due_date);
-                    const start = new Date(dateStart);
-                    const end = new Date(dateEnd);
-                    return dueDate >= start && dueDate <= end;
+                    let passesFilter = true;
+                    
+                    // Filtro de vencimento
+                    if (dueDateStart || dueDateEnd) {
+                      const dueDate = new Date(inst.due_date);
+                      if (dueDateStart) {
+                        const start = new Date(dueDateStart);
+                        if (dueDate < start) passesFilter = false;
+                      }
+                      if (dueDateEnd) {
+                        const end = new Date(dueDateEnd);
+                        if (dueDate > end) passesFilter = false;
+                      }
+                    }
+                    
+                    // Filtro de pagamento
+                    if (paymentDateStart || paymentDateEnd) {
+                      if (inst.payment_status !== 'pago' || !inst.last_payment_date) {
+                        passesFilter = false;
+                      } else {
+                        const paymentDate = new Date(inst.last_payment_date);
+                        if (paymentDateStart) {
+                          const start = new Date(paymentDateStart);
+                          if (paymentDate < start) passesFilter = false;
+                        }
+                        if (paymentDateEnd) {
+                          const end = new Date(paymentDateEnd);
+                          if (paymentDate > end) passesFilter = false;
+                        }
+                      }
+                    }
+                    
+                    return passesFilter;
                   })
                   .map(i => ({
                     'Cliente': i.client_name,
                     'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
                     'Parcela': i.installment_number,
                     'Vencimento': format(new Date(i.due_date), 'dd/MM/yyyy'),
+                    'Data Pagamento': i.last_payment_date ? format(new Date(i.last_payment_date), 'dd/MM/yyyy') : '-',
                     'Valor Original': i.original_amount,
                     'Valor Pago': i.paid_amount,
                     'Saldo': i.remaining_amount,
@@ -1064,6 +1164,7 @@ export default function Reports() {
                       <TableHead>Método</TableHead>
                       <TableHead>Parcela</TableHead>
                       <TableHead>Vencimento</TableHead>
+                      <TableHead>Data Pagamento</TableHead>
                       <TableHead className="text-right">Valor Original</TableHead>
                       <TableHead className="text-right">Valor Pago</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
@@ -1073,11 +1174,39 @@ export default function Reports() {
                   <TableBody>
                     {installments
                       .filter(inst => {
-                        if (!dateStart || !dateEnd) return true;
-                        const dueDate = new Date(inst.due_date);
-                        const start = new Date(dateStart);
-                        const end = new Date(dateEnd);
-                        return dueDate >= start && dueDate <= end;
+                        let passesFilter = true;
+                        
+                        // Filtro de vencimento
+                        if (dueDateStart || dueDateEnd) {
+                          const dueDate = new Date(inst.due_date);
+                          if (dueDateStart) {
+                            const start = new Date(dueDateStart);
+                            if (dueDate < start) passesFilter = false;
+                          }
+                          if (dueDateEnd) {
+                            const end = new Date(dueDateEnd);
+                            if (dueDate > end) passesFilter = false;
+                          }
+                        }
+                        
+                        // Filtro de pagamento
+                        if (paymentDateStart || paymentDateEnd) {
+                          if (inst.payment_status !== 'pago' || !inst.last_payment_date) {
+                            passesFilter = false;
+                          } else {
+                            const paymentDate = new Date(inst.last_payment_date);
+                            if (paymentDateStart) {
+                              const start = new Date(paymentDateStart);
+                              if (paymentDate < start) passesFilter = false;
+                            }
+                            if (paymentDateEnd) {
+                              const end = new Date(paymentDateEnd);
+                              if (paymentDate > end) passesFilter = false;
+                            }
+                          }
+                        }
+                        
+                        return passesFilter;
                       })
                       .map(inst => (
                         <TableRow key={inst.id}>
@@ -1085,6 +1214,9 @@ export default function Reports() {
                           <TableCell>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</TableCell>
                           <TableCell>{inst.installment_number}</TableCell>
                           <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
+                          <TableCell>
+                            {inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : '-'}
+                          </TableCell>
                           <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
                           <TableCell className="text-right">{formatCurrency(inst.paid_amount)}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(inst.remaining_amount)}</TableCell>
@@ -1109,32 +1241,51 @@ export default function Reports() {
         {/* CONTAS A PAGAR */}
         <TabsContent value="payables" className="space-y-6">
           <Card className="p-4 border-0 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-2">
-                <Label>Data Início</Label>
+                <Label>Data Vencto Início</Label>
                 <Input
                   type="date"
-                  value={dateStart}
-                  onChange={(e) => setDateStart(e.target.value)}
+                  value={dueDateStart}
+                  onChange={(e) => setDueDateStart(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data Fim</Label>
+                <Label>Data Vencto Fim</Label>
                 <Input
                   type="date"
-                  value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
+                  value={dueDateEnd}
+                  onChange={(e) => setDueDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Pagto Início</Label>
+                <Input
+                  type="date"
+                  value={paymentDateStart}
+                  onChange={(e) => setPaymentDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Pagto Fim</Label>
+                <Input
+                  type="date"
+                  value={paymentDateEnd}
+                  onChange={(e) => setPaymentDateEnd(e.target.value)}
                 />
               </div>
               <div className="flex items-end">
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setDateStart('');
-                    setDateEnd('');
+                    setDueDateStart('');
+                    setDueDateEnd('');
+                    setPaymentDateStart('');
+                    setPaymentDateEnd('');
                   }}
+                  className="w-full"
                 >
-                  Limpar Filtro
+                  Limpar Filtros
                 </Button>
               </div>
             </div>
@@ -1177,21 +1328,49 @@ export default function Reports() {
               <Button onClick={() => {
                 const data = expenses
                   .filter(exp => {
-                    if (!dateStart || !dateEnd) return true;
-                    const dueDate = new Date(exp.due_date);
-                    const start = new Date(dateStart);
-                    const end = new Date(dateEnd);
-                    return dueDate >= start && dueDate <= end;
+                    let passesFilter = true;
+                    
+                    // Filtro de vencimento
+                    if (dueDateStart || dueDateEnd) {
+                      const dueDate = new Date(exp.due_date);
+                      if (dueDateStart) {
+                        const start = new Date(dueDateStart);
+                        if (dueDate < start) passesFilter = false;
+                      }
+                      if (dueDateEnd) {
+                        const end = new Date(dueDateEnd);
+                        if (dueDate > end) passesFilter = false;
+                      }
+                    }
+                    
+                    // Filtro de pagamento
+                    if (paymentDateStart || paymentDateEnd) {
+                      if (exp.status !== 'pago' || !exp.payment_date) {
+                        passesFilter = false;
+                      } else {
+                        const paymentDate = new Date(exp.payment_date);
+                        if (paymentDateStart) {
+                          const start = new Date(paymentDateStart);
+                          if (paymentDate < start) passesFilter = false;
+                        }
+                        if (paymentDateEnd) {
+                          const end = new Date(paymentDateEnd);
+                          if (paymentDate > end) passesFilter = false;
+                        }
+                      }
+                    }
+                    
+                    return passesFilter;
                   })
                   .map(e => ({
                     'Categoria': e.category_name,
                     'Fornecedor': e.counterparty_name || '',
                     'Vencimento': format(new Date(e.due_date), 'dd/MM/yyyy'),
+                    'Data Pagamento': e.payment_date ? format(new Date(e.payment_date), 'dd/MM/yyyy') : '-',
                     'Valor': e.amount,
                     'Método': e.payment_method,
                     'Parcela': e.installment_number ? `${e.installment_number}/${e.installments}` : '-',
-                    'Status': e.status === 'pago' ? 'Pago' : 'A Pagar',
-                    'Data Pagamento': e.payment_date ? format(new Date(e.payment_date), 'dd/MM/yyyy') : '-'
+                    'Status': e.status === 'pago' ? 'Pago' : 'A Pagar'
                   }));
                 exportToExcel(data, 'relatorio_contas_pagar');
               }} variant="outline">
@@ -1207,6 +1386,7 @@ export default function Reports() {
                       <TableHead>Categoria</TableHead>
                       <TableHead>Fornecedor</TableHead>
                       <TableHead>Vencimento</TableHead>
+                      <TableHead>Data Pagamento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Método</TableHead>
                       <TableHead>Parcela</TableHead>
@@ -1216,11 +1396,39 @@ export default function Reports() {
                   <TableBody>
                     {expenses
                       .filter(exp => {
-                        if (!dateStart || !dateEnd) return true;
-                        const dueDate = new Date(exp.due_date);
-                        const start = new Date(dateStart);
-                        const end = new Date(dateEnd);
-                        return dueDate >= start && dueDate <= end;
+                        let passesFilter = true;
+                        
+                        // Filtro de vencimento
+                        if (dueDateStart || dueDateEnd) {
+                          const dueDate = new Date(exp.due_date);
+                          if (dueDateStart) {
+                            const start = new Date(dueDateStart);
+                            if (dueDate < start) passesFilter = false;
+                          }
+                          if (dueDateEnd) {
+                            const end = new Date(dueDateEnd);
+                            if (dueDate > end) passesFilter = false;
+                          }
+                        }
+                        
+                        // Filtro de pagamento
+                        if (paymentDateStart || paymentDateEnd) {
+                          if (exp.status !== 'pago' || !exp.payment_date) {
+                            passesFilter = false;
+                          } else {
+                            const paymentDate = new Date(exp.payment_date);
+                            if (paymentDateStart) {
+                              const start = new Date(paymentDateStart);
+                              if (paymentDate < start) passesFilter = false;
+                            }
+                            if (paymentDateEnd) {
+                              const end = new Date(paymentDateEnd);
+                              if (paymentDate > end) passesFilter = false;
+                            }
+                          }
+                        }
+                        
+                        return passesFilter;
                       })
                       .map(exp => {
                         const today = new Date();
@@ -1232,6 +1440,9 @@ export default function Reports() {
                             <TableCell className="font-medium">{exp.category_name}</TableCell>
                             <TableCell>{exp.counterparty_name || '-'}</TableCell>
                             <TableCell>{formatLocalDate(exp.due_date)}</TableCell>
+                            <TableCell>
+                              {exp.payment_date ? formatLocalDate(exp.payment_date) : '-'}
+                            </TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(exp.amount)}</TableCell>
                             <TableCell className="capitalize">{exp.payment_method?.replace('_', ' ')}</TableCell>
                             <TableCell>
