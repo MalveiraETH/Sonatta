@@ -194,9 +194,13 @@ export default function Reports() {
       if (s.payment_details && s.payment_details.length > 0) {
         s.payment_details.forEach(pd => {
           // PIX à vista usa data da venda como data de pagamento
+          const isPixAVista = pd.method === 'pix' && (!pd.installments || pd.installments === 1);
           let dataPagamento = '-';
-          if (pd.method === 'pix' && (!pd.installments || pd.installments === 1)) {
+          let status = s.status;
+          
+          if (isPixAVista) {
             dataPagamento = format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy');
+            status = 'pago';
           } else if (s.status === 'pago') {
             dataPagamento = format(new Date(s.updated_date), 'dd/MM/yyyy');
           }
@@ -211,7 +215,7 @@ export default function Reports() {
             'Valor': pd.amount || 0,
             'Método': paymentMethodLabels[pd.method] || pd.method,
             'Parcelas': pd.installments > 1 ? pd.installments : '',
-            'Status': s.status,
+            'Status': status,
             'Data Pagamento': dataPagamento,
             'NF': s.nota_fiscal || '',
             'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
@@ -219,9 +223,13 @@ export default function Reports() {
         });
       } else {
         // Formato antigo (compatibilidade)
+        const isPixAVista = s.payment_method === 'pix' && (!s.installments || s.installments === 1);
         let dataPagamento = '-';
-        if (s.payment_method === 'pix' && (!s.installments || s.installments === 1)) {
+        let status = s.status;
+        
+        if (isPixAVista) {
           dataPagamento = format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy');
+          status = 'pago';
         } else if (s.status === 'pago') {
           dataPagamento = format(new Date(s.updated_date), 'dd/MM/yyyy');
         }
@@ -236,7 +244,7 @@ export default function Reports() {
           'Valor': s.total,
           'Método': paymentMethodLabels[s.payment_method] || s.payment_method || '',
           'Parcelas': s.installments > 1 ? s.installments : '',
-          'Status': s.status,
+          'Status': status,
           'Data Pagamento': dataPagamento,
           'NF': s.nota_fiscal || '',
           'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
