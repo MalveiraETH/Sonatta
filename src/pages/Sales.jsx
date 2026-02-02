@@ -43,9 +43,10 @@ import {
 } from '@/components/ui/dialog';
 import NewSaleForm from '@/components/sales/NewSaleForm';
 import ContractGenerator from '@/components/contracts/ContractGenerator';
+import InvoiceDialog from '@/components/sales/InvoiceDialog';
 import PullToRefreshIndicator from '@/components/ui/PullToRefreshIndicator';
 import { usePullToRefresh } from '@/components/utils/usePullToRefresh';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle } from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -63,6 +64,8 @@ export default function Sales() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [selectedSaleForInvoice, setSelectedSaleForInvoice] = useState(null);
 
   const loadData = async () => {
     try {
@@ -529,21 +532,32 @@ Obrigado pela preferência!
                       ) : '-'}
                     </TableCell>
                     <TableCell>
-                      <Input
-                        value={sale.nota_fiscal || ''}
-                        onChange={(e) => {
-                          const newValue = e.target.value;
-                          base44.entities.Sale.update(sale.id, { nota_fiscal: newValue })
-                            .then(() => {
-                              const updatedSales = sales.map(s => 
-                                s.id === sale.id ? { ...s, nota_fiscal: newValue } : s
-                              );
-                              setSales(updatedSales);
-                            });
-                        }}
-                        placeholder="NF..."
-                        className="text-xs h-8 w-28"
-                      />
+                      {sale.nota_fiscal ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-xs h-8"
+                          onClick={() => {
+                            setSelectedSaleForInvoice(sale);
+                            setInvoiceDialogOpen(true);
+                          }}
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          {sale.nota_fiscal}
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-xs h-8 text-[#6B3FA0] hover:text-[#834CB8]"
+                          onClick={() => {
+                            setSelectedSaleForInvoice(sale);
+                            setInvoiceDialogOpen(true);
+                          }}
+                        >
+                          Lançar NF
+                        </Button>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -626,6 +640,34 @@ Obrigado pela preferência!
                       <div className="text-sm text-slate-600">
                         {sale.client_name} • {formatLocalDate(sale.sale_date || sale.created_date)}
                       </div>
+                      <div className="mt-2">
+                        {sale.nota_fiscal ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => {
+                              setSelectedSaleForInvoice(sale);
+                              setInvoiceDialogOpen(true);
+                            }}
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            NF: {sale.nota_fiscal}
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-xs h-7 text-[#6B3FA0]"
+                            onClick={() => {
+                              setSelectedSaleForInvoice(sale);
+                              setInvoiceDialogOpen(true);
+                            }}
+                          >
+                            Lançar NF
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -702,6 +744,13 @@ Obrigado pela preferência!
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <InvoiceDialog
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        sale={selectedSaleForInvoice}
+        onSuccess={loadData}
+      />
     </div>
   );
 }

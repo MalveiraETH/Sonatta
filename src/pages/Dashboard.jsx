@@ -14,6 +14,13 @@ import {
   Ear,
   Package
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -23,10 +30,13 @@ export default function Dashboard() {
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentSales, setRecentSales] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [filterMonthStart, setFilterMonthStart] = useState(new Date().getMonth());
+  const [filterMonthEnd, setFilterMonthEnd] = useState(new Date().getMonth());
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [filterYear, filterMonthStart, filterMonthEnd]);
 
   const loadDashboardData = async () => {
     try {
@@ -42,8 +52,6 @@ export default function Dashboard() {
 
       const today = format(new Date(), 'yyyy-MM-dd');
       const todayDate = new Date();
-      const currentMonth = todayDate.getMonth();
-      const currentYear = todayDate.getFullYear();
 
       // Filtros
       const overduePixInstallments = installments.filter(inst => {
@@ -58,7 +66,9 @@ export default function Dashboard() {
 
       const monthSalesData = sales.filter(s => {
         const saleDate = new Date(s.sale_date || s.created_date);
-        return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+        const saleMonth = saleDate.getMonth();
+        const saleYear = saleDate.getFullYear();
+        return saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
       });
 
       // Receita total do mês = valores pagos à vista nas vendas + parcelas recebidas
@@ -70,12 +80,14 @@ export default function Dashboard() {
         return sum + cashPayments.reduce((pSum, p) => pSum + (p.amount || 0), 0);
       }, 0);
 
-      // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no mês corrente
+      // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no período
       const installmentsPaidThisMonth = installments
         .filter(i => {
           if (i.payment_status !== 'pago') return false;
           const paymentDate = new Date(i.last_payment_date || i.created_date);
-          return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
+          const paymentMonth = paymentDate.getMonth();
+          const paymentYear = paymentDate.getFullYear();
+          return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
         })
         .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
 
@@ -84,7 +96,9 @@ export default function Dashboard() {
       const monthExpenses = expenses
         .filter(e => {
           const dueDate = new Date(e.due_date);
-          return dueDate.getMonth() === currentMonth && dueDate.getFullYear() === currentYear;
+          const expenseMonth = dueDate.getMonth();
+          const expenseYear = dueDate.getFullYear();
+          return expenseYear === filterYear && expenseMonth >= filterMonthStart && expenseMonth <= filterMonthEnd;
         })
         .reduce((sum, e) => sum + (e.amount || 0), 0);
 
@@ -138,6 +152,23 @@ export default function Dashboard() {
     );
   }
 
+  const months = [
+    { value: 0, label: 'Janeiro' },
+    { value: 1, label: 'Fevereiro' },
+    { value: 2, label: 'Março' },
+    { value: 3, label: 'Abril' },
+    { value: 4, label: 'Maio' },
+    { value: 5, label: 'Junho' },
+    { value: 6, label: 'Julho' },
+    { value: 7, label: 'Agosto' },
+    { value: 8, label: 'Setembro' },
+    { value: 9, label: 'Outubro' },
+    { value: 10, label: 'Novembro' },
+    { value: 11, label: 'Dezembro' }
+  ];
+
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -147,6 +178,46 @@ export default function Dashboard() {
           {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
         </p>
       </div>
+
+      {/* Filtros de Período */}
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Select value={filterYear.toString()} onValueChange={(v) => setFilterYear(parseInt(v))}>
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(year => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterMonthStart.toString()} onValueChange={(v) => setFilterMonthStart(parseInt(v))}>
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map(month => (
+                <SelectItem key={month.value} value={month.value.toString()}>{month.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <span className="text-slate-500 text-sm">até</span>
+
+          <Select value={filterMonthEnd.toString()} onValueChange={(v) => setFilterMonthEnd(parseInt(v))}>
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map(month => (
+                <SelectItem key={month.value} value={month.value.toString()}>{month.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
 
       {/* KPIs Financeiros */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
