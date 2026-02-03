@@ -12,6 +12,15 @@ export default function WhatsAppSaleTemplate() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.User.subscribe((event) => {
+      if (event.type === 'update' && event.data.whatsapp_sale_template) {
+        setTemplate(event.data.whatsapp_sale_template);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const defaultTemplate = `🎉 *Parabéns pela sua compra!* 🎉
 
 Olá {{client_name}},
@@ -53,6 +62,10 @@ Obrigado pela preferência!
   };
 
   const handleSave = async () => {
+    if (user?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
     setLoading(true);
     try {
       await base44.auth.updateMe({
@@ -67,9 +80,15 @@ Obrigado pela preferência!
   };
 
   const handleReset = () => {
+    if (user?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
     setTemplate(defaultTemplate);
     toast.info('Template restaurado para o padrão');
   };
+
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="space-y-6">
@@ -79,6 +98,7 @@ Obrigado pela preferência!
             <h3 className="text-lg font-semibold text-slate-900">Template de WhatsApp para Vendas</h3>
             <p className="text-sm text-slate-500 mt-1">
               Personalize a mensagem enviada aos clientes após uma venda
+              {!isAdmin && <span className="text-red-600 ml-2">(Somente visualização - Apenas administradores podem editar)</span>}
             </p>
           </div>
 
@@ -90,6 +110,7 @@ Obrigado pela preferência!
               rows={20}
               className="font-mono text-sm"
               placeholder="Digite o template aqui..."
+              disabled={!isAdmin}
             />
           </div>
 
@@ -107,24 +128,26 @@ Obrigado pela preferência!
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="flex-1"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Restaurar Padrão
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Salvando...' : 'Salvar Template'}
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                className="flex-1"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restaurar Padrão
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={loading}
+                className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {loading ? 'Salvando...' : 'Salvar Template'}
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
     </div>
