@@ -35,6 +35,7 @@ Equipe Sonatta Soluções Auditivas
 export default function WhatsAppTemplate() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
   const [contactPhone, setContactPhone] = useState('(48) 99999-9999');
 
@@ -42,10 +43,21 @@ export default function WhatsAppTemplate() {
     loadTemplate();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.User.subscribe((event) => {
+      if (event.type === 'update') {
+        if (event.data.whatsapp_quote_template) setTemplate(event.data.whatsapp_quote_template);
+        if (event.data.contact_phone) setContactPhone(event.data.contact_phone);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const loadTemplate = async () => {
     setLoading(true);
     try {
       const user = await base44.auth.me();
+      setCurrentUser(user);
       if (user.whatsapp_quote_template) {
         setTemplate(user.whatsapp_quote_template);
       }
@@ -60,6 +72,10 @@ export default function WhatsAppTemplate() {
   };
 
   const handleSave = async () => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
     setSaving(true);
     try {
       await base44.auth.updateMe({
@@ -76,6 +92,10 @@ export default function WhatsAppTemplate() {
   };
 
   const handleReset = () => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
     if (confirm('Deseja restaurar o template padrão?')) {
       setTemplate(DEFAULT_TEMPLATE);
       setContactPhone('(48) 99999-9999');
@@ -92,6 +112,8 @@ export default function WhatsAppTemplate() {
     );
   }
 
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -102,6 +124,7 @@ export default function WhatsAppTemplate() {
             </h3>
             <p className="text-sm text-slate-600">
               Configure o texto da mensagem que será enviada via WhatsApp ao cliente.
+              {!isAdmin && <span className="text-red-600 ml-2">(Somente visualização - Apenas administradores podem editar)</span>}
             </p>
           </div>
 
@@ -115,6 +138,7 @@ export default function WhatsAppTemplate() {
                 onChange={(e) => setContactPhone(e.target.value)}
                 className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B3FA0]"
                 placeholder="(XX) XXXXX-XXXX"
+                disabled={!isAdmin}
               />
             </div>
 
@@ -127,6 +151,7 @@ export default function WhatsAppTemplate() {
                 rows={20}
                 className="mt-1 font-mono text-sm"
                 placeholder="Digite o template da mensagem..."
+                disabled={!isAdmin}
               />
               <p className="text-xs text-slate-500 mt-2">
                 <strong>Variáveis disponíveis:</strong> {'{{'} client_name {'}}'}, {'{{'} quote_number {'}}'}, 
@@ -136,25 +161,27 @@ export default function WhatsAppTemplate() {
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleReset}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Restaurar Padrão
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-[#6B3FA0] hover:bg-[#834CB8]"
-            >
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              <Save className="h-4 w-4 mr-2" />
-              Salvar Template
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="flex gap-3 justify-end pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleReset}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restaurar Padrão
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+              >
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Template
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 

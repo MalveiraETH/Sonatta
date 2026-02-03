@@ -68,6 +68,7 @@ CPF: {{client_cpf}}`;
 export default function ContractTemplate() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [template, setTemplate] = useState(null);
   const [templateText, setTemplateText] = useState(DEFAULT_TEMPLATE);
   const [footerInfo, setFooterInfo] = useState({
@@ -81,9 +82,23 @@ export default function ContractTemplate() {
     loadTemplate();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.ContractTemplate.subscribe((event) => {
+      if (event.type === 'update' && event.data.name === 'PIX Parcelado') {
+        setTemplateText(event.data.template_text);
+        if (event.data.footer_info) setFooterInfo(event.data.footer_info);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const loadTemplate = async () => {
     try {
-      const templates = await base44.entities.ContractTemplate.filter({ name: 'PIX Parcelado' });
+      const [templates, user] = await Promise.all([
+        base44.entities.ContractTemplate.filter({ name: 'PIX Parcelado' }),
+        base44.auth.me()
+      ]);
+      setCurrentUser(user);
       if (templates.length > 0) {
         setTemplate(templates[0]);
         setTemplateText(templates[0].template_text);
@@ -99,6 +114,10 @@ export default function ContractTemplate() {
   };
 
   const handleSave = async () => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
     setSaving(true);
     try {
       const dataToSave = {
@@ -133,26 +152,35 @@ export default function ContractTemplate() {
     );
   }
 
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <Card className="border-0 shadow-sm">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-[#6B3FA0]" />
-            <CardTitle>Modelo de Contrato - PIX Parcelado</CardTitle>
-          </div>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-[#6B3FA0] hover:bg-[#834CB8]"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[#6B3FA0]" />
+              <CardTitle>Modelo de Contrato - PIX Parcelado</CardTitle>
+            </div>
+            {!isAdmin && (
+              <p className="text-sm text-red-600">Somente visualização - Apenas administradores podem editar</p>
             )}
-            Salvar Template
-          </Button>
+          </div>
+          {isAdmin && (
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar Template
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -178,6 +206,7 @@ export default function ContractTemplate() {
           placeholder="Digite o texto do contrato..."
           rows={20}
           className="font-mono text-sm"
+          disabled={!isAdmin}
         />
 
         <Card className="p-4 bg-slate-50">
@@ -189,6 +218,7 @@ export default function ContractTemplate() {
                 value={footerInfo.phone}
                 onChange={(e) => setFooterInfo({ ...footerInfo, phone: e.target.value })}
                 placeholder="(92) 99169-2102"
+                disabled={!isAdmin}
               />
             </div>
             <div className="space-y-2">
@@ -197,6 +227,7 @@ export default function ContractTemplate() {
                 value={footerInfo.email}
                 onChange={(e) => setFooterInfo({ ...footerInfo, email: e.target.value })}
                 placeholder="contato@sonatta.com.br"
+                disabled={!isAdmin}
               />
             </div>
             <div className="space-y-2">
@@ -205,6 +236,7 @@ export default function ContractTemplate() {
                 value={footerInfo.website}
                 onChange={(e) => setFooterInfo({ ...footerInfo, website: e.target.value })}
                 placeholder="www.sonatta.com.br"
+                disabled={!isAdmin}
               />
             </div>
             <div className="space-y-2">
@@ -213,6 +245,7 @@ export default function ContractTemplate() {
                 value={footerInfo.instagram}
                 onChange={(e) => setFooterInfo({ ...footerInfo, instagram: e.target.value })}
                 placeholder="@sonatta.manaus"
+                disabled={!isAdmin}
               />
             </div>
           </div>

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 export default function WorkingHours() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [workingHours, setWorkingHours] = useState({
     monday: { enabled: true, start: '08:00', end: '18:00' },
     tuesday: { enabled: true, start: '08:00', end: '18:00' },
@@ -25,10 +26,20 @@ export default function WorkingHours() {
     loadWorkingHours();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = base44.entities.User.subscribe((event) => {
+      if (event.type === 'update' && event.data.working_hours) {
+        setWorkingHours(event.data.working_hours);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const loadWorkingHours = async () => {
     setLoading(true);
     try {
       const user = await base44.auth.me();
+      setCurrentUser(user);
       if (user.working_hours) {
         setWorkingHours(user.working_hours);
       }
@@ -40,6 +51,10 @@ export default function WorkingHours() {
   };
 
   const handleSave = async () => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
     setSaving(true);
     try {
       await base44.auth.updateMe({ working_hours: workingHours });
@@ -52,6 +67,10 @@ export default function WorkingHours() {
   };
 
   const updateDay = (day, field, value) => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
     setWorkingHours(prev => ({
       ...prev,
       [day]: {
@@ -79,6 +98,8 @@ export default function WorkingHours() {
     );
   }
 
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <Card className="border-0 shadow-sm">
       <CardHeader>
@@ -86,6 +107,9 @@ export default function WorkingHours() {
           <Clock className="h-5 w-5 text-[#6B3FA0]" />
           <CardTitle>Horário de Atendimento</CardTitle>
         </div>
+        {!isAdmin && (
+          <p className="text-sm text-red-600 mt-2">Somente visualização - Apenas administradores podem editar</p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {Object.entries(dayLabels).map(([day, label]) => (
@@ -123,16 +147,18 @@ export default function WorkingHours() {
           </div>
         ))}
 
-        <div className="pt-4 flex justify-end">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-[#6B3FA0] hover:bg-[#834CB8]"
-          >
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Salvar Horários
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="pt-4 flex justify-end">
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar Horários
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
