@@ -13,6 +13,7 @@ export default function Billing() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [billingConfig, setBillingConfig] = useState({
     fixed_cost: 0,
     markup_category_90: 0,
@@ -31,10 +32,23 @@ export default function Billing() {
     loadBillingConfig();
   }, []);
 
+  useEffect(() => {
+    // Subscribe to User entity changes to sync in real-time
+    const unsubscribe = base44.entities.User.subscribe((event) => {
+      if (event.type === 'update' && event.data.billing_config) {
+        setBillingConfig(event.data.billing_config);
+        setHasChanges(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const loadBillingConfig = async () => {
     setLoading(true);
     try {
       const user = await base44.auth.me();
+      setCurrentUser(user);
       if (user.billing_config) {
         setBillingConfig(user.billing_config);
       }
@@ -46,6 +60,11 @@ export default function Billing() {
   };
 
   const handleSave = async () => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
+    
     setSaving(true);
     try {
       await base44.auth.updateMe({ billing_config: billingConfig });
@@ -59,6 +78,11 @@ export default function Billing() {
   };
 
   const updateField = (field, value) => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem alterar estas configurações');
+      return;
+    }
+    
     const numValue = parseFloat(value) || 0;
     setBillingConfig(prev => ({
       ...prev,
@@ -106,31 +130,38 @@ export default function Billing() {
     );
   }
 
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <div className="space-y-6 pb-20 lg:pb-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Custos e Tarifas</h2>
-          <p className="text-sm text-slate-500 mt-1">Configure as margens de lucro, taxas e impostos</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Configure as margens de lucro, taxas e impostos
+            {!isAdmin && <span className="text-red-600 ml-2">(Somente visualização - Apenas administradores podem editar)</span>}
+          </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving || !hasChanges}
-          className="hidden lg:flex bg-[#6B3FA0] hover:bg-[#834CB8] text-white"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Salvar Configurações
-            </>
-          )}
-        </Button>
+        {isAdmin && (
+          <Button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            className="hidden lg:flex bg-[#6B3FA0] hover:bg-[#834CB8] text-white"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Configurações
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Desktop Layout */}
@@ -161,6 +192,7 @@ export default function Billing() {
                       value={billingConfig[`markup_category_${cat}`]}
                       onChange={(e) => updateField(`markup_category_${cat}`, e.target.value)}
                       className="pr-8"
+                      disabled={!isAdmin}
                     />
                     <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   </div>
@@ -194,6 +226,7 @@ export default function Billing() {
                   value={billingConfig.credit_card_fee}
                   onChange={(e) => updateField('credit_card_fee', e.target.value)}
                   className="pr-8"
+                  disabled={!isAdmin}
                 />
                 <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               </div>
@@ -214,6 +247,7 @@ export default function Billing() {
                   value={billingConfig.tax_percentage}
                   onChange={(e) => updateField('tax_percentage', e.target.value)}
                   className="pr-8"
+                  disabled={!isAdmin}
                 />
                 <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               </div>
@@ -234,6 +268,7 @@ export default function Billing() {
                   value={billingConfig.referral_percentage}
                   onChange={(e) => updateField('referral_percentage', e.target.value)}
                   className="pr-8"
+                  disabled={!isAdmin}
                 />
                 <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               </div>
@@ -265,6 +300,7 @@ export default function Billing() {
                   value={billingConfig.fixed_cost}
                   onChange={(e) => updateField('fixed_cost', e.target.value)}
                   className="pl-10"
+                  disabled={!isAdmin}
                 />
               </div>
               <p className="text-xs text-slate-500">Custo fixo mensal da operação</p>
@@ -368,6 +404,7 @@ export default function Billing() {
                           value={billingConfig[`markup_category_${cat}`]}
                           onChange={(e) => updateField(`markup_category_${cat}`, e.target.value)}
                           className="pr-8"
+                          disabled={!isAdmin}
                         />
                         <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       </div>
@@ -396,6 +433,7 @@ export default function Billing() {
                     value={billingConfig.credit_card_fee}
                     onChange={(e) => updateField('credit_card_fee', e.target.value)}
                     className="pr-8"
+                    disabled={!isAdmin}
                   />
                   <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 </div>
@@ -409,6 +447,7 @@ export default function Billing() {
                     value={billingConfig.tax_percentage}
                     onChange={(e) => updateField('tax_percentage', e.target.value)}
                     className="pr-8"
+                    disabled={!isAdmin}
                   />
                   <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 </div>
@@ -422,6 +461,7 @@ export default function Billing() {
                     value={billingConfig.referral_percentage}
                     onChange={(e) => updateField('referral_percentage', e.target.value)}
                     className="pr-8"
+                    disabled={!isAdmin}
                   />
                   <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 </div>
@@ -448,6 +488,7 @@ export default function Billing() {
                     value={billingConfig.fixed_cost}
                     onChange={(e) => updateField('fixed_cost', e.target.value)}
                     className="pl-10"
+                    disabled={!isAdmin}
                   />
                 </div>
               </div>
@@ -526,7 +567,7 @@ export default function Billing() {
       </div>
 
       {/* Mobile Fixed Save Button */}
-      {hasChanges && (
+      {hasChanges && isAdmin && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-50">
           <Button
             onClick={handleSave}
