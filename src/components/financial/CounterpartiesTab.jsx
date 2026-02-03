@@ -90,44 +90,63 @@ export default function CounterpartiesTab() {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Contrapartes (Fornecedores, Pessoal e Clientes)</CardTitle>
-          <Button onClick={() => setShowForm(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Contraparte
-          </Button>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4 px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle className="text-lg font-semibold text-slate-900">
+              Contrapartes (Fornecedores, Pessoal e Clientes)
+            </CardTitle>
+            <Button 
+              onClick={() => setShowForm(true)} 
+              className="bg-[#6B3FA0] hover:bg-[#834CB8] h-11 px-6 font-medium shadow-sm w-full sm:w-auto"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Nova Contraparte
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           {counterparties.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              <Users className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <p>Nenhuma contraparte cadastrada</p>
+            <div className="text-center py-16">
+              <Users className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+              <p className="text-base text-slate-500 font-medium">Nenhuma contraparte cadastrada</p>
             </div>
           ) : (
             <div className="space-y-3">
               {counterparties.map(cp => (
                 <div
                   key={cp.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
+                  className="flex items-start sm:items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all"
                 >
-                  <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-slate-400" />
-                    <div>
-                      <div className="font-semibold">{cp.name}</div>
-                      <div className="text-sm text-slate-600">
-                        {typeLabels[cp.type]}
-                        {cp.cpf_cnpj && ` • ${cp.cpf_cnpj}`}
-                        {cp.phone && ` • ${cp.phone}`}
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                      <Users className="h-5 w-5 text-[#6B3FA0]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 text-base mb-1 truncate">{cp.name}</div>
+                      <div className="text-sm text-slate-600 space-y-0.5">
+                        <div className="font-medium text-[#6B3FA0]">{typeLabels[cp.type]}</div>
+                        {cp.cpf_cnpj && <div className="text-xs text-slate-500">{cp.cpf_cnpj}</div>}
+                        {cp.phone && <div className="text-xs text-slate-500">{cp.phone}</div>}
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(cp)}>
-                      <Pencil className="h-4 w-4" />
+                  <div className="flex gap-2 flex-shrink-0 ml-3">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleEdit(cp)}
+                      className="h-10 w-10 hover:bg-slate-200 rounded-lg"
+                    >
+                      <Pencil className="h-5 w-5 text-slate-600" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(cp.id)}>
-                      <Trash2 className="h-4 w-4 text-red-600" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDelete(cp.id)}
+                      className="h-10 w-10 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="h-5 w-5 text-red-600" />
                     </Button>
                   </div>
                 </div>
@@ -138,27 +157,28 @@ export default function CounterpartiesTab() {
       </Card>
 
       <Dialog open={showForm} onOpenChange={() => { setShowForm(false); setEditing(null); }}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Editar Contraparte' : 'Nova Contraparte'}</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">{editing ? 'Editar Contraparte' : 'Nova Contraparte'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Label>Nome *</Label>
+              <Label className="text-sm font-medium text-slate-900 mb-2 block">Nome *</Label>
               <Input
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Nome do fornecedor ou pessoa"
+                className="h-11 text-base"
               />
             </div>
             <div>
-              <Label>Tipo *</Label>
+              <Label className="text-sm font-medium text-slate-900 mb-2 block">Tipo *</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => setFormData({ ...formData, type: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11 text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -170,43 +190,55 @@ export default function CounterpartiesTab() {
               </Select>
             </div>
             <div>
-              <Label>CPF/CNPJ</Label>
+              <Label className="text-sm font-medium text-slate-900 mb-2 block">CPF/CNPJ</Label>
               <Input
                 value={formData.cpf_cnpj}
                 onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
                 placeholder="000.000.000-00"
+                className="h-11 text-base"
               />
             </div>
             <div>
-              <Label>Telefone</Label>
+              <Label className="text-sm font-medium text-slate-900 mb-2 block">Telefone</Label>
               <Input
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="(00) 00000-0000"
+                className="h-11 text-base"
               />
             </div>
             <div>
-              <Label>E-mail</Label>
+              <Label className="text-sm font-medium text-slate-900 mb-2 block">E-mail</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="email@exemplo.com"
+                className="h-11 text-base"
               />
             </div>
             <div>
-              <Label>Endereço</Label>
+              <Label className="text-sm font-medium text-slate-900 mb-2 block">Endereço</Label>
               <Input
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Endereço completo"
+                className="h-11 text-base"
               />
             </div>
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditing(null); }}>
+            <div className="flex gap-3 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => { setShowForm(false); setEditing(null); }}
+                className="flex-1 h-11 text-base font-medium"
+              >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+              <Button 
+                type="submit" 
+                className="flex-1 h-11 text-base font-medium bg-[#6B3FA0] hover:bg-[#834CB8] shadow-sm"
+              >
                 {editing ? 'Atualizar' : 'Salvar'}
               </Button>
             </div>

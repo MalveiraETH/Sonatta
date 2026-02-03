@@ -15,53 +15,72 @@ export default function Registrations() {
   const [activeTab, setActiveTab] = useState('empresas');
 
   return (
-    <div>
-      <PageHeader
-        title="Cadastros"
-        description="Gerencie empresas, contas, categorias, contrapartes e despesas recorrentes"
-      />
+    <div className="pb-20">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">Cadastros</h1>
+        <p className="text-sm text-slate-600">Gerencie empresas, contas, categorias, contrapartes e despesas recorrentes</p>
+      </div>
 
+      {/* Tabs com melhor UX mobile */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
-          <TabsTrigger value="empresas" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Empresas</span>
-          </TabsTrigger>
-          <TabsTrigger value="contas" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">Contas</span>
-          </TabsTrigger>
-          <TabsTrigger value="categorias" className="flex items-center gap-2">
-            <Tag className="h-4 w-4" />
-            <span className="hidden sm:inline">Categorias</span>
-          </TabsTrigger>
-          <TabsTrigger value="contrapartes" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Contrapartes</span>
-          </TabsTrigger>
-          <TabsTrigger value="recorrentes" className="flex items-center gap-2">
-            <RotateCw className="h-4 w-4" />
-            <span className="hidden sm:inline">Recorrentes</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-auto min-w-full bg-slate-100 p-1 rounded-xl gap-1">
+            <TabsTrigger 
+              value="empresas" 
+              className="flex-1 min-w-[90px] h-11 flex flex-col items-center justify-center gap-1 data-[state=active]:bg-[#6B3FA0] data-[state=active]:text-white rounded-lg transition-all"
+            >
+              <Building2 className="h-5 w-5" />
+              <span className="text-xs font-medium">Empresas</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="contas" 
+              className="flex-1 min-w-[90px] h-11 flex flex-col items-center justify-center gap-1 data-[state=active]:bg-[#6B3FA0] data-[state=active]:text-white rounded-lg transition-all"
+            >
+              <CreditCard className="h-5 w-5" />
+              <span className="text-xs font-medium">Contas</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="categorias" 
+              className="flex-1 min-w-[90px] h-11 flex flex-col items-center justify-center gap-1 data-[state=active]:bg-[#6B3FA0] data-[state=active]:text-white rounded-lg transition-all"
+            >
+              <Tag className="h-5 w-5" />
+              <span className="text-xs font-medium">Categorias</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="contrapartes" 
+              className="flex-1 min-w-[90px] h-11 flex flex-col items-center justify-center gap-1 data-[state=active]:bg-[#6B3FA0] data-[state=active]:text-white rounded-lg transition-all"
+            >
+              <Users className="h-5 w-5" />
+              <span className="text-xs font-medium">Contrapartes</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="recorrentes" 
+              className="flex-1 min-w-[90px] h-11 flex flex-col items-center justify-center gap-1 data-[state=active]:bg-[#6B3FA0] data-[state=active]:text-white rounded-lg transition-all"
+            >
+              <RotateCw className="h-5 w-5" />
+              <span className="text-xs font-medium">Recorrentes</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="empresas">
+        <TabsContent value="empresas" className="mt-6">
           <CompanyTab />
         </TabsContent>
 
-        <TabsContent value="contas">
+        <TabsContent value="contas" className="mt-6">
           <AccountsTab />
         </TabsContent>
 
-        <TabsContent value="categorias">
+        <TabsContent value="categorias" className="mt-6">
           <CategoriesTab />
         </TabsContent>
 
-        <TabsContent value="contrapartes">
+        <TabsContent value="contrapartes" className="mt-6">
           <CounterpartiesTab />
         </TabsContent>
 
-        <TabsContent value="recorrentes">
+        <TabsContent value="recorrentes" className="mt-6">
           <RecurringExpensesTab />
         </TabsContent>
       </Tabs>
