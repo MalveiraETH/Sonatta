@@ -236,88 +236,89 @@ export default function ReferenceProducts() {
                     Novo Produto
                   </Button>
                 </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingProduct ? 'Editar Produto' : 'Novo Produto'}
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reference">Referência *</Label>
-                    <Input
-                      id="reference"
-                      value={formData.reference}
-                      onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                      placeholder="Ex: REF-001"
-                      required
-                    />
-                  </div>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingProduct ? 'Editar Produto' : 'Novo Produto'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reference">Referência *</Label>
+                      <Input
+                        id="reference"
+                        value={formData.reference}
+                        onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                        placeholder="Ex: REF-001"
+                        required
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome do Aparelho *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Ex: Aparelho Auditivo X"
-                      required
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nome do Aparelho *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Ex: Aparelho Auditivo X"
+                        required
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Categoria *</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(value) => setFormData({ ...formData, category: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a categoria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="90">Categoria 90</SelectItem>
-                        <SelectItem value="70">Categoria 70</SelectItem>
-                        <SelectItem value="50">Categoria 50</SelectItem>
-                        <SelectItem value="30">Categoria 30</SelectItem>
-                        <SelectItem value="10">Categoria 10</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Categoria *</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="90">Categoria 90</SelectItem>
+                          <SelectItem value="70">Categoria 70</SelectItem>
+                          <SelectItem value="50">Categoria 50</SelectItem>
+                          <SelectItem value="30">Categoria 30</SelectItem>
+                          <SelectItem value="10">Categoria 10</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="cost">Custo do Aparelho (R$) *</Label>
-                    <Input
-                      id="cost"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.cost}
-                      onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cost">Custo do Aparelho (R$) *</Label>
+                      <Input
+                        id="cost"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.cost}
+                        onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
 
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsFormOpen(false);
-                        setFormData({ reference: '', name: '', category: '', cost: '' });
-                        setEditingProduct(null);
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button type="submit" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-                      {editingProduct ? 'Atualizar' : 'Cadastrar'}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setIsFormOpen(false);
+                          setFormData({ reference: '', name: '', category: '', cost: '' });
+                          setEditingProduct(null);
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+                        {editingProduct ? 'Atualizar' : 'Cadastrar'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
