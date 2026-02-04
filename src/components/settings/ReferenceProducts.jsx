@@ -26,8 +26,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Loader2, Plus, Pencil, Trash2, Package } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Package, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 export default function ReferenceProducts() {
   const [loading, setLoading] = useState(true);
@@ -169,6 +170,33 @@ export default function ReferenceProducts() {
     return labels[category] || category;
   };
 
+  const exportToExcel = () => {
+    try {
+      const exportData = products.map(product => ({
+        'Referência': product.reference,
+        'Nome do Aparelho': product.name,
+        'Categoria': getCategoryLabel(product.category),
+        'Custo Aparelho': product.cost,
+        'Custo Total': calculateTotalCost(product.cost),
+        'Valor Final': calculateFinalPrice(product.cost, product.category),
+        'Descontos': calculateDiscounts(product.cost, product.category),
+        'Receita Líquida': calculateNetRevenue(product.cost, product.category)
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Produtos Referência');
+
+      const date = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `produtos-referencia-${date}.xlsx`);
+      
+      toast.success('Relatório exportado com sucesso!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao exportar relatório');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -186,19 +214,28 @@ export default function ReferenceProducts() {
               <Package className="h-5 w-5 text-[#6B3FA0]" />
               <CardTitle>Produtos Referência</CardTitle>
             </div>
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={() => {
-                    setEditingProduct(null);
-                    setFormData({ reference: '', name: '', category: '', cost: '' });
-                  }}
-                  className="bg-[#6B3FA0] hover:bg-[#834CB8]"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Produto
-                </Button>
-              </DialogTrigger>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={exportToExcel}
+                variant="outline"
+                disabled={products.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setFormData({ reference: '', name: '', category: '', cost: '' });
+                    }}
+                    className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Produto
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>
