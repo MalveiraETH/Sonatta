@@ -21,18 +21,22 @@ import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
+export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null, preselectedAppointmentData = null }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [products, setProducts] = useState([]);
   const [formData, setFormData] = useState({
     client_id: '',
+    client_name: '',
     start_date: '',
     end_date: '',
+    time: '',
     devices: [],
     professional_id: '',
+    professional_name: '',
     referral_professional_id: '',
+    referral_professional_name: '',
     status: 'em_teste',
     notes: ''
   });
@@ -40,31 +44,75 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   useEffect(() => {
     if (open) {
       loadData();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open && clients.length > 0) {
       if (test) {
         setFormData({
           client_id: test.client_id || '',
+          client_name: test.client_name || '',
           start_date: test.start_date || '',
           end_date: test.end_date || '',
+          time: test.time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
+          professional_name: test.professional_name || '',
           referral_professional_id: test.referral_professional_id || '',
+          referral_professional_name: test.referral_professional_name || '',
           status: test.status || 'em_teste',
           notes: test.notes || ''
         });
-      } else {
+      } else if (preselectedAppointmentData) {
         setFormData({
-          client_id: preselectedClientId || '',
+          client_id: preselectedAppointmentData.client_id,
+          client_name: preselectedAppointmentData.client_name,
+          start_date: preselectedAppointmentData.date,
+          end_date: '',
+          time: preselectedAppointmentData.time,
+          devices: [],
+          professional_id: preselectedAppointmentData.professional_id || '',
+          professional_name: preselectedAppointmentData.professional_name || '',
+          referral_professional_id: preselectedAppointmentData.test_referral_id || '',
+          referral_professional_name: preselectedAppointmentData.test_referral_name || '',
+          status: 'em_teste',
+          notes: ''
+        });
+      } else if (preselectedClientId) {
+        const client = clients.find(c => c.id === preselectedClientId);
+        setFormData({
+          client_id: preselectedClientId,
+          client_name: client?.full_name || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
           end_date: '',
+          time: '',
           devices: [],
           professional_id: '',
+          professional_name: '',
           referral_professional_id: '',
+          referral_professional_name: '',
+          status: 'em_teste',
+          notes: ''
+        });
+      } else {
+        setFormData({
+          client_id: '',
+          client_name: '',
+          start_date: format(new Date(), 'yyyy-MM-dd'),
+          end_date: '',
+          time: '',
+          devices: [],
+          professional_id: '',
+          professional_name: '',
+          referral_professional_id: '',
+          referral_professional_name: '',
           status: 'em_teste',
           notes: ''
         });
       }
     }
-  }, [open, test]);
+  }, [open, test, preselectedClientId, preselectedAppointmentData, clients]);
 
   const loadData = async () => {
     try {
@@ -96,7 +144,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   };
 
   const updateDevice = (index, productId) => {
-    const product = products.find(p => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (product) {
       const newDevices = [...formData.devices];
       newDevices[index] = {
@@ -111,7 +159,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const updateClientStatus = async (clientId, testStatus) => {
     try {
       let clientStatus = 'em_teste';
-      
+
       if (testStatus === 'em_teste') {
         clientStatus = 'em_teste';
       } else if (testStatus === 'teste_estendido') {
@@ -121,7 +169,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       } else if (testStatus === 'teste_pendente') {
         clientStatus = 'em_teste';
       }
-      
+
       await base44.entities.Client.update(clientId, { status: clientStatus });
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
@@ -130,17 +178,17 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.client_id || !formData.start_date || !formData.end_date) {
+
+    if (!formData.client_id || !formData.start_date || !formData.end_date || !formData.time) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
 
     setLoading(true);
     try {
-      const client = clients.find(c => c.id === formData.client_id);
-      const professional = professionals.find(p => p.id === formData.professional_id);
-      const referralProfessional = professionals.find(p => p.id === formData.referral_professional_id);
+      const client = clients.find((c) => c.id === formData.client_id);
+      const professional = professionals.find((p) => p.id === formData.professional_id);
+      const referralProfessional = professionals.find((p) => p.id === formData.referral_professional_id);
 
       const testData = {
         ...formData,
@@ -152,19 +200,31 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
-        
-        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-        
         toast.success('Teste atualizado');
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
-        
-        // Atualizar status do cliente baseado no status do teste
+
+        // Criar agendamento tipo 'teste' se não houver agendamento pré-existente
+        if (!preselectedAppointmentData) {
+          await base44.entities.Appointment.create({
+            client_id: testData.client_id,
+            client_name: testData.client_name,
+            professional_id: testData.professional_id,
+            professional_name: testData.professional_name,
+            test_referral_id: testData.referral_professional_id,
+            test_referral_name: testData.referral_professional_name,
+            date: testData.start_date,
+            time: testData.time,
+            type: 'teste',
+            status: 'agendado',
+            notes: `Agendamento criado automaticamente para o Teste ${testData.test_number}`
+          });
+        }
+
         await updateClientStatus(formData.client_id, testData.status);
-        
         toast.success('Teste cadastrado');
       }
 
@@ -188,19 +248,22 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
             <>
               <div>
                 <Label>Cliente *</Label>
-                <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
+                <Select value={formData.client_id} onValueChange={(v) => {
+                  const client = clients.find(c => c.id === v);
+                  setFormData({ ...formData, client_id: v, client_name: client?.full_name || '' });
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map(client => (
+                    {clients.map((client) => (
                       <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label>Data Início *</Label>
                   <Input
@@ -215,6 +278,14 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Horário *</Label>
+                  <Input
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                   />
                 </div>
               </div>
@@ -235,7 +306,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                           <SelectValue placeholder="Selecione por NS" />
                         </SelectTrigger>
                         <SelectContent>
-                          {products.map(product => (
+                          {products.map((product) => (
                             <SelectItem key={product.id} value={product.id}>
                               {product.name} - NS: {product.serial_number}
                             </SelectItem>
@@ -251,13 +322,16 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               </div>
 
               <div>
-                <Label>Profissional</Label>
-                <Select value={formData.professional_id} onValueChange={(v) => setFormData({ ...formData, professional_id: v })}>
+                <Label>Profissional Atendimento</Label>
+                <Select value={formData.professional_id} onValueChange={(v) => {
+                  const prof = professionals.find(p => p.id === v);
+                  setFormData({ ...formData, professional_id: v, professional_name: prof?.full_name || '' });
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o profissional" />
                   </SelectTrigger>
                   <SelectContent>
-                    {professionals.map(prof => (
+                    {professionals.map((prof) => (
                       <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -265,13 +339,16 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               </div>
 
               <div>
-                <Label>Indicação Teste</Label>
-                <Select value={formData.referral_professional_id} onValueChange={(v) => setFormData({ ...formData, referral_professional_id: v })}>
+                <Label>Profissional Indicação Teste</Label>
+                <Select value={formData.referral_professional_id} onValueChange={(v) => {
+                  const prof = professionals.find(p => p.id === v);
+                  setFormData({ ...formData, referral_professional_id: v, referral_professional_name: prof?.full_name || '' });
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o profissional de indicação" />
                   </SelectTrigger>
                   <SelectContent>
-                    {professionals.map(prof => (
+                    {professionals.map((prof) => (
                       <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
                     ))}
                   </SelectContent>

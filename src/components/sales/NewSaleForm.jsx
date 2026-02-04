@@ -95,7 +95,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         status: 'pendente',
         notes: '',
         quote_id: '',
-        nota_fiscal: ''
+        nota_fiscal: '',
+        category_id: '',
+        category_name: ''
       });
       setDiscountPercent(0);
     } catch (e) {
@@ -119,7 +121,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         status: 'pendente',
         notes: '',
         quote_id: '',
-        nota_fiscal: ''
+        nota_fiscal: '',
+        category_id: '',
+        category_name: ''
       });
       setDiscountPercent(0);
     }
@@ -166,7 +170,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           client_email: client.email || '',
           client_address: client.address || '',
           test_referral_id: latestAppointment?.test_referral_id || '',
-          test_referral_name: latestAppointment?.test_referral_name || ''
+          test_referral_name: latestAppointment?.test_referral_name || '',
+          seller_id: currentUser?.id || '',
+          seller_name: currentUser?.full_name || ''
         });
       } catch (e) {
         console.error(e);
@@ -179,7 +185,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           client_email: client.email || '',
           client_address: client.address || '',
           test_referral_id: '',
-          test_referral_name: ''
+          test_referral_name: '',
+          seller_id: currentUser?.id || '',
+          seller_name: currentUser?.full_name || ''
         });
       }
     }
@@ -322,7 +330,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         ...formData,
         sale_number: saleNumber,
         sale_date: format(saleDate, 'yyyy-MM-dd'),
-        status: initialStatus
+        status: initialStatus,
+        seller_id: currentUser?.id || '',
+        seller_name: currentUser?.full_name || ''
       };
 
       // Criar venda

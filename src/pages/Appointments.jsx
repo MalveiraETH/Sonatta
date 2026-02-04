@@ -13,6 +13,7 @@ import {
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import AppointmentForm from '@/components/appointments/AppointmentForm';
+import TestForm from '@/components/tests/TestForm';
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,7 +21,8 @@ import {
   User,
   MessageCircle,
   Edit,
-  Trash2
+  Trash2,
+  Ear
 } from 'lucide-react';
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,6 +38,8 @@ export default function Appointments() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [testFormOpen, setTestFormOpen] = useState(false);
+  const [preselectedAppointmentForTest, setPreselectedAppointmentForTest] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -299,6 +303,18 @@ export default function Appointments() {
                     </SelectContent>
                   </Select>
 
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setPreselectedAppointmentForTest(appointment);
+                      setTestFormOpen(true);
+                    }}
+                    title="Cadastrar Teste"
+                  >
+                    <Ear className="h-4 w-4" />
+                  </Button>
+
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(appointment)}>
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -338,6 +354,13 @@ export default function Appointments() {
         open={formOpen}
         onOpenChange={setFormOpen}
         appointment={selectedAppointment}
+        onSuccess={loadData}
+      />
+
+      <TestForm
+        open={testFormOpen}
+        onClose={() => setTestFormOpen(false)}
+        preselectedAppointmentData={preselectedAppointmentForTest}
         onSuccess={loadData}
       />
     </div>
