@@ -92,15 +92,10 @@ export default function Layout({ children, currentPageName }) {
 
   const loadUser = async () => {
     try {
-      const isAuthenticated = await base44.auth.isAuthenticated();
-      if (!isAuthenticated) {
-        base44.auth.redirectToLogin();
-        return;
-      }
       const currentUser = await base44.auth.me();
       setUser(currentUser);
     } catch (e) {
-      console.error('User auth check failed:', e);
+      console.log('User not logged in');
     }
   };
 
