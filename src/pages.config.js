@@ -62,8 +62,8 @@ import Quotes from './pages/Quotes';
 import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
 import Sales from './pages/Sales';
-import Settings from './pages/Settings';
 import Tests from './pages/Tests';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -83,8 +83,8 @@ export const PAGES = {
     "Registrations": Registrations,
     "Reports": Reports,
     "Sales": Sales,
-    "Settings": Settings,
     "Tests": Tests,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
