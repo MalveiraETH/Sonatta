@@ -32,36 +32,10 @@ export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [startY, setStartY] = useState(0);
-  const [currentVersion, setCurrentVersion] = useState(null);
 
   useEffect(() => {
     loadUser();
-    checkVersion();
   }, []);
-
-  useEffect(() => {
-    // Verificar nova versão a cada 30 segundos
-    const interval = setInterval(checkVersion, 30000);
-    return () => clearInterval(interval);
-  }, [currentVersion]);
-
-  const checkVersion = async () => {
-    try {
-      const versions = await base44.entities.AppVersion.list('-created_date', 1);
-      if (versions.length > 0) {
-        const latestVersion = versions[0].version_timestamp;
-        
-        if (currentVersion === null) {
-          setCurrentVersion(latestVersion);
-        } else if (latestVersion > currentVersion) {
-          // Nova versão disponível - recarregar página
-          window.location.reload();
-        }
-      }
-    } catch (e) {
-      // Silenciosamente ignorar erros de verificação
-    }
-  };
 
   useEffect(() => {
     // Pull to refresh para mobile
