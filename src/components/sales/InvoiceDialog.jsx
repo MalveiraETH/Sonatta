@@ -27,6 +27,19 @@ export default function InvoiceDialog({ open, onOpenChange, sale, onSuccess }) {
       await base44.entities.Sale.update(sale.id, {
         nota_fiscal: invoiceNumber.trim()
       });
+
+      // Atualizar movimentações de estoque com a nota fiscal
+      const movements = await base44.entities.StockMovement.filter({
+        reason: `Venda ${sale.sale_number}`,
+        type: 'saida'
+      });
+
+      for (const movement of movements) {
+        await base44.entities.StockMovement.update(movement.id, {
+          nota_fiscal: invoiceNumber.trim()
+        });
+      }
+
       toast.success('Nota fiscal salva');
       onSuccess?.();
       onOpenChange(false);
