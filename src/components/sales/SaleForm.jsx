@@ -323,7 +323,9 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
               product_name: product.name,
               type: 'saida',
               quantity: 1,
-              reason: `Venda ${dataToSave.sale_number}`
+              reason: `Venda ${dataToSave.sale_number}`,
+              nota_fiscal: dataToSave.nota_fiscal || null,
+              sale_date: dataToSave.sale_date
             });
           }
         }

@@ -44,9 +44,10 @@ import {
 import NewSaleForm from '@/components/sales/NewSaleForm';
 import ContractGenerator from '@/components/contracts/ContractGenerator';
 import InvoiceDialog from '@/components/sales/InvoiceDialog';
+import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import PullToRefreshIndicator from '@/components/ui/PullToRefreshIndicator';
 import { usePullToRefresh } from '@/components/utils/usePullToRefresh';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText } from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -66,6 +67,8 @@ export default function Sales() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [selectedSaleForInvoice, setSelectedSaleForInvoice] = useState(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedSaleForDetails, setSelectedSaleForDetails] = useState(null);
 
   const loadData = async () => {
     try {
@@ -577,12 +580,16 @@ Obrigado pela preferência!
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Cliente
-                            </Link>
-                          </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(sale); setDetailsDialogOpen(true); }}>
+                          <Info className="h-4 w-4 mr-2" />
+                          Detalhes da Venda
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Cliente
+                          </Link>
+                        </DropdownMenuItem>
                           {sale.client_phone && (
                             <DropdownMenuItem onClick={() => sendWhatsApp(sale)}>
                               <MessageCircle className="h-4 w-4 mr-2" />
@@ -676,12 +683,16 @@ Obrigado pela preferência!
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Cliente
-                          </Link>
-                        </DropdownMenuItem>
+                       <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(sale); setDetailsDialogOpen(true); }}>
+                         <Info className="h-4 w-4 mr-2" />
+                         Detalhes
+                       </DropdownMenuItem>
+                       <DropdownMenuItem asChild>
+                         <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
+                           <Eye className="h-4 w-4 mr-2" />
+                           Ver Cliente
+                         </Link>
+                       </DropdownMenuItem>
                         {sale.client_phone && (
                           <DropdownMenuItem 
                             onClick={(e) => {
@@ -750,6 +761,12 @@ Obrigado pela preferência!
         onOpenChange={setInvoiceDialogOpen}
         sale={selectedSaleForInvoice}
         onSuccess={loadData}
+      />
+
+      <SaleDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        sale={selectedSaleForDetails}
       />
     </div>
   );
