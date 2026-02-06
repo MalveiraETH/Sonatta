@@ -121,12 +121,10 @@ export default function Dashboard() {
 
       const totalBilled = totalSalesAmount + receivablesThisMonth;
 
-      // Contar aparelhos auditivos vendidos
+      // Contar aparelhos auditivos vendidos (baseado na categoria real do produto)
+      const hearingAidIds = new Set(allProducts.map(p => p.id));
       const hearingAidsCount = monthSalesData.reduce((count, sale) => {
-        const aids = sale.items?.filter(item => 
-          item.product_name?.toLowerCase().includes('aparelho') || 
-          item.product_name?.toLowerCase().includes('auditivo')
-        ) || [];
+        const aids = sale.items?.filter(item => hearingAidIds.has(item.product_id)) || [];
         return count + aids.reduce((sum, aid) => sum + (aid.quantity || 1), 0);
       }, 0);
 
