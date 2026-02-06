@@ -193,10 +193,17 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     }
   };
 
-  const addItem = () => {
+  const addSerializedItem = () => {
     setFormData({
       ...formData,
-      items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0, stock_type: '' }, ...formData.items]
+      items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0, stock_type: 'serializado' }, ...formData.items]
+    });
+  };
+
+  const addNonSerializedItem = () => {
+    setFormData({
+      ...formData,
+      items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0, stock_type: 'nao_serializado' }, ...formData.items]
     });
   };
 
@@ -531,11 +538,16 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
               <h3 className="text-sm font-semibold text-slate-700">Produtos <span className="text-red-500">*</span></h3>
-              <Button type="button" variant="outline" size="sm" onClick={addItem} className="text-xs sm:text-sm">
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                <span className="hidden sm:inline">Adicionar Produto</span>
-                <span className="sm:hidden">Adicionar</span>
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={addSerializedItem} className="text-xs sm:text-sm">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  Produto A
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addNonSerializedItem} className="text-xs sm:text-sm">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  Produto B
+                </Button>
+              </div>
             </div>
 
             {formData.items.map((item, index) => (
@@ -543,96 +555,97 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <div className="space-y-3">
                   <div className="flex gap-2 items-start">
                    <div className="flex-1 space-y-2">
-                     <div>
-                       <Label className="text-xs">Produto A (Buscar por Número de Série)</Label>
-                       <Input
-                         placeholder="Digite o número de série..."
-                         value={item.serial_number || ''}
-                         onChange={(e) => {
-                           const searchValue = e.target.value;
-                           const newItems = [...formData.items];
-                           newItems[index].serial_number = searchValue;
-                           setFormData({ ...formData, items: newItems });
+                     {item.stock_type === 'serializado' ? (
+                       <div>
+                         <Label className="text-xs">Produto A (Buscar por Número de Série)</Label>
+                         <Input
+                           placeholder="Digite o número de série..."
+                           value={item.serial_number || ''}
+                           onChange={(e) => {
+                             const searchValue = e.target.value;
+                             const newItems = [...formData.items];
+                             newItems[index].serial_number = searchValue;
+                             setFormData({ ...formData, items: newItems });
 
-                           const searchTerm = searchValue.toLowerCase();
-                           const foundProduct = products.find(p => 
-                             p.serial_number?.toLowerCase() === searchTerm && 
-                             p.stock_type === 'serializado' &&
-                             p.status === 'disponivel'
-                           );
-                           if (foundProduct) {
-                             updateItem(index, 'product_id', foundProduct.id);
-                           }
-                         }}
-                         list={`serial-list-${index}`}
-                         className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
-                       />
-                       <datalist id={`serial-list-${index}`}>
-                         {products.filter(p => p.stock_type === 'serializado' && p.status === 'disponivel').map((product) => (
-                           <option key={product.id} value={product.serial_number}>
-                             {product.name} ({product.brand} {product.model})
-                           </option>
-                         ))}
-                       </datalist>
-                     </div>
-                     <div>
-                       <Label className="text-xs">Produto B (Buscar por Nome)</Label>
-                       <Input
-                         placeholder="Digite o nome do produto..."
-                         value={item.product_name || ''}
-                         onChange={(e) => {
-                           const searchValue = e.target.value;
-                           const newItems = [...formData.items];
-                           
-                           // Se limpar o campo, resetar seleção
-                           if (searchValue === '') {
-                             newItems[index] = { 
-                               product_id: '', 
-                               product_name: '', 
-                               brand: '', 
-                               model: '', 
-                               serial_number: '', 
-                               quantity: 1, 
-                               unit_price: 0, 
-                               total: 0, 
-                               stock_type: '' 
-                             };
-                           } else {
-                             newItems[index].product_name = searchValue;
-                           }
-                           
-                           setFormData({ ...formData, items: newItems });
-
-                           // Busca reativa: filtrar produtos conforme digita
-                           if (searchValue.length > 0) {
                              const searchTerm = searchValue.toLowerCase();
                              const foundProduct = products.find(p => 
-                               p.name?.toLowerCase().includes(searchTerm) && 
-                               p.stock_type === 'nao_serializado' &&
-                               p.quantity > 0
+                               p.serial_number?.toLowerCase() === searchTerm && 
+                               p.stock_type === 'serializado' &&
+                               p.status === 'disponivel'
                              );
-                             if (foundProduct && foundProduct.name?.toLowerCase() === searchTerm) {
+                             if (foundProduct) {
                                updateItem(index, 'product_id', foundProduct.id);
                              }
-                           }
-                         }}
-                         list={`name-list-${index}`}
-                         className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
-                       />
-                       <datalist id={`name-list-${index}`}>
-                         {products
-                           .filter(p => {
-                             if (p.stock_type !== 'nao_serializado' || p.quantity <= 0) return false;
-                             if (!item.product_name) return true;
-                             return p.name?.toLowerCase().includes(item.product_name.toLowerCase());
-                           })
-                           .map((product) => (
-                             <option key={product.id} value={product.name}>
-                               {product.name} - Estoque: {product.quantity}
+                           }}
+                           list={`serial-list-${index}`}
+                           className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
+                         />
+                         <datalist id={`serial-list-${index}`}>
+                           {products.filter(p => p.stock_type === 'serializado' && p.status === 'disponivel').map((product) => (
+                             <option key={product.id} value={product.serial_number}>
+                               {product.name} ({product.brand} {product.model})
                              </option>
                            ))}
-                       </datalist>
-                     </div>
+                         </datalist>
+                       </div>
+                     ) : (
+                       <div>
+                         <Label className="text-xs">Produto B (Buscar por Nome)</Label>
+                         <Input
+                           placeholder="Digite o nome do produto..."
+                           value={item.product_name || ''}
+                           onChange={(e) => {
+                             const searchValue = e.target.value;
+                             const newItems = [...formData.items];
+                             
+                             if (searchValue === '') {
+                               newItems[index] = { 
+                                 product_id: '', 
+                                 product_name: '', 
+                                 brand: '', 
+                                 model: '', 
+                                 serial_number: '', 
+                                 quantity: 1, 
+                                 unit_price: 0, 
+                                 total: 0, 
+                                 stock_type: 'nao_serializado' 
+                               };
+                             } else {
+                               newItems[index].product_name = searchValue;
+                             }
+                             
+                             setFormData({ ...formData, items: newItems });
+
+                             if (searchValue.length > 0) {
+                               const searchTerm = searchValue.toLowerCase();
+                               const foundProduct = products.find(p => 
+                                 p.name?.toLowerCase().includes(searchTerm) && 
+                                 p.stock_type === 'nao_serializado' &&
+                                 p.quantity > 0
+                               );
+                               if (foundProduct && foundProduct.name?.toLowerCase() === searchTerm) {
+                                 updateItem(index, 'product_id', foundProduct.id);
+                               }
+                             }
+                           }}
+                           list={`name-list-${index}`}
+                           className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
+                         />
+                         <datalist id={`name-list-${index}`}>
+                           {products
+                             .filter(p => {
+                               if (p.stock_type !== 'nao_serializado' || p.quantity <= 0) return false;
+                               if (!item.product_name) return true;
+                               return p.name?.toLowerCase().includes(item.product_name.toLowerCase());
+                             })
+                             .map((product) => (
+                               <option key={product.id} value={product.name}>
+                                 {product.name} - Estoque: {product.quantity}
+                               </option>
+                             ))}
+                         </datalist>
+                       </div>
+                     )}
                    </div>
                     <Button
                       type="button"
