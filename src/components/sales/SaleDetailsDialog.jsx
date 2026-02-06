@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,10 +18,41 @@ import {
   MapPin,
   Phone,
   Mail,
-  Hash
+  Hash,
+  Stethoscope,
+  UserCheck
 } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 export default function SaleDetailsDialog({ open, onOpenChange, sale }) {
+  const [professionalInfo, setProfessionalInfo] = useState(null);
+
+  useEffect(() => {
+    if (open && sale?.client_id) {
+      loadProfessionalInfo();
+    }
+  }, [open, sale]);
+
+  const loadProfessionalInfo = async () => {
+    try {
+      const tests = await base44.entities.Test.filter(
+        { client_id: sale.client_id },
+        '-created_date',
+        1
+      );
+      
+      if (tests.length > 0) {
+        const latestTest = tests[0];
+        setProfessionalInfo({
+          professional_name: latestTest.professional_name,
+          referral_professional_name: latestTest.referral_professional_name
+        });
+      }
+    } catch (error) {
+      console.error('Error loading professional info:', error);
+    }
+  };
+
   if (!sale) return null;
 
   const formatCurrency = (value) => {
@@ -100,6 +131,24 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale }) {
                   <div>
                     <p className="text-xs text-slate-500">Vendedor</p>
                     <p className="font-semibold text-slate-900">{sale.seller_name}</p>
+                  </div>
+                </div>
+              )}
+              {professionalInfo?.professional_name && (
+                <div className="flex items-start gap-3">
+                  <Stethoscope className="h-5 w-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-slate-500">Profissional que Atendeu</p>
+                    <p className="font-semibold text-slate-900">{professionalInfo.professional_name}</p>
+                  </div>
+                </div>
+              )}
+              {professionalInfo?.referral_professional_name && (
+                <div className="flex items-start gap-3">
+                  <UserCheck className="h-5 w-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-slate-500">Profissional de Indicação</p>
+                    <p className="font-semibold text-slate-900">{professionalInfo.referral_professional_name}</p>
                   </div>
                 </div>
               )}
