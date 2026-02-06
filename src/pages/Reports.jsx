@@ -37,6 +37,7 @@ export default function Reports() {
   const [installments, setInstallments] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [tests, setTests] = useState([]);
+  const [stockMovements, setStockMovements] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -44,7 +45,7 @@ export default function Reports() {
 
   const loadData = async () => {
     try {
-      const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData, testsData] = await Promise.all([
+      const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData, testsData, movementsData] = await Promise.all([
         base44.entities.Product.list(),
         base44.entities.Client.list(),
         base44.entities.Sale.list('-created_date'),
@@ -52,7 +53,8 @@ export default function Reports() {
         base44.entities.Appointment.list(),
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
-        base44.entities.Test.list()
+        base44.entities.Test.list(),
+        base44.entities.StockMovement.filter({ type: 'saida' })
       ]);
       setProducts(productsData);
       setClients(clientsData);
@@ -62,6 +64,7 @@ export default function Reports() {
       setInstallments(installmentsData);
       setExpenses(expensesData);
       setTests(testsData);
+      setStockMovements(movementsData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -137,11 +140,8 @@ export default function Reports() {
   };
 
   const exportStockReport = async () => {
-    // Buscar movimentações de saída para pegar NF de saída e data de saída
-    const movements = await base44.entities.StockMovement.filter({ type: 'saida' });
-    
     const data = products.map(p => {
-      const exitMovement = movements.find(m => m.product_id === p.id);
+      const exitMovement = stockMovements.find(m => m.product_id === p.id);
       
       return {
         'Nome': p.name,
@@ -356,29 +356,25 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(async () => {
-                      const movements = await base44.entities.StockMovement.filter({ type: 'saida' });
+                    {products.map(product => {
+                      const exitMovement = stockMovements.find(m => m.product_id === product.id);
                       
-                      return products.map(product => {
-                        const exitMovement = movements.find(m => m.product_id === product.id);
-                        
-                        return (
-                          <TableRow key={product.id}>
-                            <TableCell className="font-medium">{product.name}</TableCell>
-                            <TableCell>{product.brand} {product.model}</TableCell>
-                            <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
-                            <TableCell><StatusBadge status={product.status} /></TableCell>
-                            <TableCell className="text-right">{formatCurrency(product.cost_price)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
-                            <TableCell className="text-sm text-slate-600">{product.nota_fiscal_entrada || '-'}</TableCell>
-                            <TableCell className="text-sm text-slate-600">{exitMovement?.nota_fiscal || '-'}</TableCell>
-                            <TableCell className="text-sm text-slate-600">
-                              {exitMovement?.sale_date ? format(new Date(exitMovement.sale_date), 'dd/MM/yyyy') : '-'}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      });
-                    })()}
+                      return (
+                        <TableRow key={product.id}>
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell>{product.brand} {product.model}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
+                          <TableCell><StatusBadge status={product.status} /></TableCell>
+                          <TableCell className="text-right">{formatCurrency(product.cost_price)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{product.nota_fiscal_entrada || '-'}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{exitMovement?.nota_fiscal || '-'}</TableCell>
+                          <TableCell className="text-sm text-slate-600">
+                            {exitMovement?.sale_date ? format(new Date(exitMovement.sale_date), 'dd/MM/yyyy') : '-'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
