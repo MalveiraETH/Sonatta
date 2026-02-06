@@ -406,7 +406,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
             type: 'saida',
             quantity: item.quantity,
             reason: `Venda ${saleNumber}`,
-            reference_id: newSale.id
+            reference_id: newSale.id,
+            sale_date: format(saleDate, 'yyyy-MM-dd')
           });
         }
       }
