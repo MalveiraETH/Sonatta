@@ -40,14 +40,15 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses, tests] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses, tests, hearingAidProducts] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
         base44.entities.Product.list(),
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
-        base44.entities.Test.list()
+        base44.entities.Test.list(),
+        base44.entities.Product.filter({ category: 'aparelho_auditivo' })
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -122,7 +123,7 @@ export default function Dashboard() {
       const totalBilled = totalSalesAmount + receivablesThisMonth;
 
       // Contar aparelhos auditivos vendidos (baseado na categoria real do produto)
-      const hearingAidIds = new Set(allProducts.map(p => p.id));
+      const hearingAidIds = new Set(hearingAidProducts.map(p => p.id));
       const hearingAidsCount = monthSalesData.reduce((count, sale) => {
         const aids = sale.items?.filter(item => hearingAidIds.has(item.product_id)) || [];
         return count + aids.reduce((sum, aid) => sum + (aid.quantity || 1), 0);
