@@ -249,7 +249,7 @@ export default function Dashboard() {
 
       {/* KPIs Financeiros */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4">
+        <Card className="p-4 border-0 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturado do Mês</p>
@@ -260,7 +260,7 @@ export default function Dashboard() {
         </Card>
 
         <Link to={createPageUrl('AccountsReceivable')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Receita do Mês</p>
@@ -272,7 +272,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('AccountsPayable')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Contas a Pagar</p>
@@ -283,7 +283,7 @@ export default function Dashboard() {
           </Card>
         </Link>
 
-        <Card className={`p-4 ${(stats.monthResult || 0) >= 0 ? '' : 'bg-red-50/50'}`}>
+        <Card className={`p-4 border-0 shadow-sm ${(stats.monthResult || 0) >= 0 ? '' : 'bg-red-50/50'}`}>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs sm:text-sm text-slate-500 mb-1">Resultado</p>
@@ -294,9 +294,12 @@ export default function Dashboard() {
             <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 opacity-60 ${(stats.monthResult || 0) >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
           </div>
         </Card>
+      </div>
 
+      {/* Segunda linha de KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Sales')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Vendas do Mês</p>
@@ -306,12 +309,9 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
-      </div>
 
-      {/* KPIs Operacionais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Clients')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Clientes</p>
@@ -323,7 +323,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Tests')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Em Teste</p>
@@ -335,7 +335,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Appointments')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Agendamentos Hoje</p>
@@ -347,7 +347,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Clients')} state={{ filter: 'cliente_ativo' }}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Clientes Ativos</p>
@@ -358,7 +358,7 @@ export default function Dashboard() {
           </Card>
         </Link>
 
-        <Card className="p-4">
+        <Card className="p-4 border-0 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs sm:text-sm text-slate-500 mb-1">Aparelhos Vendidos</p>
