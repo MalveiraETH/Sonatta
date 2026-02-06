@@ -154,8 +154,8 @@ export default function Reports() {
         'Venda': p.sale_price || 0,
         'NF de Entrada': p.nota_fiscal_entrada || '',
         'Data Entrada': p.entry_date || '',
-        'NF de Saída': '', // Campo para ser preenchido manualmente
-        'Data de Saída': exitMovement ? format(new Date(exitMovement.created_date), 'dd/MM/yyyy') : ''
+        'NF de Saída': exitMovement?.nota_fiscal || '',
+        'Data de Saída': exitMovement?.sale_date ? format(new Date(exitMovement.sale_date), 'dd/MM/yyyy') : ''
       };
     });
     exportToExcel(data, 'relatorio_estoque');
@@ -356,25 +356,29 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {products.map(product => {
-                      // Buscar data de saída através de movimentação de estoque
-                      const exitDate = product.status === 'vendido' ? 
-                        format(new Date(product.updated_date), 'dd/MM/yyyy') : '-';
+                    {(async () => {
+                      const movements = await base44.entities.StockMovement.filter({ type: 'saida' });
                       
-                      return (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
-                          <TableCell>{product.brand} {product.model}</TableCell>
-                          <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
-                          <TableCell><StatusBadge status={product.status} /></TableCell>
-                          <TableCell className="text-right">{formatCurrency(product.cost_price)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
-                          <TableCell className="text-sm text-slate-600">{product.nota_fiscal_entrada || '-'}</TableCell>
-                          <TableCell className="text-sm text-slate-600">-</TableCell>
-                          <TableCell className="text-sm text-slate-600">{exitDate}</TableCell>
-                        </TableRow>
-                      );
-                    })}
+                      return products.map(product => {
+                        const exitMovement = movements.find(m => m.product_id === product.id);
+                        
+                        return (
+                          <TableRow key={product.id}>
+                            <TableCell className="font-medium">{product.name}</TableCell>
+                            <TableCell>{product.brand} {product.model}</TableCell>
+                            <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
+                            <TableCell><StatusBadge status={product.status} /></TableCell>
+                            <TableCell className="text-right">{formatCurrency(product.cost_price)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(product.sale_price)}</TableCell>
+                            <TableCell className="text-sm text-slate-600">{product.nota_fiscal_entrada || '-'}</TableCell>
+                            <TableCell className="text-sm text-slate-600">{exitMovement?.nota_fiscal || '-'}</TableCell>
+                            <TableCell className="text-sm text-slate-600">
+                              {exitMovement?.sale_date ? format(new Date(exitMovement.sale_date), 'dd/MM/yyyy') : '-'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      });
+                    })()}
                   </TableBody>
                 </Table>
               </div>
