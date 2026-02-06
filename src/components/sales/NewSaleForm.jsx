@@ -673,8 +673,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           <p className="font-bold text-[#1e3a5f]">{formatCurrency(item.unit_price)}</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {item.stock_type === 'nao_serializado' && (
+                      {item.stock_type === 'nao_serializado' && (
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label className="text-xs">Quantidade <span className="text-red-500">*</span></Label>
                             <Input
@@ -692,29 +692,16 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                               className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                             />
                           </div>
-                        )}
-                        <div>
-                          <Label className="text-xs">Preço Unit. <span className="text-red-500">*</span></Label>
-                          <Input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.01"
-                            min="0"
-                            value={item.unit_price}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                            className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
-                          />
+                          <div>
+                            <Label className="text-xs">Total</Label>
+                            <Input
+                              value={formatCurrency(item.total)}
+                              disabled
+                              className="text-sm font-bold"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label className="text-xs">Total</Label>
-                          <Input
-                            value={formatCurrency(item.total)}
-                            disabled
-                            className="text-sm font-bold"
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
