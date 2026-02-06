@@ -132,6 +132,12 @@ export default function ClientDetail() {
     }).format(value || 0);
   };
 
+  const calculateSaleTotal = (sale) => {
+    if (!sale.items || sale.items.length === 0) return sale.total || 0;
+    const subtotal = sale.items.reduce((sum, item) => sum + ((item.quantity || 1) * (item.unit_price || 0)), 0);
+    return subtotal - (sale.discount || 0);
+  };
+
   const calculateWarrantyEnd = (saleDate, years = 2) => {
     const date = new Date(saleDate);
     date.setFullYear(date.getFullYear() + years);
@@ -549,7 +555,7 @@ export default function ClientDetail() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">{formatCurrency(sale.total)}</p>
+                        <p className="font-semibold">{formatCurrency(calculateSaleTotal(sale))}</p>
                         <StatusBadge status={sale.status} />
                       </div>
                     </div>
