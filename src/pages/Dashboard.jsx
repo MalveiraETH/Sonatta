@@ -104,6 +104,32 @@ export default function Dashboard() {
 
       const monthResult = totalMonthRevenue - monthExpenses;
 
+      // Calcular faturado do mês (vendas realizadas + a receber previsto)
+      const totalSalesAmount = monthSalesData.reduce((sum, sale) => {
+        const subtotal = sale.items?.reduce((s, item) => s + ((item.quantity || 1) * (item.unit_price || 0)), 0) || 0;
+        return sum + (subtotal - (sale.discount || 0));
+      }, 0);
+
+      const receivablesThisMonth = installments
+        .filter(i => {
+          const dueDate = new Date(i.due_date);
+          const dueMonth = dueDate.getMonth();
+          const dueYear = dueDate.getFullYear();
+          return dueYear === filterYear && dueMonth >= filterMonthStart && dueMonth <= filterMonthEnd;
+        })
+        .reduce((sum, i) => sum + (i.original_amount || 0), 0);
+
+      const totalBilled = totalSalesAmount + receivablesThisMonth;
+
+      // Contar aparelhos auditivos vendidos
+      const hearingAidsCount = monthSalesData.reduce((count, sale) => {
+        const aids = sale.items?.filter(item => 
+          item.product_name?.toLowerCase().includes('aparelho') || 
+          item.product_name?.toLowerCase().includes('auditivo')
+        ) || [];
+        return count + aids.reduce((sum, aid) => sum + (aid.quantity || 1), 0);
+      }, 0);
+
       const lowStock = products.filter(p => 
         (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
         (p.stock_type === 'serializado' && p.status === 'disponivel' && p.quantity <= 1)
@@ -117,8 +143,10 @@ export default function Dashboard() {
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         totalMonthRevenue,
+        totalBilled,
         monthExpenses,
         monthResult,
+        hearingAidsCount,
         lowStockProducts: lowStock.length,
         overduePixCount: overduePixInstallments.length,
         overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
@@ -221,6 +249,16 @@ export default function Dashboard() {
 
       {/* KPIs Financeiros */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturado do Mês</p>
+              <p className="text-lg sm:text-2xl font-bold text-indigo-600">{formatCurrency(stats.totalBilled)}</p>
+            </div>
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500 opacity-60" />
+          </div>
+        </Card>
+
         <Link to={createPageUrl('AccountsReceivable')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
@@ -319,6 +357,16 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
+
+        <Card className="p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Aparelhos Vendidos</p>
+              <p className="text-lg sm:text-2xl font-bold text-teal-600">{stats.hearingAidsCount || 0}</p>
+            </div>
+            <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-teal-500 opacity-60" />
+          </div>
+        </Card>
       </div>
 
       {/* Alertas Críticos */}
