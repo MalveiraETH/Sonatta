@@ -54,6 +54,27 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
   }, [open]);
 
   useEffect(() => {
+    // Subscribe to ReferenceProduct changes to reload products in real-time
+    const unsubscribeProducts = base44.entities.ReferenceProduct.subscribe(() => {
+      if (open) {
+        loadData();
+      }
+    });
+
+    // Subscribe to AppSettings changes to reload billing config in real-time
+    const unsubscribeSettings = base44.entities.AppSettings.subscribe((event) => {
+      if (event.data?.setting_key === 'billing_config' && open) {
+        loadData();
+      }
+    });
+
+    return () => {
+      unsubscribeProducts();
+      unsubscribeSettings();
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (quote) {
       setFormData({
         ...quote,
@@ -100,16 +121,18 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
 
   const loadData = async () => {
     try {
-      const [clientsData, refProductsData, user] = await Promise.all([
+      const [clientsData, refProductsData, settingsData] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.ReferenceProduct.list(),
-        base44.auth.me()
+        base44.entities.AppSettings.filter({ setting_key: 'billing_config' })
       ]);
       setClients(clientsData);
       
-      // Calcular valor final de cada produto referência
+      // Buscar configurações globais
+      const billingConfig = (settingsData.length > 0 && settingsData[0].setting_value) || {};
+      
+      // Calcular valor final de cada produto referência usando configurações globais
       const productsWithPrice = refProductsData.map(p => {
-        const billingConfig = user.billing_config || {};
         const fixedCost = billingConfig.fixed_cost || 0;
         const totalCost = p.cost + fixedCost;
         const markup = billingConfig[`markup_category_${p.category}`] || 0;
