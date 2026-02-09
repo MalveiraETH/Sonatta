@@ -33,10 +33,10 @@ export default function Billing() {
   }, []);
 
   useEffect(() => {
-    // Subscribe to User entity changes to sync in real-time
-    const unsubscribe = base44.entities.User.subscribe((event) => {
-      if (event.type === 'update' && event.data.billing_config) {
-        setBillingConfig(event.data.billing_config);
+    // Subscribe to AppSettings entity changes to sync in real-time
+    const unsubscribe = base44.entities.AppSettings.subscribe((event) => {
+      if (event.data?.setting_key === 'billing_config' && event.data?.setting_value) {
+        setBillingConfig(event.data.setting_value);
         setHasChanges(false);
       }
     });
@@ -49,8 +49,11 @@ export default function Billing() {
     try {
       const user = await base44.auth.me();
       setCurrentUser(user);
-      if (user.billing_config) {
-        setBillingConfig(user.billing_config);
+      
+      // Buscar configurações globais na entidade AppSettings
+      const settings = await base44.entities.AppSettings.filter({ setting_key: 'billing_config' });
+      if (settings.length > 0 && settings[0].setting_value) {
+        setBillingConfig(settings[0].setting_value);
       }
     } catch (error) {
       console.error(error);
@@ -67,7 +70,23 @@ export default function Billing() {
     
     setSaving(true);
     try {
-      await base44.auth.updateMe({ billing_config: billingConfig });
+      // Buscar se já existe a configuração
+      const existingSettings = await base44.entities.AppSettings.filter({ setting_key: 'billing_config' });
+      
+      if (existingSettings.length > 0) {
+        // Atualizar configuração existente
+        await base44.entities.AppSettings.update(existingSettings[0].id, {
+          setting_value: billingConfig
+        });
+      } else {
+        // Criar nova configuração
+        await base44.entities.AppSettings.create({
+          setting_key: 'billing_config',
+          setting_value: billingConfig,
+          description: 'Configurações de custos, tarifas e margens de lucro'
+        });
+      }
+      
       toast.success('Configurações salvas com sucesso!');
       setHasChanges(false);
     } catch (error) {
