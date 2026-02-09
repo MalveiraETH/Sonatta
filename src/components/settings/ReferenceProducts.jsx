@@ -47,15 +47,30 @@ export default function ReferenceProducts() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    // Subscribe to AppSettings changes to sync billing config in real-time
+    const unsubscribe = base44.entities.AppSettings.subscribe((event) => {
+      if (event.data?.setting_key === 'billing_config' && event.data?.setting_value) {
+        setBillingConfig(event.data.setting_value);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [productsData, user] = await Promise.all([
+      const [productsData, settingsData] = await Promise.all([
         base44.entities.ReferenceProduct.list('-created_date'),
-        base44.auth.me()
+        base44.entities.AppSettings.filter({ setting_key: 'billing_config' })
       ]);
       setProducts(productsData);
-      setBillingConfig(user.billing_config || null);
+      
+      // Buscar configurações globais
+      if (settingsData.length > 0 && settingsData[0].setting_value) {
+        setBillingConfig(settingsData[0].setting_value);
+      }
     } catch (error) {
       console.error(error);
     } finally {
