@@ -129,7 +129,8 @@ export default function Tests() {
     setFilteredTests(filtered);
   };
 
-  const handleFinalize = async (test) => {
+  const handleFinalize = async (test, e) => {
+    if (e) e.stopPropagation();
     try {
       await base44.entities.Test.update(test.id, { status: 'teste_finalizado' });
       toast.success('Teste finalizado');
@@ -429,7 +430,7 @@ export default function Tests() {
                         </DropdownMenuItem>
                         {test.status !== 'teste_finalizado' && (
                           <>
-                            <DropdownMenuItem onClick={() => handleFinalize(test)}>
+                            <DropdownMenuItem onClick={(e) => handleFinalize(test, e)}>
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Finalizar Teste
                             </DropdownMenuItem>
@@ -501,7 +502,7 @@ export default function Tests() {
                       </DropdownMenuItem>
                       {test.status !== 'teste_finalizado' && (
                         <>
-                          <DropdownMenuItem onClick={() => handleFinalize(test)}>
+                          <DropdownMenuItem onClick={(e) => handleFinalize(test, e)}>
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Finalizar
                           </DropdownMenuItem>
