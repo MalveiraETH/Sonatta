@@ -53,7 +53,6 @@ import Appointments from './pages/Appointments';
 import ClientDetail from './pages/ClientDetail';
 import Clients from './pages/Clients';
 import Contracts from './pages/Contracts';
-import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import PixReport from './pages/PixReport';
 import ProductDetail from './pages/ProductDetail';
@@ -64,6 +63,7 @@ import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
 import Tests from './pages/Tests';
+import Dashboard from './pages/Dashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -74,7 +74,6 @@ export const PAGES = {
     "ClientDetail": ClientDetail,
     "Clients": Clients,
     "Contracts": Contracts,
-    "Dashboard": Dashboard,
     "Inventory": Inventory,
     "PixReport": PixReport,
     "ProductDetail": ProductDetail,
@@ -85,6 +84,7 @@ export const PAGES = {
     "Sales": Sales,
     "Settings": Settings,
     "Tests": Tests,
+    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {

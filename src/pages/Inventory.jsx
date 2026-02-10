@@ -473,6 +473,68 @@ export default function Inventory() {
               </div>
             </Card>
           </div>
+
+          {/* Tabela de Aparelhos por Modelo */}
+          <Card>
+            <div className="p-4 sm:p-6">
+              <h3 className="text-lg font-semibold mb-4">Aparelhos em Estoque por Modelo</h3>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Modelo</TableHead>
+                      <TableHead>Marca</TableHead>
+                      <TableHead className="text-center">Quantidade</TableHead>
+                      <TableHead className="text-right">Preço Venda</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const hearingAids = products.filter(p => p.category === 'aparelho_auditivo');
+                      const modelGroups = hearingAids.reduce((acc, product) => {
+                        const key = `${product.brand}-${product.model}`;
+                        if (!acc[key]) {
+                          acc[key] = {
+                            brand: product.brand,
+                            model: product.model,
+                            quantity: 0,
+                            price: product.sale_price || 0
+                          };
+                        }
+                        acc[key].quantity += product.stock_type === 'serializado' ? 1 : (product.quantity || 0);
+                        return acc;
+                      }, {});
+
+                      const sortedModels = Object.values(modelGroups).sort((a, b) => b.price - a.price);
+
+                      if (sortedModels.length === 0) {
+                        return (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                              Nenhum aparelho auditivo em estoque
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+
+                      return sortedModels.map((model, index) => (
+                        <TableRow key={index} className="hover:bg-slate-50">
+                          <TableCell className="font-medium">{model.model || '-'}</TableCell>
+                          <TableCell>{model.brand || '-'}</TableCell>
+                          <TableCell className="text-center font-semibold text-[#6B3FA0]">
+                            {model.quantity}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(model.price)}
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })()}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </Card>
         </TabsContent>
 
         {/* PRODUTO (A) SERIALIZADO */}
