@@ -490,7 +490,10 @@ export default function Inventory() {
                   </TableHeader>
                   <TableBody>
                     {(() => {
-                      const hearingAids = products.filter(p => p.category === 'aparelho_auditivo');
+                      const hearingAids = products.filter(p => 
+                        p.category === 'aparelho_auditivo' && 
+                        (p.stock_type === 'nao_serializado' || p.status === 'disponivel')
+                      );
                       const modelGroups = hearingAids.reduce((acc, product) => {
                         const key = `${product.brand}-${product.model}`;
                         if (!acc[key]) {
