@@ -15,14 +15,6 @@ import {
   Package
 } from 'lucide-react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -48,7 +40,7 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses, tests, settings] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses, tests, hearingAidProducts] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
@@ -56,7 +48,7 @@ export default function Dashboard() {
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
         base44.entities.Test.list(),
-        base44.entities.AppSettings.filter({ setting_key: 'billing_config' })
+        base44.entities.Product.filter({ category: 'aparelho_auditivo' })
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -113,6 +105,30 @@ export default function Dashboard() {
 
       const monthResult = totalMonthRevenue - monthExpenses;
 
+      // Calcular faturado do mês (vendas realizadas + a receber previsto)
+      const totalSalesAmount = monthSalesData.reduce((sum, sale) => {
+        const subtotal = sale.items?.reduce((s, item) => s + ((item.quantity || 1) * (item.unit_price || 0)), 0) || 0;
+        return sum + (subtotal - (sale.discount || 0));
+      }, 0);
+
+      const receivablesThisMonth = installments
+        .filter(i => {
+          const dueDate = new Date(i.due_date);
+          const dueMonth = dueDate.getMonth();
+          const dueYear = dueDate.getFullYear();
+          return dueYear === filterYear && dueMonth >= filterMonthStart && dueMonth <= filterMonthEnd;
+        })
+        .reduce((sum, i) => sum + (i.original_amount || 0), 0);
+
+      const totalBilled = totalSalesAmount + receivablesThisMonth;
+
+      // Contar aparelhos auditivos vendidos (baseado na categoria real do produto)
+      const hearingAidIds = new Set(hearingAidProducts.map(p => p.id));
+      const hearingAidsCount = monthSalesData.reduce((count, sale) => {
+        const aids = sale.items?.filter(item => hearingAidIds.has(item.product_id)) || [];
+        return count + aids.reduce((sum, aid) => sum + (aid.quantity || 1), 0);
+      }, 0);
+
       const lowStock = products.filter(p => 
         (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
         (p.stock_type === 'serializado' && p.status === 'disponivel' && p.quantity <= 1)
@@ -120,46 +136,22 @@ export default function Dashboard() {
 
       const todayAppts = appointments.filter(a => a.date === today);
 
-      // Buscar configurações globais de billing
-      const billingConfig = (settings.length > 0 && settings[0].setting_value) || {};
-
-      // Agrupar aparelhos auditivos em estoque por modelo e calcular preço
-      const hearingAids = products.filter(p => p.category === 'aparelho_auditivo' && p.status === 'disponivel');
-      const modelGroups = {};
-      
-      hearingAids.forEach(product => {
-        const modelKey = `${product.brand || 'Sem Marca'} - ${product.model || 'Sem Modelo'}`;
-        if (!modelGroups[modelKey]) {
-          modelGroups[modelKey] = {
-            model: modelKey,
-            brand: product.brand || 'Sem Marca',
-            modelName: product.model || 'Sem Modelo',
-            quantity: 0,
-            price: product.sale_price || 0,
-            cost: product.cost_price || 0
-          };
-        }
-        modelGroups[modelKey].quantity += 1;
-      });
-
-      // Converter para array e ordenar por preço (do mais caro para o mais barato)
-      const hearingAidsByModel = Object.values(modelGroups).sort((a, b) => b.price - a.price);
-      
       setStats({
         totalClients: clients.length,
         activeClients: clients.filter(c => c.status === 'cliente_ativo').length,
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         totalMonthRevenue,
+        totalBilled,
         monthExpenses,
         monthResult,
+        hearingAidsCount,
         lowStockProducts: lowStock.length,
         overduePixCount: overduePixInstallments.length,
         overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
         overdueCardCount: overdueCardInstallments.length,
         overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
-        testsActive: tests.filter(t => t.status === 'em_teste' || t.status === 'teste_estendido').length,
-        hearingAidsByModel
+        testsActive: tests.filter(t => t.status === 'em_teste' || t.status === 'teste_estendido').length
       });
 
       setTodayAppointments(todayAppts.slice(0, 5));
@@ -256,8 +248,18 @@ export default function Dashboard() {
 
       {/* KPIs Financeiros */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4 border-0 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturado do Mês</p>
+              <p className="text-lg sm:text-2xl font-bold text-indigo-600">{formatCurrency(stats.totalBilled)}</p>
+            </div>
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500 opacity-60" />
+          </div>
+        </Card>
+
         <Link to={createPageUrl('AccountsReceivable')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Receita do Mês</p>
@@ -269,7 +271,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('AccountsPayable')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Contas a Pagar</p>
@@ -280,7 +282,7 @@ export default function Dashboard() {
           </Card>
         </Link>
 
-        <Card className={`p-4 ${(stats.monthResult || 0) >= 0 ? '' : 'bg-red-50/50'}`}>
+        <Card className={`p-4 border-0 shadow-sm ${(stats.monthResult || 0) >= 0 ? '' : 'bg-red-50/50'}`}>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs sm:text-sm text-slate-500 mb-1">Resultado</p>
@@ -291,9 +293,12 @@ export default function Dashboard() {
             <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 opacity-60 ${(stats.monthResult || 0) >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
           </div>
         </Card>
+      </div>
 
+      {/* Segunda linha de KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Sales')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Vendas do Mês</p>
@@ -303,12 +308,9 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
-      </div>
 
-      {/* KPIs Operacionais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Clients')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Clientes</p>
@@ -320,7 +322,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Tests')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Em Teste</p>
@@ -332,7 +334,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Appointments')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Agendamentos Hoje</p>
@@ -344,7 +346,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Clients')} state={{ filter: 'cliente_ativo' }}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Clientes Ativos</p>
@@ -354,6 +356,16 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
+
+        <Card className="p-4 border-0 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Aparelhos Vendidos</p>
+              <p className="text-lg sm:text-2xl font-bold text-teal-600">{stats.hearingAidsCount || 0}</p>
+            </div>
+            <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-teal-500 opacity-60" />
+          </div>
+        </Card>
       </div>
 
       {/* Alertas Críticos */}
@@ -397,53 +409,6 @@ export default function Dashboard() {
           </Card>
         </Link>
       </div>
-
-      {/* Aparelhos Auditivos em Estoque por Modelo */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold flex items-center justify-between">
-            <span>Aparelhos Auditivos em Estoque</span>
-            <Ear className="h-5 w-5 text-slate-400" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stats.hearingAidsByModel && stats.hearingAidsByModel.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="font-semibold">Marca</TableHead>
-                    <TableHead className="font-semibold">Modelo</TableHead>
-                    <TableHead className="text-center font-semibold">Quantidade</TableHead>
-                    <TableHead className="text-right font-semibold">Preço de Venda</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stats.hearingAidsByModel.map((item, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-50">
-                      <TableCell className="font-medium">{item.brand}</TableCell>
-                      <TableCell>{item.modelName}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#6B3FA0]/10 text-[#6B3FA0] font-semibold">
-                          {item.quantity}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-slate-900">
-                        {formatCurrency(item.price)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <Link to={createPageUrl('Inventory')}>
-                <p className="text-sm text-[#6B3FA0] hover:underline text-center pt-4">Ver estoque completo →</p>
-              </Link>
-            </div>
-          ) : (
-            <p className="text-center text-slate-500 py-8">Nenhum aparelho auditivo em estoque</p>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Listas Operacionais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
