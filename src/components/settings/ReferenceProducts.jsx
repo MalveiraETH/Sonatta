@@ -40,7 +40,8 @@ export default function ReferenceProducts() {
     reference: '',
     name: '',
     category: '',
-    cost: ''
+    cost: '',
+    include_fixed_cost: true
   });
 
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function ReferenceProducts() {
       }
       
       setIsFormOpen(false);
-      setFormData({ reference: '', name: '', category: '', cost: '' });
+      setFormData({ reference: '', name: '', category: '', cost: '', include_fixed_cost: true });
       setEditingProduct(null);
       loadData();
     } catch (error) {
@@ -110,7 +111,8 @@ export default function ReferenceProducts() {
       reference: product.reference,
       name: product.name,
       category: product.category,
-      cost: product.cost.toString()
+      cost: product.cost.toString(),
+      include_fixed_cost: product.include_fixed_cost !== false
     });
     setIsFormOpen(true);
   };
@@ -133,16 +135,16 @@ export default function ReferenceProducts() {
     }).format(value || 0);
   };
 
-  const calculateTotalCost = (cost) => {
-    if (!billingConfig) return cost;
+  const calculateTotalCost = (cost, includeFixedCost = true) => {
+    if (!billingConfig || !includeFixedCost) return cost;
     const fixedCost = billingConfig.fixed_cost || 0;
     return cost + fixedCost;
   };
 
-  const calculateFinalPrice = (cost, category) => {
+  const calculateFinalPrice = (cost, category, includeFixedCost = true) => {
     if (!billingConfig) return cost;
 
-    const totalCost = calculateTotalCost(cost);
+    const totalCost = calculateTotalCost(cost, includeFixedCost);
     const markup = billingConfig[`markup_category_${category}`] || 0;
     const markupValue = totalCost * (markup / 100);
     const finalPrice = totalCost + markupValue;
@@ -150,10 +152,10 @@ export default function ReferenceProducts() {
     return finalPrice;
   };
 
-  const calculateDiscounts = (cost, category) => {
+  const calculateDiscounts = (cost, category, includeFixedCost = true) => {
     if (!billingConfig) return 0;
 
-    const finalPrice = calculateFinalPrice(cost, category);
+    const finalPrice = calculateFinalPrice(cost, category, includeFixedCost);
     const creditCardFee = billingConfig.credit_card_fee || 0;
     const tax = billingConfig.tax_percentage || 0;
     const referral = billingConfig.referral_percentage || 0;
@@ -163,12 +165,12 @@ export default function ReferenceProducts() {
     return discounts;
   };
 
-  const calculateNetRevenue = (cost, category) => {
+  const calculateNetRevenue = (cost, category, includeFixedCost = true) => {
     if (!billingConfig) return 0;
 
-    const finalPrice = calculateFinalPrice(cost, category);
-    const totalCost = calculateTotalCost(cost);
-    const discounts = calculateDiscounts(cost, category);
+    const finalPrice = calculateFinalPrice(cost, category, includeFixedCost);
+    const totalCost = calculateTotalCost(cost, includeFixedCost);
+    const discounts = calculateDiscounts(cost, category, includeFixedCost);
     const netRevenue = finalPrice - (totalCost + discounts);
     
     return netRevenue;
@@ -192,10 +194,11 @@ export default function ReferenceProducts() {
         'Nome do Aparelho': product.name,
         'Categoria': getCategoryLabel(product.category),
         'Custo Aparelho': product.cost,
-        'Custo Total': calculateTotalCost(product.cost),
-        'Valor Final': calculateFinalPrice(product.cost, product.category),
-        'Descontos': calculateDiscounts(product.cost, product.category),
-        'Receita Líquida': calculateNetRevenue(product.cost, product.category)
+        'Incluir Custo Fixo': product.include_fixed_cost !== false ? 'Sim' : 'Não',
+        'Custo Total': calculateTotalCost(product.cost, product.include_fixed_cost !== false),
+        'Valor Final': calculateFinalPrice(product.cost, product.category, product.include_fixed_cost !== false),
+        'Descontos': calculateDiscounts(product.cost, product.category, product.include_fixed_cost !== false),
+        'Receita Líquida': calculateNetRevenue(product.cost, product.category, product.include_fixed_cost !== false)
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -243,7 +246,7 @@ export default function ReferenceProducts() {
                   <Button
                     onClick={() => {
                       setEditingProduct(null);
-                      setFormData({ reference: '', name: '', category: '', cost: '' });
+                      setFormData({ reference: '', name: '', category: '', cost: '', include_fixed_cost: true });
                     }}
                     className="bg-[#6B3FA0] hover:bg-[#834CB8]"
                   >
@@ -314,13 +317,30 @@ export default function ReferenceProducts() {
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="include_fixed_cost">Incluir Custo Fixo Mensal? *</Label>
+                      <Select
+                        value={formData.include_fixed_cost ? 'sim' : 'nao'}
+                        onValueChange={(value) => setFormData({ ...formData, include_fixed_cost: value === 'sim' })}
+                        required
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sim">Sim</SelectItem>
+                          <SelectItem value="nao">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-4">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => {
                           setIsFormOpen(false);
-                          setFormData({ reference: '', name: '', category: '', cost: '' });
+                          setFormData({ reference: '', name: '', category: '', cost: '', include_fixed_cost: true });
                           setEditingProduct(null);
                         }}
                       >
@@ -344,6 +364,7 @@ export default function ReferenceProducts() {
                   <TableHead>Referência</TableHead>
                   <TableHead>Nome do Aparelho</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead className="text-center">Custo Fixo?</TableHead>
                   <TableHead className="text-right">Custo Aparelho</TableHead>
                   <TableHead className="text-right">Custo Total</TableHead>
                   <TableHead className="text-right">Valor Final</TableHead>
@@ -355,33 +376,44 @@ export default function ReferenceProducts() {
               <TableBody>
                 {products.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-slate-500 py-8">
+                    <TableCell colSpan={10} className="text-center text-slate-500 py-8">
                       Nenhum produto cadastrado
                     </TableCell>
                   </TableRow>
                 ) : (
-                  products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.reference}</TableCell>
-                      <TableCell>{product.name}</TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#6B3FA0]/10 text-[#6B3FA0]">
-                          {getCategoryLabel(product.category)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(product.cost)}</TableCell>
-                      <TableCell className="text-right text-slate-600">
-                        {formatCurrency(calculateTotalCost(product.cost))}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-[#A4D233]">
-                        {formatCurrency(calculateFinalPrice(product.cost, product.category))}
-                      </TableCell>
-                      <TableCell className="text-right text-red-600">
-                        {formatCurrency(calculateDiscounts(product.cost, product.category))}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-blue-600">
-                        {formatCurrency(calculateNetRevenue(product.cost, product.category))}
-                      </TableCell>
+                  products.map((product) => {
+                    const includeFixedCost = product.include_fixed_cost !== false;
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.reference}</TableCell>
+                        <TableCell>{product.name}</TableCell>
+                        <TableCell>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#6B3FA0]/10 text-[#6B3FA0]">
+                            {getCategoryLabel(product.category)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            includeFixedCost 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {includeFixedCost ? 'Sim' : 'Não'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">{formatCurrency(product.cost)}</TableCell>
+                        <TableCell className="text-right text-slate-600">
+                          {formatCurrency(calculateTotalCost(product.cost, includeFixedCost))}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-[#A4D233]">
+                          {formatCurrency(calculateFinalPrice(product.cost, product.category, includeFixedCost))}
+                        </TableCell>
+                        <TableCell className="text-right text-red-600">
+                          {formatCurrency(calculateDiscounts(product.cost, product.category, includeFixedCost))}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-blue-600">
+                          {formatCurrency(calculateNetRevenue(product.cost, product.category, includeFixedCost))}
+                        </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           <Button
@@ -402,8 +434,9 @@ export default function ReferenceProducts() {
                           </Button>
                         </div>
                       </TableCell>
-                    </TableRow>
-                  ))
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
