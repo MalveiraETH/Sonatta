@@ -133,7 +133,8 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
       
       // Calcular valor final de cada produto referência usando configurações globais
       const productsWithPrice = refProductsData.map(p => {
-        const fixedCost = billingConfig.fixed_cost || 0;
+        const includeFixedCost = p.include_fixed_cost !== false;
+        const fixedCost = includeFixedCost ? (billingConfig.fixed_cost || 0) : 0;
         const totalCost = p.cost + fixedCost;
         const markup = billingConfig[`markup_category_${p.category}`] || 0;
         const finalPrice = totalCost + (totalCost * (markup / 100));
