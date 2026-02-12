@@ -29,7 +29,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
+    start_time: '',
     end_date: '',
+    end_time: '',
     devices: [],
     professional_id: '',
     referral_professional_id: '',
@@ -44,7 +46,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: test.client_id || '',
           start_date: test.start_date || '',
+          start_time: test.start_time || '',
           end_date: test.end_date || '',
+          end_time: test.end_time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
           referral_professional_id: test.referral_professional_id || '',
@@ -55,7 +59,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: preselectedClientId || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
+          start_time: '',
           end_date: '',
+          end_time: '',
           devices: [],
           professional_id: '',
           referral_professional_id: '',
@@ -131,8 +137,8 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.client_id || !formData.start_date || !formData.end_date) {
-      toast.error('Preencha os campos obrigatórios');
+    if (!formData.client_id || !formData.start_date || !formData.start_time || !formData.end_date || !formData.end_time) {
+      toast.error('Preencha todos os campos obrigatórios de data e horário');
       return;
     }
 
@@ -153,6 +159,23 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
 
+        // Criar agendamento para extensão do teste (nova data final)
+        if (extendMode) {
+          await base44.entities.Appointment.create({
+            client_id: formData.client_id,
+            client_name: client?.full_name,
+            professional_id: formData.professional_id,
+            professional_name: professional?.full_name,
+            test_referral_id: formData.referral_professional_id,
+            test_referral_name: referralProfessional?.full_name,
+            date: formData.end_date,
+            time: formData.end_time,
+            type: 'retorno',
+            status: 'agendado',
+            notes: `Extensão do teste ${test.test_number}`
+          });
+        }
+
         // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
 
@@ -160,7 +183,37 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
-        await base44.entities.Test.create(testData);
+        const newTest = await base44.entities.Test.create(testData);
+
+        // Criar agendamento para início do teste
+        await base44.entities.Appointment.create({
+          client_id: formData.client_id,
+          client_name: client?.full_name,
+          professional_id: formData.professional_id,
+          professional_name: professional?.full_name,
+          test_referral_id: formData.referral_professional_id,
+          test_referral_name: referralProfessional?.full_name,
+          date: formData.start_date,
+          time: formData.start_time,
+          type: 'teste',
+          status: 'agendado',
+          notes: `Início do teste ${newTest.test_number}`
+        });
+
+        // Criar agendamento para retorno do teste (data final)
+        await base44.entities.Appointment.create({
+          client_id: formData.client_id,
+          client_name: client?.full_name,
+          professional_id: formData.professional_id,
+          professional_name: professional?.full_name,
+          test_referral_id: formData.referral_professional_id,
+          test_referral_name: referralProfessional?.full_name,
+          date: formData.end_date,
+          time: formData.end_time,
+          type: 'retorno',
+          status: 'agendado',
+          notes: `Término do teste ${newTest.test_number}`
+        });
 
         // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
@@ -200,22 +253,38 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <Label>Data Início *</Label>
                   <Input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
-
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} 
+                  />
+                </div>
+                <div>
+                  <Label>Hora Início *</Label>
+                  <Input
+                    type="time"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} 
+                  />
                 </div>
                 <div>
                   <Label>Data Final *</Label>
                   <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} 
+                  />
+                </div>
+                <div>
+                  <Label>Hora Final *</Label>
+                  <Input
+                    type="time"
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} 
+                  />
                 </div>
               </div>
 
@@ -230,43 +299,18 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 <div className="space-y-2">
                   {formData.devices.map((device, index) =>
                 <div key={index} className="flex gap-2">
-                      <div className="flex-1">
-                        <Input
-                          placeholder="Digite o número de série..."
-                          value={device.serial_number || ''}
-                          onChange={(e) => {
-                            const searchValue = e.target.value;
-                            const newDevices = [...formData.devices];
-                            
-                            if (searchValue === '') {
-                              newDevices[index] = { product_id: '', product_name: '', serial_number: '' };
-                            } else {
-                              newDevices[index].serial_number = searchValue;
-                              
-                              const foundProduct = products.find(p => 
-                                p.serial_number?.toLowerCase() === searchValue.toLowerCase()
-                              );
-                              if (foundProduct) {
-                                newDevices[index] = {
-                                  product_id: foundProduct.id,
-                                  product_name: foundProduct.name,
-                                  serial_number: foundProduct.serial_number
-                                };
-                              }
-                            }
-                            
-                            setFormData({ ...formData, devices: newDevices });
-                          }}
-                          list={`products-list-${index}`}
-                        />
-                        <datalist id={`products-list-${index}`}>
-                          {products.map((product) => (
-                            <option key={product.id} value={product.serial_number}>
+                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Selecione por NS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) =>
+                      <SelectItem key={product.id} value={product.id}>
                               {product.name} - NS: {product.serial_number}
-                            </option>
-                          ))}
-                        </datalist>
-                      </div>
+                            </SelectItem>
+                      )}
+                        </SelectContent>
+                      </Select>
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
                         <X className="h-4 w-4" />
                       </Button>
@@ -330,14 +374,24 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           }
 
           {extendMode &&
-          <div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <Label>Nova Data Final *</Label>
               <Input
-              type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} 
+              />
             </div>
+            <div>
+              <Label>Nova Hora Final *</Label>
+              <Input
+                type="time"
+                value={formData.end_time}
+                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} 
+              />
+            </div>
+          </div>
           }
 
           <div className="flex justify-end gap-3">
