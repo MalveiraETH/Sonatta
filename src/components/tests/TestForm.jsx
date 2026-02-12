@@ -29,9 +29,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
-    start_time: '',
     end_date: '',
-    end_time: '',
     devices: [],
     professional_id: '',
     referral_professional_id: '',
@@ -46,9 +44,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: test.client_id || '',
           start_date: test.start_date || '',
-          start_time: test.start_time || '',
           end_date: test.end_date || '',
-          end_time: test.end_time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
           referral_professional_id: test.referral_professional_id || '',
@@ -59,9 +55,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: preselectedClientId || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
-          start_time: '',
           end_date: '',
-          end_time: '',
           devices: [],
           professional_id: '',
           referral_professional_id: '',
@@ -134,58 +128,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     }
   };
 
-  const createAppointments = async (testData, client, professional, referralProfessional) => {
-    try {
-      const appointmentsCount = await base44.entities.Appointment.list();
-      
-      // Criar agendamento para data de início
-      if (testData.start_date && testData.start_time) {
-        await base44.entities.Appointment.create({
-          client_id: testData.client_id,
-          client_name: client?.full_name,
-          professional_id: testData.professional_id,
-          professional_name: professional?.full_name,
-          test_referral_id: testData.referral_professional_id,
-          test_referral_name: referralProfessional?.full_name,
-          date: testData.start_date,
-          time: testData.start_time,
-          type: 'teste',
-          status: 'agendado',
-          notes: `Início do teste ${testData.test_number}`
-        });
-      }
-      
-      // Criar agendamento para data final
-      if (testData.end_date && testData.end_time) {
-        await base44.entities.Appointment.create({
-          client_id: testData.client_id,
-          client_name: client?.full_name,
-          professional_id: testData.professional_id,
-          professional_name: professional?.full_name,
-          test_referral_id: testData.referral_professional_id,
-          test_referral_name: referralProfessional?.full_name,
-          date: testData.end_date,
-          time: testData.end_time,
-          type: 'retorno',
-          status: 'agendado',
-          notes: extendMode ? `Extensão do teste ${testData.test_number}` : `Término do teste ${testData.test_number}`
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao criar agendamentos:', error);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.client_id || !formData.start_date || !formData.end_date) {
       toast.error('Preencha os campos obrigatórios');
-      return;
-    }
-
-    if (!formData.start_time || !formData.end_time) {
-      toast.error('Preencha os horários de início e fim');
       return;
     }
 
@@ -209,11 +156,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
 
-        // Se estiver estendendo, criar agendamento para nova data final
-        if (extendMode) {
-          await createAppointments(testData, client, professional, referralProfessional);
-        }
-
         toast.success('Teste atualizado');
       } else {
         const testsCount = await base44.entities.Test.list();
@@ -222,9 +164,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
         // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-
-        // Criar agendamentos para início e fim do teste
-        await createAppointments(testData, client, professional, referralProfessional);
 
         toast.success('Teste cadastrado');
       }
@@ -271,30 +210,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
                 </div>
                 <div>
-                  <Label>Horário *</Label>
-                  <Input
-                  type="time"
-                  value={formData.start_time}
-                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
-
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
                   <Label>Data Final *</Label>
                   <Input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-
-                </div>
-                <div>
-                  <Label>Horário *</Label>
-                  <Input
-                  type="time"
-                  value={formData.end_time}
-                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
 
                 </div>
               </div>
@@ -310,18 +230,43 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 <div className="space-y-2">
                   {formData.devices.map((device, index) =>
                 <div key={index} className="flex gap-2">
-                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Selecione por NS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) =>
-                      <SelectItem key={product.id} value={product.id}>
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Digite o número de série..."
+                          value={device.serial_number || ''}
+                          onChange={(e) => {
+                            const searchValue = e.target.value;
+                            const newDevices = [...formData.devices];
+                            
+                            if (searchValue === '') {
+                              newDevices[index] = { product_id: '', product_name: '', serial_number: '' };
+                            } else {
+                              newDevices[index].serial_number = searchValue;
+                              
+                              const foundProduct = products.find(p => 
+                                p.serial_number?.toLowerCase() === searchValue.toLowerCase()
+                              );
+                              if (foundProduct) {
+                                newDevices[index] = {
+                                  product_id: foundProduct.id,
+                                  product_name: foundProduct.name,
+                                  serial_number: foundProduct.serial_number
+                                };
+                              }
+                            }
+                            
+                            setFormData({ ...formData, devices: newDevices });
+                          }}
+                          list={`products-list-${index}`}
+                        />
+                        <datalist id={`products-list-${index}`}>
+                          {products.map((product) => (
+                            <option key={product.id} value={product.serial_number}>
                               {product.name} - NS: {product.serial_number}
-                            </SelectItem>
-                      )}
-                        </SelectContent>
-                      </Select>
+                            </option>
+                          ))}
+                        </datalist>
+                      </div>
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
                         <X className="h-4 w-4" />
                       </Button>
@@ -385,25 +330,13 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           }
 
           {extendMode &&
-          <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Nova Data Final *</Label>
-                  <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+          <div>
+              <Label>Nova Data Final *</Label>
+              <Input
+              type="date"
+              value={formData.end_date}
+              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
 
-                </div>
-                <div>
-                  <Label>Horário *</Label>
-                  <Input
-                  type="time"
-                  value={formData.end_time}
-                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
-
-                </div>
-              </div>
             </div>
           }
 

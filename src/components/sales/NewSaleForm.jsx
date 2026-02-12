@@ -526,9 +526,13 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value={null} disabled>Nenhuma categoria disponível</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -724,7 +728,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <Input
                   type="number"
                   inputMode="decimal"
-                  step="0.01"
+                  step="0.0001"
                   min="0"
                   max="100"
                   value={discountPercent}
