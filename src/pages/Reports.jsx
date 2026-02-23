@@ -786,7 +786,7 @@ export default function Reports() {
         {/* VENDAS */}
         <TabsContent value="sales" className="space-y-6">
           <Card className="p-4 border-0 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Data Venda Início</Label>
                 <Input
@@ -803,30 +803,12 @@ export default function Reports() {
                   onChange={(e) => setDateEnd(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Data Pagto Início</Label>
-                <Input
-                  type="date"
-                  value={paymentDateStart}
-                  onChange={(e) => setPaymentDateStart(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Data Pagto Fim</Label>
-                <Input
-                  type="date"
-                  value={paymentDateEnd}
-                  onChange={(e) => setPaymentDateEnd(e.target.value)}
-                />
-              </div>
               <div className="flex items-end">
                 <Button 
                   variant="outline"
                   onClick={() => {
                     setDateStart('');
                     setDateEnd('');
-                    setPaymentDateStart('');
-                    setPaymentDateEnd('');
                   }}
                   className="w-full"
                 >
