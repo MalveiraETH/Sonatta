@@ -365,6 +365,22 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     setLoading(true);
     try {
       const saleNumber = formData.sale_number || generateSaleNumber();
+
+      if (sale) {
+        // MODO EDIÇÃO
+        const dataToUpdate = {
+          ...formData,
+          sale_number: saleNumber,
+          sale_date: format(saleDate, 'yyyy-MM-dd'),
+        };
+        await base44.entities.Sale.update(sale.id, dataToUpdate);
+        await logEdit('Venda', `${saleNumber} - ${formData.client_name}`, sale.id);
+        toast.success('Venda atualizada com sucesso!');
+        onOpenChange(false);
+        if (onSuccess) await onSuccess();
+        return;
+      }
+
       // Definir status inicial baseado no método de pagamento
       const hasPixParcelado = formData.payment_details.some(pd => pd.method === 'pix_parcelado');
       const initialStatus = hasPixParcelado ? 'pendente' : 'pago';
@@ -487,7 +503,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800">
-            Nova Venda
+            {sale ? 'Editar Venda' : 'Nova Venda'}
           </DialogTitle>
         </DialogHeader>
 
@@ -950,7 +966,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               className="bg-[#1e3a5f] hover:bg-[#2d5a8a] w-full sm:w-auto"
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Finalizar Venda
+              {sale ? 'Salvar Alterações' : 'Finalizar Venda'}
             </Button>
           </div>
         </form>
