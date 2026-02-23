@@ -367,11 +367,14 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       const saleNumber = formData.sale_number || generateSaleNumber();
 
       if (sale) {
-        // MODO EDIÇÃO
+        // MODO EDIÇÃO: recalcular status baseado nos pagamentos
+        const hasPixParceladoEdit = formData.payment_details.some(pd => pd.method === 'pix_parcelado');
+        const newStatus = hasPixParceladoEdit ? 'pendente' : 'pago';
         const dataToUpdate = {
           ...formData,
           sale_number: saleNumber,
           sale_date: format(saleDate, 'yyyy-MM-dd'),
+          status: newStatus,
         };
         await base44.entities.Sale.update(sale.id, dataToUpdate);
         await logEdit('Venda', `${saleNumber} - ${formData.client_name}`, sale.id);
