@@ -865,28 +865,7 @@ export default function Reports() {
                   </TableHeader>
                   <TableBody>
                     {filteredSales
-                      .filter(sale => {
-                        let passesFilter = true;
-                        
-                        // Filtro de data de pagamento
-                        if (paymentDateStart || paymentDateEnd) {
-                          if (sale.status !== 'pago') {
-                            passesFilter = false;
-                          } else {
-                            const paymentDate = new Date(sale.updated_date);
-                            if (paymentDateStart) {
-                              const start = new Date(paymentDateStart);
-                              if (paymentDate < start) passesFilter = false;
-                            }
-                            if (paymentDateEnd) {
-                              const end = new Date(paymentDateEnd);
-                              if (paymentDate > end) passesFilter = false;
-                            }
-                          }
-                        }
-                        
-                        return passesFilter;
-                      })
+                      .filter(() => true)
                       .map(sale => {
                         const client = clients.find(c => c.id === sale.client_id);
                         const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
