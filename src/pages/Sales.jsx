@@ -47,7 +47,7 @@ import InvoiceDialog from '@/components/sales/InvoiceDialog';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import PullToRefreshIndicator from '@/components/ui/PullToRefreshIndicator';
 import { usePullToRefresh } from '@/components/utils/usePullToRefresh';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info } from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -69,6 +69,10 @@ export default function Sales() {
   const [selectedSaleForInvoice, setSelectedSaleForInvoice] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedSaleForDetails, setSelectedSaleForDetails] = useState(null);
+  const [editFormOpen, setEditFormOpen] = useState(false);
+  const [saleToEdit, setSaleToEdit] = useState(null);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [saleToCancel, setSaleToCancel] = useState(null);
 
   const loadData = async () => {
     try {
@@ -231,6 +235,11 @@ Obrigado pela preferência!
     }
   };
 
+  const openCancelConfirm = (sale) => {
+    setSaleToCancel(sale);
+    setCancelConfirmOpen(true);
+  };
+
   const handleCancel = async (sale) => {
     try {
       // Devolver produtos ao estoque
@@ -264,6 +273,8 @@ Obrigado pela preferência!
       
       await base44.entities.Sale.update(sale.id, { status: 'cancelado' });
       toast.success('Venda cancelada e produtos devolvidos ao estoque');
+      setCancelConfirmOpen(false);
+      setSaleToCancel(null);
       loadData();
     } catch (error) {
       toast.error('Erro ao cancelar venda');
