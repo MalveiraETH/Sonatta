@@ -24,7 +24,7 @@ import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { logCreation } from '@/components/utils/auditLogger';
+import { logCreation, logEdit } from '@/components/utils/auditLogger';
 
 export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
@@ -64,6 +64,42 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       loadData();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && sale) {
+      // Preencher form com dados da venda para edição
+      setSaleDate(sale.sale_date ? new Date(sale.sale_date + 'T12:00:00') : new Date());
+      setFormData({
+        client_id: sale.client_id || '',
+        client_name: sale.client_name || '',
+        client_cpf: sale.client_cpf || '',
+        client_phone: sale.client_phone || '',
+        client_email: sale.client_email || '',
+        client_address: sale.client_address || '',
+        test_referral_id: sale.test_referral_id || '',
+        test_referral_name: sale.test_referral_name || '',
+        items: sale.items || [],
+        subtotal: sale.subtotal || 0,
+        discount: sale.discount || 0,
+        total: sale.total || 0,
+        payment_details: sale.payment_details || [],
+        seller_id: sale.seller_id || '',
+        seller_name: sale.seller_name || '',
+        status: sale.status || 'pendente',
+        notes: sale.notes || '',
+        quote_id: sale.quote_id || '',
+        nota_fiscal: sale.nota_fiscal || '',
+        category_id: sale.category_id || '',
+        category_name: sale.category_name || '',
+        sale_number: sale.sale_number || ''
+      });
+      const originalSubtotal = sale.subtotal || 0;
+      const originalDiscount = sale.discount || 0;
+      if (originalSubtotal > 0) {
+        setDiscountPercent(((originalDiscount / originalSubtotal) * 100));
+      }
+    }
+  }, [open, sale]);
 
   useEffect(() => {
     if (preselectedClient) {
