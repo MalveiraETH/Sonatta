@@ -753,6 +753,8 @@ Obrigado pela preferência!
       {/* Modals */}
       <NewSaleForm open={formOpen} onOpenChange={setFormOpen} onSuccess={loadData} />
 
+      <NewSaleForm open={editFormOpen} onOpenChange={setEditFormOpen} sale={saleToEdit} onSuccess={loadData} />
+
       <ContractGenerator 
         open={contractOpen}
         onOpenChange={setContractOpen}
@@ -766,11 +768,26 @@ Obrigado pela preferência!
             <DialogTitle>Confirmar Exclusão</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-600">
-            Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir a venda <strong>{selectedSale?.sale_number}</strong> de <strong>{selectedSale?.client_name}</strong>? Esta ação não pode ser desfeita.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cancelConfirmOpen} onOpenChange={setCancelConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Cancelamento</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            Tem certeza que deseja cancelar a venda <strong>{saleToCancel?.sale_number}</strong> de <strong>{saleToCancel?.client_name}</strong>? Os produtos serão devolvidos ao estoque.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCancelConfirmOpen(false); setSaleToCancel(null); }}>Não</Button>
+            <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={() => handleCancel(saleToCancel)}>Sim, Cancelar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
