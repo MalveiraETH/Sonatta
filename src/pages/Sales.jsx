@@ -611,8 +611,12 @@ Obrigado pela preferência!
                             <FileSignature className="h-4 w-4 mr-2" />
                             Gerar Contrato
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSaleToEdit(sale); setEditFormOpen(true); }}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Editar Venda
+                          </DropdownMenuItem>
                           {sale.status !== 'cancelado' && (
-                            <DropdownMenuItem onClick={() => handleCancel(sale)} className="text-amber-600">
+                            <DropdownMenuItem onClick={() => openCancelConfirm(sale)} className="text-amber-600">
                               <XCircle className="h-4 w-4 mr-2" />
                               Cancelar Venda
                             </DropdownMenuItem>
@@ -694,16 +698,16 @@ Obrigado pela preferência!
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                       <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(sale); setDetailsDialogOpen(true); }}>
-                         <Info className="h-4 w-4 mr-2" />
-                         Detalhes
-                       </DropdownMenuItem>
-                       <DropdownMenuItem asChild>
-                         <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
-                           <Eye className="h-4 w-4 mr-2" />
-                           Ver Cliente
-                         </Link>
-                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(sale); setDetailsDialogOpen(true); }}>
+                        <Info className="h-4 w-4 mr-2" />
+                        Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Cliente
+                        </Link>
+                      </DropdownMenuItem>
                         {sale.client_phone && (
                           <DropdownMenuItem 
                             onClick={(e) => {
@@ -719,8 +723,12 @@ Obrigado pela preferência!
                           <FileSignature className="h-4 w-4 mr-2" />
                           Contrato
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSaleToEdit(sale); setEditFormOpen(true); }}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar Venda
+                        </DropdownMenuItem>
                         {sale.status !== 'cancelado' && (
-                          <DropdownMenuItem onClick={() => handleCancel(sale)} className="text-amber-600">
+                          <DropdownMenuItem onClick={() => openCancelConfirm(sale)} className="text-amber-600">
                             <XCircle className="h-4 w-4 mr-2" />
                             Cancelar
                           </DropdownMenuItem>
