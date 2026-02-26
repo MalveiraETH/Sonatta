@@ -157,6 +157,46 @@ export default function Tests() {
     }
   };
 
+  const sendWhatsApp = async (test) => {
+    try {
+      const userData = await base44.auth.me();
+      const defaultTemplate = `🦻 *Teste de Aparelho Auditivo*\n\nOlá {{client_name}},\n\nSeu teste foi agendado com sucesso!\n\n📅 *Data de Início:* {{start_date}}{{start_time}}\n📅 *Data de Retorno:* {{end_date}}{{end_time}}\n\n🎧 *Aparelhos para Teste:*\n{{devices_list}}\n\nEm caso de dúvidas, entre em contato conosco.\n\n*Sonatta Soluções Auditivas*`;
+      let template = userData.whatsapp_test_template || defaultTemplate;
+
+      const formatDate = (dateStr) => {
+        if (!dateStr) return '-';
+        const parts = dateStr.split('-');
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      };
+
+      const devicesList = (test.devices || [])
+        .map(d => `• ${d.product_name}${d.serial_number ? ` (NS: ${d.serial_number})` : ''}`)
+        .join('\n') || '- Nenhum aparelho';
+
+      const startTime = test.start_time ? ` às ${test.start_time}` : '';
+      const endTime = test.end_time ? ` às ${test.end_time}` : '';
+
+      let message = template
+        .replace(/{{client_name}}/g, test.client_name || '')
+        .replace(/{{start_date}}/g, formatDate(test.start_date))
+        .replace(/{{start_time}}/g, startTime)
+        .replace(/{{end_date}}/g, formatDate(test.end_date))
+        .replace(/{{end_time}}/g, endTime)
+        .replace(/{{devices_list}}/g, devicesList);
+
+      // Buscar telefone do cliente
+      const clients = await base44.entities.Client.filter({ id: test.client_id });
+      const client = clients[0];
+      const phone = client?.phone?.replace(/\D/g, '') || '';
+      const phoneFormatted = phone.startsWith('55') ? phone : `55${phone}`;
+
+      const url = `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+    } catch (error) {
+      toast.error('Erro ao gerar mensagem');
+    }
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');

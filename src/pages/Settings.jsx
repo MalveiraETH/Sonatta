@@ -25,6 +25,7 @@ export default function Settings() {
           <TabsTrigger value="hours" className="text-xs sm:text-sm">Horário</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">WhatsApp Orçamento</TabsTrigger>
           <TabsTrigger value="whatsapp_sale" className="text-xs sm:text-sm">WhatsApp Venda</TabsTrigger>
+          <TabsTrigger value="whatsapp_test" className="text-xs sm:text-sm">WhatsApp Teste</TabsTrigger>
           <TabsTrigger value="contract" className="text-xs sm:text-sm">Contrato</TabsTrigger>
           <TabsTrigger value="billing" className="text-xs sm:text-sm">Custos e Tarifas</TabsTrigger>
           <TabsTrigger value="reference_products" className="text-xs sm:text-sm">Produtos Referência</TabsTrigger>
@@ -41,6 +42,10 @@ export default function Settings() {
 
         <TabsContent value="whatsapp_sale">
           <WhatsAppSaleTemplate />
+        </TabsContent>
+
+        <TabsContent value="whatsapp_test">
+          <WhatsAppTestTemplate />
         </TabsContent>
 
         <TabsContent value="contract">
