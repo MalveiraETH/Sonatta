@@ -41,6 +41,14 @@ export default function Reports() {
 
   useEffect(() => {
     loadData();
+
+    // Atualiza relatório de testes em tempo real
+    const unsubscribe = base44.entities.Test.subscribe((event) => {
+      if (event.type === 'update' || event.type === 'create' || event.type === 'delete') {
+        base44.entities.Test.list().then(setTests);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const loadData = async () => {
