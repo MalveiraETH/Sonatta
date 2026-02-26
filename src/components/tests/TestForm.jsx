@@ -4,8 +4,8 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle } from
-'@/components/ui/dialog';
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,18 +14,19 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from
-'@/components/ui/select';
+  SelectValue
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
+export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null, preselectedAppointmentData = null }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [products, setProducts] = useState([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
@@ -39,9 +40,17 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     notes: ''
   });
 
+  // Load reference data first
   useEffect(() => {
     if (open) {
+      setDataLoaded(false);
       loadData();
+    }
+  }, [open]);
+
+  // Populate form after data is loaded
+  useEffect(() => {
+    if (open && dataLoaded) {
       if (test) {
         setFormData({
           client_id: test.client_id || '',
@@ -56,32 +65,34 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           notes: test.notes || ''
         });
       } else {
+        const appt = preselectedAppointmentData;
         setFormData({
-          client_id: preselectedClientId || '',
-          start_date: format(new Date(), 'yyyy-MM-dd'),
-          start_time: '',
+          client_id: appt?.client_id || preselectedClientId || '',
+          start_date: appt?.date || format(new Date(), 'yyyy-MM-dd'),
+          start_time: appt?.time || '',
           end_date: '',
           end_time: '',
           devices: [],
-          professional_id: '',
-          referral_professional_id: '',
+          professional_id: appt?.professional_id || '',
+          referral_professional_id: appt?.test_referral_id || '',
           status: 'em_teste',
           notes: ''
         });
       }
     }
-  }, [open, test]);
+  }, [open, dataLoaded, test]);
 
   const loadData = async () => {
     try {
       const [clientsData, professionalsData, productsData] = await Promise.all([
-      base44.entities.Client.list(),
-      base44.entities.Professional.list(),
-      base44.entities.Product.filter({ stock_type: 'serializado', status: 'disponivel' })]
-      );
+        base44.entities.Client.list(),
+        base44.entities.Professional.list(),
+        base44.entities.Product.filter({ stock_type: 'serializado', status: 'disponivel' })
+      ]);
       setClients(clientsData);
       setProfessionals(professionalsData);
       setProducts(productsData);
+      setDataLoaded(true);
     } catch (error) {
       console.error(error);
     }
@@ -117,20 +128,32 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const updateClientStatus = async (clientId, testStatus) => {
     try {
       let clientStatus = 'em_teste';
-
-      if (testStatus === 'em_teste') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_estendido') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_finalizado') {
-        clientStatus = 'cliente_ativo';
-      } else if (testStatus === 'teste_pendente') {
-        clientStatus = 'em_teste';
-      }
-
+      if (testStatus === 'teste_finalizado') clientStatus = 'cliente_ativo';
       await base44.entities.Client.update(clientId, { status: clientStatus });
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
+    }
+  };
+
+  // Update linked appointment date/time if changed
+  const syncAppointment = async (testData) => {
+    try {
+      if (!testData.client_id) return;
+      const appointments = await base44.entities.Appointment.filter({ client_id: testData.client_id, type: 'teste' });
+      if (appointments.length > 0) {
+        const appt = appointments[0];
+        const needsUpdate =
+          (testData.start_date && appt.date !== testData.start_date) ||
+          (testData.start_time && appt.time !== testData.start_time);
+        if (needsUpdate) {
+          await base44.entities.Appointment.update(appt.id, {
+            date: testData.start_date || appt.date,
+            time: testData.start_time || appt.time
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao sincronizar agendamento:', error);
     }
   };
 
@@ -158,19 +181,14 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
-
-        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-
+        await syncAppointment(testData);
         toast.success('Teste atualizado');
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
-
-        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-
         toast.success('Teste cadastrado');
       }
 
@@ -190,8 +208,8 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           <DialogTitle>{extendMode ? 'Estender Teste' : test ? 'Editar Teste' : 'Novo Teste'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!extendMode &&
-          <>
+          {!extendMode && (
+            <>
               <div>
                 <Label>Cliente *</Label>
                 <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
@@ -199,9 +217,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map((client) =>
-                  <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
-                  )}
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -242,52 +260,47 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  {formData.devices.map((device, index) =>
-                <div key={index} className="flex gap-2">
-                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Selecione por NS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) =>
-                      <SelectItem key={product.id} value={product.id}>
-                              {product.name} - NS: {product.serial_number}
-                            </SelectItem>
-                      )}
-                        </SelectContent>
-                      </Select>
+                  {formData.devices.map((device, index) => (
+                    <div key={index} className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <DeviceSearchInput
+                          device={device}
+                          products={products}
+                          onSelect={(v) => updateDevice(index, v)}
+                        />
+                      </div>
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                )}
+                  ))}
                 </div>
               </div>
 
               <div>
-                <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Profissional Atendimento</Label>
+                <Label>Profissional Atendimento</Label>
                 <Select value={formData.professional_id} onValueChange={(v) => setFormData({ ...formData, professional_id: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o profissional" />
                   </SelectTrigger>
                   <SelectContent>
-                    {professionals.map((prof) =>
-                  <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
-                  )}
+                    {professionals.map((prof) => (
+                      <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Profissional Indicação Teste</Label>
+                <Label>Profissional Indicação Teste</Label>
                 <Select value={formData.referral_professional_id} onValueChange={(v) => setFormData({ ...formData, referral_professional_id: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o profissional de indicação" />
                   </SelectTrigger>
                   <SelectContent>
-                    {professionals.map((prof) =>
-                  <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
-                  )}
+                    {professionals.map((prof) => (
+                      <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -310,32 +323,29 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               <div>
                 <Label>Observações</Label>
                 <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3} />
-
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3} />
               </div>
             </>
-          }
+          )}
 
-          {extendMode &&
-          <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nova Data Final *</Label>
-                  <Input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-                  <Label>Horário Final</Label>
-                  <Input
-                    type="time"
-                    value={formData.end_time}
-                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
-                </div>
+          {extendMode && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nova Data Final *</Label>
+                <Input
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                <Label>Horário Final</Label>
+                <Input
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
               </div>
             </div>
-          }
+          )}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>
@@ -347,6 +357,51 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           </div>
         </form>
       </DialogContent>
-    </Dialog>);
+    </Dialog>
+  );
+}
 
+// Inline search component for device selection
+function DeviceSearchInput({ device, products, onSelect }) {
+  const [search, setSearch] = useState(device.serial_number || '');
+  const [showList, setShowList] = useState(false);
+
+  useEffect(() => {
+    setSearch(device.serial_number || '');
+  }, [device.serial_number]);
+
+  const filtered = search.length > 0
+    ? products.filter(p =>
+        p.serial_number?.toLowerCase().includes(search.toLowerCase()) ||
+        p.name?.toLowerCase().includes(search.toLowerCase())
+      ).slice(0, 10)
+    : products.slice(0, 10);
+
+  return (
+    <div className="relative">
+      <Input
+        value={search}
+        onChange={(e) => { setSearch(e.target.value); setShowList(true); }}
+        onFocus={() => setShowList(true)}
+        onBlur={() => setTimeout(() => setShowList(false), 200)}
+        placeholder="Buscar por NS ou nome..."
+        className={device.product_id ? 'border-green-400 bg-green-50' : ''}
+      />
+      {showList && filtered.length > 0 && (
+        <div className="absolute z-50 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
+          {filtered.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+              onMouseDown={() => { onSelect(p.id); setSearch(p.serial_number || p.name); setShowList(false); }}
+            >
+              <span className="font-medium">{p.serial_number}</span>
+              <span className="text-slate-500 ml-2">{p.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
