@@ -26,11 +26,12 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [products, setProducts] = useState([]);
-  const [deviceSearches, setDeviceSearches] = useState([]);
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
+    start_time: '',
     end_date: '',
+    end_time: '',
     devices: [],
     professional_id: '',
     referral_professional_id: '',
@@ -52,7 +53,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           status: test.status || 'em_teste',
           notes: test.notes || ''
         });
-        setDeviceSearches((test.devices || []).map(d => d.serial_number || ''));
       } else {
         setFormData({
           client_id: preselectedClientId || '',
@@ -64,7 +64,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           status: 'em_teste',
           notes: ''
         });
-        setDeviceSearches([]);
       }
     }
   }, [open, test]);
@@ -85,44 +84,30 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   };
 
   const addDevice = () => {
-    setFormData({ ...formData, devices: [...formData.devices, { product_id: '', product_name: '', serial_number: '' }] });
-    setDeviceSearches(prev => [...prev, '']);
+    setFormData({
+      ...formData,
+      devices: [...formData.devices, { product_id: '', product_name: '', serial_number: '' }]
+    });
   };
 
   const removeDevice = (index) => {
-    setFormData({ ...formData, devices: formData.devices.filter((_, i) => i !== index) });
-    setDeviceSearches(prev => prev.filter((_, i) => i !== index));
+    setFormData({
+      ...formData,
+      devices: formData.devices.filter((_, i) => i !== index)
+    });
   };
 
-  const updateDeviceSearch = (index, searchText) => {
-    const newSearches = [...deviceSearches];
-    newSearches[index] = searchText;
-    setDeviceSearches(newSearches);
-
-    // Se o campo foi limpo, limpa o device selecionado
-    if (!searchText) {
+  const updateDevice = (index, productId) => {
+    const product = products.find((p) => p.id === productId);
+    if (product) {
       const newDevices = [...formData.devices];
-      newDevices[index] = { product_id: '', product_name: '', serial_number: '' };
+      newDevices[index] = {
+        product_id: product.id,
+        product_name: product.name,
+        serial_number: product.serial_number
+      };
       setFormData({ ...formData, devices: newDevices });
     }
-  };
-
-  const selectDevice = (index, product) => {
-    const newDevices = [...formData.devices];
-    newDevices[index] = { product_id: product.id, product_name: product.name, serial_number: product.serial_number };
-    setFormData({ ...formData, devices: newDevices });
-    const newSearches = [...deviceSearches];
-    newSearches[index] = product.serial_number || product.name;
-    setDeviceSearches(newSearches);
-  };
-
-  const getFilteredProducts = (search) => {
-    if (!search || search.length < 1) return [];
-    const lower = search.toLowerCase();
-    return products.filter(p =>
-      (p.serial_number && p.serial_number.toLowerCase().includes(lower)) ||
-      (p.name && p.name.toLowerCase().includes(lower))
-    ).slice(0, 10);
   };
 
   const updateClientStatus = async (clientId, testStatus) => {
@@ -245,46 +230,25 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  {formData.devices.map((device, index) => {
-                    const search = deviceSearches[index] || '';
-                    const filtered = getFilteredProducts(search);
-                    const isSelected = !!device.product_id;
-                    return (
-                      <div key={index} className="flex gap-2 relative">
-                        <div className="flex-1 relative">
-                          <Input
-                            value={search}
-                            onChange={(e) => updateDeviceSearch(index, e.target.value)}
-                            placeholder="Digite o número de série ou nome..."
-                            className={isSelected ? 'border-green-500 bg-green-50' : ''}
-                          />
-                          {!isSelected && search.length > 0 && filtered.length > 0 && (
-                            <div className="absolute z-50 w-full bg-white border border-slate-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
-                              {filtered.map(product => (
-                                <div
-                                  key={product.id}
-                                  className="px-3 py-2 hover:bg-slate-100 cursor-pointer text-sm"
-                                  onMouseDown={(e) => { e.preventDefault(); selectDevice(index, product); }}
-                                >
-                                  <span className="font-medium">{product.serial_number}</span>
-                                  {product.serial_number && ' - '}
-                                  <span className="text-slate-600">{product.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {!isSelected && search.length > 0 && filtered.length === 0 && (
-                            <div className="absolute z-50 w-full bg-white border border-slate-200 rounded-md shadow-lg mt-1 px-3 py-2 text-sm text-slate-500">
-                              Nenhum aparelho encontrado
-                            </div>
-                          )}
-                        </div>
-                        <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
+                  {formData.devices.map((device, index) =>
+                <div key={index} className="flex gap-2">
+                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Selecione por NS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) =>
+                      <SelectItem key={product.id} value={product.id}>
+                              {product.name} - NS: {product.serial_number}
+                            </SelectItem>
+                      )}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                )}
                 </div>
               </div>
 
