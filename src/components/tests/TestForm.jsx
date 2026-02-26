@@ -85,30 +85,44 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   };
 
   const addDevice = () => {
-    setFormData({
-      ...formData,
-      devices: [...formData.devices, { product_id: '', product_name: '', serial_number: '' }]
-    });
+    setFormData({ ...formData, devices: [...formData.devices, { product_id: '', product_name: '', serial_number: '' }] });
+    setDeviceSearches(prev => [...prev, '']);
   };
 
   const removeDevice = (index) => {
-    setFormData({
-      ...formData,
-      devices: formData.devices.filter((_, i) => i !== index)
-    });
+    setFormData({ ...formData, devices: formData.devices.filter((_, i) => i !== index) });
+    setDeviceSearches(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateDevice = (index, productId) => {
-    const product = products.find((p) => p.id === productId);
-    if (product) {
+  const updateDeviceSearch = (index, searchText) => {
+    const newSearches = [...deviceSearches];
+    newSearches[index] = searchText;
+    setDeviceSearches(newSearches);
+
+    // Se o campo foi limpo, limpa o device selecionado
+    if (!searchText) {
       const newDevices = [...formData.devices];
-      newDevices[index] = {
-        product_id: product.id,
-        product_name: product.name,
-        serial_number: product.serial_number
-      };
+      newDevices[index] = { product_id: '', product_name: '', serial_number: '' };
       setFormData({ ...formData, devices: newDevices });
     }
+  };
+
+  const selectDevice = (index, product) => {
+    const newDevices = [...formData.devices];
+    newDevices[index] = { product_id: product.id, product_name: product.name, serial_number: product.serial_number };
+    setFormData({ ...formData, devices: newDevices });
+    const newSearches = [...deviceSearches];
+    newSearches[index] = product.serial_number || product.name;
+    setDeviceSearches(newSearches);
+  };
+
+  const getFilteredProducts = (search) => {
+    if (!search || search.length < 1) return [];
+    const lower = search.toLowerCase();
+    return products.filter(p =>
+      (p.serial_number && p.serial_number.toLowerCase().includes(lower)) ||
+      (p.name && p.name.toLowerCase().includes(lower))
+    ).slice(0, 10);
   };
 
   const updateClientStatus = async (clientId, testStatus) => {
