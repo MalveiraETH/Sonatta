@@ -48,7 +48,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     }
   }, [open]);
 
-  // Populate form after data is loaded
+  // Populate form only after data is loaded (so selects find their values)
   useEffect(() => {
     if (open && dataLoaded) {
       if (test) {
@@ -99,59 +99,56 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   };
 
   const addDevice = () => {
-    setFormData({
-      ...formData,
-      devices: [...formData.devices, { product_id: '', product_name: '', serial_number: '' }]
-    });
+    setFormData({ ...formData, devices: [...formData.devices, { product_id: '', product_name: '', serial_number: '' }] });
   };
 
   const removeDevice = (index) => {
-    setFormData({
-      ...formData,
-      devices: formData.devices.filter((_, i) => i !== index)
-    });
+    setFormData({ ...formData, devices: formData.devices.filter((_, i) => i !== index) });
   };
 
   const updateDevice = (index, productId) => {
     const product = products.find((p) => p.id === productId);
     if (product) {
       const newDevices = [...formData.devices];
-      newDevices[index] = {
-        product_id: product.id,
-        product_name: product.name,
-        serial_number: product.serial_number
-      };
+      newDevices[index] = { product_id: product.id, product_name: product.name, serial_number: product.serial_number };
       setFormData({ ...formData, devices: newDevices });
     }
   };
 
   const updateClientStatus = async (clientId, testStatus) => {
     try {
-      let clientStatus = 'em_teste';
-      if (testStatus === 'teste_finalizado') clientStatus = 'cliente_ativo';
+      const clientStatus = testStatus === 'teste_finalizado' ? 'cliente_ativo' : 'em_teste';
       await base44.entities.Client.update(clientId, { status: clientStatus });
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
     }
   };
 
-  // Update linked appointment date/time if changed
+  // Sync the linked "teste" appointment for this client with new date/time/professional
   const syncAppointment = async (testData) => {
     try {
       if (!testData.client_id) return;
-      const appointments = await base44.entities.Appointment.filter({ client_id: testData.client_id, type: 'teste' });
-      if (appointments.length > 0) {
-        const appt = appointments[0];
-        const needsUpdate =
-          (testData.start_date && appt.date !== testData.start_date) ||
-          (testData.start_time && appt.time !== testData.start_time);
-        if (needsUpdate) {
-          await base44.entities.Appointment.update(appt.id, {
-            date: testData.start_date || appt.date,
-            time: testData.start_time || appt.time
-          });
-        }
-      }
+
+      // List all appointments and find ones for this client of type 'teste'
+      const allAppointments = await base44.entities.Appointment.list();
+      const linked = allAppointments.filter(
+        (a) => a.client_id === testData.client_id && a.type === 'teste'
+      );
+
+      if (linked.length === 0) return;
+
+      // Use the most recent one
+      const appt = linked.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+
+      const updates = {};
+      if (testData.start_date) updates.date = testData.start_date;
+      if (testData.start_time) updates.time = testData.start_time;
+      if (testData.professional_id) updates.professional_id = testData.professional_id;
+      if (testData.professional_name) updates.professional_name = testData.professional_name;
+      if (testData.referral_professional_id) updates.test_referral_id = testData.referral_professional_id;
+      if (testData.referral_professional_name) updates.test_referral_name = testData.referral_professional_name;
+
+      await base44.entities.Appointment.update(appt.id, updates);
     } catch (error) {
       console.error('Erro ao sincronizar agendamento:', error);
     }
@@ -227,27 +224,15 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Data Início *</Label>
-                  <Input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                  <Input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
                   <Label>Horário Início</Label>
-                  <Input
-                    type="time"
-                    value={formData.start_time}
-                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
+                  <Input type="time" value={formData.start_time} onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Data Final *</Label>
-                  <Input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                  <Input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
                   <Label>Horário Final</Label>
-                  <Input
-                    type="time"
-                    value={formData.end_time}
-                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
+                  <Input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
                 </div>
               </div>
 
@@ -262,13 +247,18 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 <div className="space-y-2">
                   {formData.devices.map((device, index) => (
                     <div key={index} className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <DeviceSearchInput
-                          device={device}
-                          products={products}
-                          onSelect={(v) => updateDevice(index, v)}
-                        />
-                      </div>
+                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Selecione por NS" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name} - NS: {product.serial_number}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
                         <X className="h-4 w-4" />
                       </Button>
@@ -322,10 +312,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
               <div>
                 <Label>Observações</Label>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={3} />
+                <Textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={3} />
               </div>
             </>
           )}
@@ -334,23 +321,15 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Nova Data Final *</Label>
-                <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                <Input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
                 <Label>Horário Final</Label>
-                <Input
-                  type="time"
-                  value={formData.end_time}
-                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
+                <Input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
               </div>
             </div>
           )}
 
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={loading} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
               {loading ? 'Salvando...' : 'Salvar'}
             </Button>
@@ -358,50 +337,5 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// Inline search component for device selection
-function DeviceSearchInput({ device, products, onSelect }) {
-  const [search, setSearch] = useState(device.serial_number || '');
-  const [showList, setShowList] = useState(false);
-
-  useEffect(() => {
-    setSearch(device.serial_number || '');
-  }, [device.serial_number]);
-
-  const filtered = search.length > 0
-    ? products.filter(p =>
-        p.serial_number?.toLowerCase().includes(search.toLowerCase()) ||
-        p.name?.toLowerCase().includes(search.toLowerCase())
-      ).slice(0, 10)
-    : products.slice(0, 10);
-
-  return (
-    <div className="relative">
-      <Input
-        value={search}
-        onChange={(e) => { setSearch(e.target.value); setShowList(true); }}
-        onFocus={() => setShowList(true)}
-        onBlur={() => setTimeout(() => setShowList(false), 200)}
-        placeholder="Buscar por NS ou nome..."
-        className={device.product_id ? 'border-green-400 bg-green-50' : ''}
-      />
-      {showList && filtered.length > 0 && (
-        <div className="absolute z-50 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1">
-          {filtered.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-              onMouseDown={() => { onSelect(p.id); setSearch(p.serial_number || p.name); setShowList(false); }}
-            >
-              <span className="font-medium">{p.serial_number}</span>
-              <span className="text-slate-500 ml-2">{p.name}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
