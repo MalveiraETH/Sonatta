@@ -207,21 +207,29 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label>Data Início *</Label>
                   <Input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
-
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                  <Label>Horário Início</Label>
+                  <Input
+                    type="time"
+                    value={formData.start_time}
+                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label>Data Final *</Label>
                   <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                  <Label>Horário Final</Label>
+                  <Input
+                    type="time"
+                    value={formData.end_time}
+                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
                 </div>
               </div>
 
