@@ -519,7 +519,7 @@ export default function Reports() {
                         <TableCell>{formatLocalDate(test.end_date)}</TableCell>
                         <TableCell className="text-sm">{test.professional_name || '-'}</TableCell>
                         <TableCell className="text-sm">
-                          {test.devices?.length || 0} aparelho(s)
+                         {test.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '-'}
                         </TableCell>
                         <TableCell><StatusBadge status={test.status} /></TableCell>
                       </TableRow>
