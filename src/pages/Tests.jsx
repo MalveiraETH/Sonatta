@@ -468,6 +468,10 @@ export default function Tests() {
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => sendWhatsApp(test)} className="text-green-600">
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          Enviar WhatsApp
+                        </DropdownMenuItem>
                         {test.status !== 'teste_finalizado' && (
                           <>
                             <DropdownMenuItem onClick={() => handleFinalize(test)}>
@@ -539,6 +543,10 @@ export default function Tests() {
                       <DropdownMenuItem onClick={() => { setSelectedTest(test); setExtendMode(false); setFormOpen(true); }}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => sendWhatsApp(test)} className="text-green-600">
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Enviar WhatsApp
                       </DropdownMenuItem>
                       {test.status !== 'teste_finalizado' && (
                         <>
