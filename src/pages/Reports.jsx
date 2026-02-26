@@ -484,7 +484,7 @@ export default function Reports() {
                   'Data Final': format(new Date(t.end_date), 'dd/MM/yyyy'),
                   'Profissional': t.professional_name || '',
                   'Indicação': t.referral_professional_name || '',
-                  'Aparelhos': t.devices?.map(d => d.product_name).join(', ') || '',
+                  'Aparelhos': t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
                   'Status': t.status === 'em_teste' ? 'Em Teste' :
                            t.status === 'teste_estendido' ? 'Teste Estendido' :
                            t.status === 'teste_finalizado' ? 'Teste Finalizado' : 'Teste Pendente',
