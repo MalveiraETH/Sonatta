@@ -6,6 +6,7 @@ import AuditLog from '@/components/settings/AuditLog';
 import Billing from '@/components/settings/Billing';
 import WhatsAppTemplate from '@/components/settings/WhatsAppTemplate';
 import WhatsAppSaleTemplate from '@/components/settings/WhatsAppSaleTemplate';
+import WhatsAppTestTemplate from '@/components/settings/WhatsAppTestTemplate';
 import ContractTemplate from '@/components/settings/ContractTemplate';
 import ReferenceProducts from '@/components/settings/ReferenceProducts';
 import { Settings as SettingsIcon } from 'lucide-react';
