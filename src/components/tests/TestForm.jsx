@@ -52,6 +52,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           status: test.status || 'em_teste',
           notes: test.notes || ''
         });
+        setDeviceSearches((test.devices || []).map(d => d.serial_number || ''));
       } else {
         setFormData({
           client_id: preselectedClientId || '',
@@ -63,6 +64,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           status: 'em_teste',
           notes: ''
         });
+        setDeviceSearches([]);
       }
     }
   }, [open, test]);
