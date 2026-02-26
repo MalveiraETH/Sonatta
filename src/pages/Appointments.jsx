@@ -43,6 +43,14 @@ export default function Appointments() {
 
   useEffect(() => {
     loadData();
+
+    // Atualiza agendamentos em tempo real quando um teste for editado (pode mudar data/hora)
+    const unsubscribe = base44.entities.Appointment.subscribe((event) => {
+      if (event.type === 'update' || event.type === 'create' || event.type === 'delete') {
+        base44.entities.Appointment.list().then(setAppointments);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const loadData = async () => {
