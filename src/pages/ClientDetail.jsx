@@ -578,6 +578,64 @@ export default function ClientDetail() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="products">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Produtos Comprados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const allProducts = sales.flatMap(sale =>
+                  (sale.items || []).map(item => ({
+                    ...item,
+                    sale_number: sale.sale_number,
+                    sale_date: sale.sale_date || sale.created_date,
+                    sale_status: sale.status
+                  }))
+                );
+                if (allProducts.length === 0) {
+                  return <p className="text-center text-slate-500 py-4">Nenhum produto comprado ainda</p>;
+                }
+                return (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          <TableHead>Nº Série</TableHead>
+                          <TableHead>Qtd</TableHead>
+                          <TableHead>Valor Unit.</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead>Venda</TableHead>
+                          <TableHead>Data</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {allProducts.map((item, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell className="font-medium">{item.product_name}</TableCell>
+                            <TableCell className="text-slate-500">{item.serial_number || '-'}</TableCell>
+                            <TableCell>{item.quantity || 1}</TableCell>
+                            <TableCell>{formatCurrency(item.unit_price)}</TableCell>
+                            <TableCell className="font-semibold">{formatCurrency(item.total || (item.unit_price * (item.quantity || 1)))}</TableCell>
+                            <TableCell className="text-sm text-[#6B3FA0]">{item.sale_number}</TableCell>
+                            <TableCell className="text-sm text-slate-500">
+                              {item.sale_date ? format(new Date(item.sale_date), "dd/MM/yyyy", { locale: ptBR }) : '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
 
       <AppointmentForm
