@@ -284,13 +284,37 @@ Obrigado pela preferência!
   };
 
   const handleDelete = async () => {
+    const sale = selectedSale;
     try {
-      await base44.entities.Sale.delete(selectedSale.id);
-      toast.success('Venda excluída');
+      // 1. Excluir parcelas (contas a receber) vinculadas
+      const installments = await base44.entities.Installment.filter({ sale_id: sale.id });
+      await Promise.all(installments.map(i => base44.entities.Installment.delete(i.id)));
+
+      // 2. Excluir contratos vinculados
+      const contracts = await base44.entities.Contract.filter({ sale_id: sale.id });
+      await Promise.all(contracts.map(c => base44.entities.Contract.delete(c.id)));
+
+      // 3. Excluir histórico de atendimento vinculado à venda (tipo venda)
+      const serviceHistory = await base44.entities.ServiceHistory.filter({ client_id: sale.client_id });
+      const saleHistory = serviceHistory.filter(h => h.type === 'venda' && h.description?.includes(sale.sale_number));
+      await Promise.all(saleHistory.map(h => base44.entities.ServiceHistory.delete(h.id)));
+
+      // 4. Excluir movimentos de estoque vinculados
+      const movements = await base44.entities.StockMovement.filter({ reference_id: sale.id });
+      await Promise.all(movements.map(m => base44.entities.StockMovement.delete(m.id)));
+
+      // 5. Excluir a venda
+      await base44.entities.Sale.delete(sale.id);
+
+      // 6. Registrar auditoria
+      await logDeletion('Venda', `Venda ${sale.sale_number} do cliente ${sale.client_name} excluída (Valor: R$ ${sale.total?.toFixed(2)})`, sale.id);
+
+      toast.success('Venda e todos os registros vinculados excluídos');
       setDeleteOpen(false);
       loadData();
     } catch (error) {
       toast.error('Erro ao excluir venda');
+      console.error(error);
     }
   };
 
