@@ -289,14 +289,11 @@ Obrigado pela preferência!
 
     // Excluir parcelas vinculadas
     try {
-      const allInstallments = await base44.entities.Installment.list('-created_date', 500);
-      const linked = allInstallments.filter(i => i.sale_id === sale.id);
-      console.log(`Parcelas encontradas para excluir: ${linked.length} (sale_id: ${sale.id})`);
+      const linked = await base44.entities.Installment.filter({ sale_id: sale.id });
       for (const i of linked) {
-        await base44.entities.Installment.delete(i.id);
-        console.log(`Parcela excluída: ${i.id}`);
+        try { await base44.entities.Installment.delete(i.id); } catch (e2) { console.error('Erro ao excluir parcela:', i.id, e2); }
       }
-    } catch (e) { console.error('Erro ao excluir parcelas:', e); }
+    } catch (e) { console.error('Erro ao buscar parcelas:', e); }
 
     // Excluir contratos vinculados
     try {
