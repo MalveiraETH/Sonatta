@@ -404,23 +404,22 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       const newSale = await base44.entities.Sale.create(dataToSave);
       await logCreation('Venda', `${saleNumber} - ${formData.client_name}`, newSale.id);
 
-      // Criar parcelas para pagamento Pix Parcelado e Cartão
+      // Criar parcelas para Pix Parcelado e Cartão de Crédito (qualquer quantidade)
       for (const payment of formData.payment_details) {
-        if ((payment.method === 'pix_parcelado' && payment.installments > 1) || payment.method === 'cartao_credito') {
-          const installmentAmount = payment.amount / payment.installments;
+        if (payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') {
+          const numInstallments = payment.installments || 1;
+          const installmentAmount = payment.amount / numInstallments;
           let baseDueDate;
           
           if (payment.method === 'pix_parcelado' && firstDueDate) {
             baseDueDate = new Date(firstDueDate);
-          } else if (payment.method === 'cartao_credito') {
+          } else {
             // Cartão de crédito: primeira parcela vence D+30
             baseDueDate = new Date(saleDate);
             baseDueDate.setDate(baseDueDate.getDate() + 30);
-          } else {
-            baseDueDate = new Date(saleDate);
           }
           
-          for (let i = 1; i <= payment.installments; i++) {
+          for (let i = 1; i <= numInstallments; i++) {
             const dueDate = new Date(baseDueDate);
             dueDate.setMonth(dueDate.getMonth() + (i - 1));
             
