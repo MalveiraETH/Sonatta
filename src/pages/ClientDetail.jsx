@@ -13,6 +13,14 @@ import NewSaleForm from '@/components/sales/NewSaleForm';
 import InstallmentsControl from '@/components/clients/InstallmentsControl';
 import TestForm from '@/components/tests/TestForm';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   ArrowLeft,
   MessageCircle,
   Mail,
@@ -25,7 +33,8 @@ import {
   Plus,
   Ear,
   Trash2,
-  BeakerIcon
+  BeakerIcon,
+  Package
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
