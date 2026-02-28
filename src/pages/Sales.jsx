@@ -812,6 +812,9 @@ Obrigado pela preferência!
           <p className="text-sm text-slate-600">
             Tem certeza que deseja excluir a venda <strong>{selectedSale?.sale_number}</strong> de <strong>{selectedSale?.client_name}</strong>? Esta ação não pode ser desfeita.
           </p>
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mt-1">
+            ⚠️ Todos os registros vinculados serão excluídos: parcelas de <strong>Contas a Receber</strong>, contratos, histórico de serviço e movimentações de estoque.
+          </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
