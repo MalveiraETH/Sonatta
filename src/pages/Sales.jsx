@@ -289,29 +289,32 @@ Obrigado pela preferência!
 
     // Excluir parcelas vinculadas
     try {
-      const allInstallments = await base44.entities.Installment.list();
+      const allInstallments = await base44.entities.Installment.list('-created_date', 500);
       const linked = allInstallments.filter(i => i.sale_id === sale.id);
-      console.log(`Encontradas ${linked.length} parcelas para excluir (sale_id: ${sale.id})`);
-      for (const i of linked) await base44.entities.Installment.delete(i.id);
-    } catch (e) { console.warn('parcelas:', e); }
+      console.log(`Parcelas encontradas para excluir: ${linked.length} (sale_id: ${sale.id})`);
+      for (const i of linked) {
+        await base44.entities.Installment.delete(i.id);
+        console.log(`Parcela excluída: ${i.id}`);
+      }
+    } catch (e) { console.error('Erro ao excluir parcelas:', e); }
 
     // Excluir contratos vinculados
     try {
-      const allContracts = await base44.entities.Contract.list();
+      const allContracts = await base44.entities.Contract.list('-created_date', 500);
       const linked = allContracts.filter(c => c.sale_id === sale.id);
       for (const c of linked) await base44.entities.Contract.delete(c.id);
     } catch (e) { console.warn('contratos:', e); }
 
     // Excluir histórico de serviço vinculado
     try {
-      const allHistory = await base44.entities.ServiceHistory.list();
+      const allHistory = await base44.entities.ServiceHistory.list('-created_date', 500);
       const linked = allHistory.filter(h => h.type === 'venda' && h.description?.includes(sale.sale_number));
       for (const h of linked) await base44.entities.ServiceHistory.delete(h.id);
     } catch (e) { console.warn('histórico:', e); }
 
     // Excluir movimentos de estoque vinculados
     try {
-      const allMovements = await base44.entities.StockMovement.list();
+      const allMovements = await base44.entities.StockMovement.list('-created_date', 500);
       const linked = allMovements.filter(m => m.reference_id === sale.id);
       for (const m of linked) await base44.entities.StockMovement.delete(m.id);
     } catch (e) { console.warn('movimentos:', e); }
