@@ -287,11 +287,11 @@ Obrigado pela preferência!
     const sale = selectedSale;
     setDeleteOpen(false);
 
-    // Excluir parcelas vinculadas
+    // Excluir parcelas vinculadas (busca por sale_id diretamente)
     try {
-      const allInstallments = await base44.entities.Installment.list();
-      const linked = allInstallments.filter(i => i.sale_id === sale.id);
+      const linked = await base44.entities.Installment.filter({ sale_id: sale.id });
       for (const i of linked) await base44.entities.Installment.delete(i.id);
+      console.log(`Excluídas ${linked.length} parcelas`);
     } catch (e) { console.warn('parcelas:', e); }
 
     // Excluir contratos vinculados
