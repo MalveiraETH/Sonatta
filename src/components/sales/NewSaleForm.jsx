@@ -368,8 +368,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
       if (sale) {
         // MODO EDIÇÃO: recalcular status baseado nos pagamentos
-        const hasPixParceladoEdit = formData.payment_details.some(pd => pd.method === 'pix_parcelado');
-        const newStatus = hasPixParceladoEdit ? 'pendente' : 'pago';
+        const hasPendingMethodEdit = formData.payment_details.some(pd => 
+          pd.method === 'pix_parcelado' || pd.method === 'cartao_credito'
+        );
+        const newStatus = hasPendingMethodEdit ? 'pendente' : 'pago';
         const dataToUpdate = {
           ...formData,
           sale_number: saleNumber,
