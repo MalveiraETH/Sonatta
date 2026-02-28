@@ -385,8 +385,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       }
 
       // Definir status inicial baseado no método de pagamento
-      const hasPixParcelado = formData.payment_details.some(pd => pd.method === 'pix_parcelado');
-      const initialStatus = hasPixParcelado ? 'pendente' : 'pago';
+      // dinheiro e pix à vista = pago imediatamente; pix_parcelado e cartao_credito = pendente
+      const hasPendingMethod = formData.payment_details.some(pd => 
+        pd.method === 'pix_parcelado' || pd.method === 'cartao_credito'
+      );
+      const initialStatus = hasPendingMethod ? 'pendente' : 'pago';
 
       const dataToSave = {
         ...formData,
