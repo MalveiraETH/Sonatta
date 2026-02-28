@@ -403,7 +403,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
       // Criar parcelas para pagamento Pix Parcelado e Cartão
       for (const payment of formData.payment_details) {
-        if ((payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && payment.installments > 1) {
+        if ((payment.method === 'pix_parcelado' && payment.installments > 1) || payment.method === 'cartao_credito') {
           const installmentAmount = payment.amount / payment.installments;
           let baseDueDate;
           
