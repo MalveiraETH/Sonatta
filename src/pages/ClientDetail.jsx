@@ -289,6 +289,7 @@ export default function ClientDetail() {
           <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
           <TabsTrigger value="quotes">Orçamentos</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
+          <TabsTrigger value="products">Produtos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="devices">
