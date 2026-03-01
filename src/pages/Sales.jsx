@@ -287,13 +287,10 @@ Obrigado pela preferência!
     const sale = selectedSale;
     setDeleteOpen(false);
 
-    // Excluir parcelas vinculadas
+    // Excluir parcelas vinculadas via função backend (usa service role)
     try {
-      const linked = await base44.entities.Installment.filter({ sale_id: sale.id });
-      for (const i of linked) {
-        try { await base44.entities.Installment.delete(i.id); } catch (e2) { console.error('Erro ao excluir parcela:', i.id, e2); }
-      }
-    } catch (e) { console.error('Erro ao buscar parcelas:', e); }
+      await base44.functions.invoke('deleteInstallmentsBySaleId', { sale_id: sale.id });
+    } catch (e) { console.error('Erro ao excluir parcelas:', e); }
 
     // Excluir contratos vinculados
     try {
