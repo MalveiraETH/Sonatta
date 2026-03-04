@@ -540,7 +540,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     }).format(value || 0);
   };
 
-  // Build payment methods list from active payment types + fallbacks
+  // Build payment methods list from active payment types ONLY
   const paymentMethodLabels = {
     dinheiro: 'Dinheiro',
     pix: 'PIX à Vista',
@@ -550,9 +550,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     boleto: 'Boleto',
     transferencia: 'Transferência'
   };
-  const activeMethodKeys = paymentTypes.map(pt => pt.type);
   const paymentMethods = Object.fromEntries(
-    Object.entries(paymentMethodLabels).filter(([k]) => activeMethodKeys.includes(k) || !['dinheiro','pix','pix_parcelado','cartao_credito','cartao_debito'].includes(k))
+    paymentTypes.map(pt => [pt.type, paymentMethodLabels[pt.type] || pt.type])
   );
 
   return (
