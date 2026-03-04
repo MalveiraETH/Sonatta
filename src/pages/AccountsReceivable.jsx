@@ -542,12 +542,18 @@ export default function AccountsReceivable() {
                       </span>
                     </TableCell>
                     <TableCell className="font-medium">{inst.client_name}</TableCell>
-                    <TableCell>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</TableCell>
+                    <TableCell>
+                     {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}
+                     {inst.card_brand && <span className="ml-1 text-xs text-slate-500">({inst.card_brand})</span>}
+                    </TableCell>
                     <TableCell>{inst.installment_number}</TableCell>
                     <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
                     <TableCell>{inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
                     <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(inst.remaining_amount)}</TableCell>
+                    <TableCell className="text-right text-amber-600">
+                     {inst.fee_rate > 0 ? `${inst.fee_rate}%` : <span className="text-slate-400 text-xs">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(getNetRemaining(inst))}</TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
