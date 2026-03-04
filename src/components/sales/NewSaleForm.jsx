@@ -887,25 +887,26 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                         </Select>
                       </div>
 
-                      {/* Brand selector for debit/credit - with search via datalist */}
+                      {/* Brand selector for debit/credit */}
                       {(payment.method === 'cartao_debito' || payment.method === 'cartao_credito') && (() => {
                         const pt = getPaymentTypeConfig(payment.method);
                         const brands = pt ? (pt.card_brands || []) : [];
                         return (
                           <div>
                             <Label className="text-xs">Bandeira</Label>
-                            <Input
-                              placeholder="Digite ou selecione a bandeira..."
+                            <Select
                               value={payment.card_brand || ''}
-                              onChange={(e) => updatePayment(index, 'card_brand', e.target.value)}
-                              list={`brands-list-${index}`}
-                              className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0]"
-                            />
-                            <datalist id={`brands-list-${index}`}>
-                              {brands.map(b => (
-                                <option key={b.brand} value={b.brand} />
-                              ))}
-                            </datalist>
+                              onValueChange={(value) => updatePayment(index, 'card_brand', value)}
+                            >
+                              <SelectTrigger className="text-sm">
+                                <SelectValue placeholder="Selecione a bandeira..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {brands.map(b => (
+                                  <SelectItem key={b.brand} value={b.brand}>{b.brand}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         );
                       })()}
