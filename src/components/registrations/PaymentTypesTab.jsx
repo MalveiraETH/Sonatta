@@ -100,7 +100,14 @@ export default function PaymentTypesTab() {
       type: form.type,
       status: form.status,
       notes: form.notes,
-      card_brands: ['cartao_debito', 'cartao_credito'].includes(form.type) ? form.card_brands : [],
+      card_brands: ['cartao_debito', 'cartao_credito'].includes(form.type) ? form.card_brands.map(b => ({
+        ...b,
+        rate: b.rate !== '' && b.rate !== undefined ? Number(b.rate) : null,
+        installment_rates: (b.installment_rates || []).map(ir => ({
+          installments: ir.installments !== '' ? Number(ir.installments) : null,
+          rate: ir.rate !== '' && ir.rate !== undefined ? Number(ir.rate) : null,
+        })),
+      })) : [],
       pix_parcelado_rate: form.type === 'pix_parcelado' ? (Number(form.pix_parcelado_rate) || null) : null,
       pix_parcelado_max_installments: form.type === 'pix_parcelado' ? (Number(form.pix_parcelado_max_installments) || null) : null,
     };
