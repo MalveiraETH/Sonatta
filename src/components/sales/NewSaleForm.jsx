@@ -31,6 +31,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [paymentTypes, setPaymentTypes] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [saleDate, setSaleDate] = useState(new Date());
