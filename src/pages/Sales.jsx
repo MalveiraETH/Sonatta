@@ -557,7 +557,9 @@ Obrigado pela preferência!
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Nota Fiscal</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Valor Bruto</TableHead>
+                <TableHead className="text-right">Taxa</TableHead>
+                <TableHead className="text-right">Valor Líquido</TableHead>
                 <TableHead className="text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
