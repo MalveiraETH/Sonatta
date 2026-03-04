@@ -453,10 +453,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           const numInstallments = payment.installments || 1;
           let baseAmount = payment.amount / numInstallments;
 
-          // Aplicar taxa do cartão de crédito por parcela
-          if (payment.method === 'cartao_credito' && payment.card_brand && payment.fee_rate > 0) {
-            baseAmount = baseAmount * (1 + payment.fee_rate / 100);
-          }
+          // A parcela registrada em contas a receber é o valor bruto sem taxa
+          // (a taxa é desconto da loja, não acréscimo ao cliente)
 
           let baseDueDate;
           if (payment.method === 'pix_parcelado' && firstDueDate) {
