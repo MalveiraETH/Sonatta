@@ -140,6 +140,20 @@ export default function Sales() {
     return sale.payment_details?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
   };
 
+  const getCardFeeTotal = (sale) => {
+    return (sale.payment_details || []).reduce((sum, p) => {
+      const isCard = p.method === 'cartao_credito' || p.method === 'cartao_debito';
+      if (isCard && p.fee_rate > 0) {
+        return sum + (p.amount || 0) * (p.fee_rate / 100);
+      }
+      return sum;
+    }, 0);
+  };
+
+  const getNetTotal = (sale) => {
+    return getTotalPayments(sale) - getCardFeeTotal(sale);
+  };
+
   const sendWhatsApp = async (sale) => {
     if (!sale.client_phone) {
       toast.error('Cliente não possui telefone');
