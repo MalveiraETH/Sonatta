@@ -501,6 +501,7 @@ export default function AccountsReceivable() {
               <TableHead>Método</TableHead>
               <TableHead>Parcela</TableHead>
               <TableHead>Vencimento</TableHead>
+              <TableHead>Dt. Pagamento</TableHead>
               <TableHead className="text-right">Valor Original</TableHead>
               <TableHead className="text-right">Saldo</TableHead>
               <TableHead className="text-center">Ações</TableHead>
