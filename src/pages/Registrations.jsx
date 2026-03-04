@@ -3,13 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, CreditCard, Tag, Users, FileText, RotateCw } from 'lucide-react';
+import { Building2, CreditCard, Tag, Users, FileText, RotateCw, Banknote } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import CompanyTab from '../components/financial/CompanyTab';
 import AccountsTab from '../components/financial/AccountsTab';
 import CategoriesTab from '../components/financial/CategoriesTab';
 import CounterpartiesTab from '../components/financial/CounterpartiesTab';
 import RecurringExpensesTab from '../components/financial/RecurringExpensesTab';
+import PaymentTypesTab from '../components/registrations/PaymentTypesTab';
 
 export default function Registrations() {
   const [activeTab, setActiveTab] = useState('empresas');
