@@ -1170,11 +1170,13 @@ export default function Reports() {
                   <TableHeader>
                     <TableRow className="bg-slate-50">
                       <TableHead>Cliente</TableHead>
-                      <TableHead>Método</TableHead>
+                      <TableHead>Método / Bandeira</TableHead>
                       <TableHead>Parcela</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Data Pagamento</TableHead>
-                      <TableHead className="text-right">Valor Original</TableHead>
+                      <TableHead className="text-right">Valor Bruto</TableHead>
+                      <TableHead className="text-right">Taxa</TableHead>
+                      <TableHead className="text-right">Valor Líquido</TableHead>
                       <TableHead className="text-right">Valor Pago</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
                       <TableHead>Status</TableHead>
