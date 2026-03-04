@@ -1139,17 +1139,25 @@ export default function Reports() {
                     
                     return passesFilter;
                   })
-                  .map(i => ({
-                    'Cliente': i.client_name,
-                    'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
-                    'Parcela': i.installment_number,
-                    'Vencimento': format(new Date(i.due_date), 'dd/MM/yyyy'),
-                    'Data Pagamento': i.last_payment_date ? format(new Date(i.last_payment_date), 'dd/MM/yyyy') : '-',
-                    'Valor Original': i.original_amount,
-                    'Valor Pago': i.paid_amount,
-                    'Saldo': i.remaining_amount,
-                    'Status': i.payment_status === 'pago' ? 'Pago' : i.payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'
-                  }));
+                  .map(i => {
+                   const feeRate = i.fee_rate || 0;
+                   const isCard = i.payment_method === 'cartao_credito';
+                   const netAmount = isCard && feeRate > 0 ? (i.original_amount || 0) * (1 - feeRate / 100) : (i.original_amount || 0);
+                   return {
+                     'Cliente': i.client_name,
+                     'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
+                     'Bandeira': i.card_brand || '',
+                     'Parcela': i.installment_number,
+                     'Vencimento': format(new Date(i.due_date), 'dd/MM/yyyy'),
+                     'Data Pagamento': i.last_payment_date ? format(new Date(i.last_payment_date), 'dd/MM/yyyy') : '-',
+                     'Valor Bruto': i.original_amount,
+                     'Taxa Cartão (%)': feeRate || '',
+                     'Valor Líquido': netAmount,
+                     'Valor Pago': i.paid_amount,
+                     'Saldo': i.remaining_amount,
+                     'Status': i.payment_status === 'pago' ? 'Pago' : i.payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'
+                   };
+                  });
                 exportToExcel(data, 'relatorio_contas_receber');
               }} variant="outline">
                 <Download className="h-4 w-4 mr-2" />
