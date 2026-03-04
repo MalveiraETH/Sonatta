@@ -675,6 +675,45 @@ export default function AccountsReceivable() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Parcela</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Vencimento</Label>
+              <Input type="date" value={editData.due_date || ''} onChange={(e) => setEditData(d => ({ ...d, due_date: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Valor Original (R$)</Label>
+              <Input type="number" step="0.01" value={editData.original_amount || ''} onChange={(e) => setEditData(d => ({ ...d, original_amount: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Valor Pago (R$)</Label>
+              <Input type="number" step="0.01" value={editData.paid_amount || ''} onChange={(e) => setEditData(d => ({ ...d, paid_amount: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Data do Último Pagamento</Label>
+              <Input type="date" value={editData.last_payment_date || ''} onChange={(e) => setEditData(d => ({ ...d, last_payment_date: e.target.value }))} />
+            </div>
+            {editData.original_amount && (
+              <div className="bg-slate-50 p-3 rounded text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Saldo restante:</span>
+                  <span className="font-bold">{formatCurrency(Number(editData.original_amount) - Number(editData.paid_amount || 0))}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEdit} className="bg-[#6B3FA0] hover:bg-[#834CB8]">Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
         <DialogContent>
           <DialogHeader>
