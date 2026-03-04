@@ -512,12 +512,13 @@ export default function AccountsReceivable() {
             <TableRow className="bg-slate-50">
               <TableHead>Status</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Método</TableHead>
+              <TableHead>Método / Bandeira</TableHead>
               <TableHead>Parcela</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Dt. Pagamento</TableHead>
-              <TableHead className="text-right">Valor Original</TableHead>
-              <TableHead className="text-right">Saldo</TableHead>
+              <TableHead className="text-right">Valor Bruto</TableHead>
+              <TableHead className="text-right">Taxa</TableHead>
+              <TableHead className="text-right">Valor Líquido</TableHead>
               <TableHead className="text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
