@@ -566,7 +566,7 @@ Obrigado pela preferência!
             <TableBody>
               {filteredSales.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-slate-500">
+                  <TableCell colSpan={12} className="text-center py-12 text-slate-500">
                     Nenhuma venda encontrada
                   </TableCell>
                 </TableRow>
