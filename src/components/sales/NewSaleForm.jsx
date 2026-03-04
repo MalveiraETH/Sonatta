@@ -540,7 +540,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     }).format(value || 0);
   };
 
-  const paymentMethods = {
+  // Build payment methods list from active payment types + fallbacks
+  const paymentMethodLabels = {
     dinheiro: 'Dinheiro',
     pix: 'PIX à Vista',
     pix_parcelado: 'PIX Parcelado',
@@ -549,6 +550,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     boleto: 'Boleto',
     transferencia: 'Transferência'
   };
+  const activeMethodKeys = paymentTypes.map(pt => pt.type);
+  const paymentMethods = Object.fromEntries(
+    Object.entries(paymentMethodLabels).filter(([k]) => activeMethodKeys.includes(k) || !['dinheiro','pix','pix_parcelado','cartao_credito','cartao_debito'].includes(k))
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
