@@ -909,8 +909,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
                       {/* Brand selector for debit/credit */}
                       {(payment.method === 'cartao_debito' || payment.method === 'cartao_credito') && (() => {
-                        const pt = getPaymentTypeConfig(payment.method);
-                        const brands = pt ? (pt.card_brands || []) : [];
+                        const brands = getAggregatedBrands(payment.method);
                         return (
                           <div>
                             <Label className="text-xs">Bandeira</Label>
