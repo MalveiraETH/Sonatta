@@ -950,16 +950,16 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                         )}
                       </div>
 
-                      {/* Fee info for debit */}
+                      {/* Fee info for debit - taxa é descontada do valor recebido */}
                       {payment.method === 'cartao_debito' && payment.card_brand && payment.fee_rate > 0 && (
                         <p className="text-xs text-slate-500 bg-amber-50 px-2 py-1 rounded">
-                          Taxa {payment.card_brand}: {payment.fee_rate}% → valor líquido: {formatCurrency(payment.amount * (1 - payment.fee_rate / 100))}
+                          Taxa {payment.card_brand}: {payment.fee_rate}% → você recebe: {formatCurrency(payment.amount * (1 - payment.fee_rate / 100))}
                         </p>
                       )}
-                      {/* Fee info for credit */}
-                      {payment.method === 'cartao_credito' && payment.card_brand && payment.installments > 0 && payment.fee_rate > 0 && (
+                      {/* Fee info for credit - taxa é descontada de cada parcela recebida */}
+                      {payment.method === 'cartao_credito' && payment.card_brand && (payment.installments || 1) > 0 && payment.fee_rate > 0 && (
                         <p className="text-xs text-slate-500 bg-amber-50 px-2 py-1 rounded">
-                          Taxa {payment.installments}x {payment.card_brand}: {payment.fee_rate}% → parcela c/ taxa: {formatCurrency((payment.amount / (payment.installments || 1)) * (1 + payment.fee_rate / 100))}
+                          Taxa {payment.installments || 1}x {payment.card_brand}: {payment.fee_rate}% → parcela líquida: {formatCurrency((payment.amount / (payment.installments || 1)) * (1 - payment.fee_rate / 100))}
                         </p>
                       )}
 
