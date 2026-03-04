@@ -451,13 +451,17 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       for (const payment of formData.payment_details) {
         if (payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') {
           const numInstallments = payment.installments || 1;
-          const installmentAmount = payment.amount / numInstallments;
+          let baseAmount = payment.amount / numInstallments;
+
+          // Aplicar taxa do cartão de crédito por parcela
+          if (payment.method === 'cartao_credito' && payment.card_brand && payment.fee_rate > 0) {
+            baseAmount = baseAmount * (1 + payment.fee_rate / 100);
+          }
+
           let baseDueDate;
-          
           if (payment.method === 'pix_parcelado' && firstDueDate) {
             baseDueDate = new Date(firstDueDate);
           } else {
-            // Cartão de crédito: primeira parcela vence D+30
             baseDueDate = new Date(saleDate);
             baseDueDate.setDate(baseDueDate.getDate() + 30);
           }
@@ -474,9 +478,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               payment_method: payment.method,
               installment_number: i,
               due_date: dueDate.toISOString().split('T')[0],
-              original_amount: installmentAmount,
+              original_amount: baseAmount,
               paid_amount: 0,
-              remaining_amount: installmentAmount,
+              remaining_amount: baseAmount,
               payment_status: 'pendente',
               payment_history: []
             });
