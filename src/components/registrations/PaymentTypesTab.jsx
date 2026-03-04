@@ -82,7 +82,7 @@ export default function PaymentTypesTab() {
         }
         if (form.type === 'cartao_credito') {
           for (const ir of (brand.installment_rates || [])) {
-            if (!ir.installments || ir.rate === '') { toast.error('Parcela e taxa obrigatórias'); return false; }
+            if (ir.installments === '' || ir.installments === null || ir.installments === undefined || ir.rate === '' || ir.rate === null) { toast.error('Parcela e taxa obrigatórias'); return false; }
             if (ir.rate < 0 || ir.rate > 100) { toast.error('Taxa deve ser entre 0 e 100'); return false; }
           }
           // check duplicate installments
