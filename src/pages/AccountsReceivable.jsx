@@ -205,6 +205,35 @@ export default function AccountsReceivable() {
     }
   };
 
+  const handleEdit = async () => {
+    try {
+      await base44.entities.Installment.update(selectedInstallment.id, {
+        due_date: editData.due_date,
+        original_amount: Number(editData.original_amount),
+        paid_amount: Number(editData.paid_amount),
+        remaining_amount: Number(editData.original_amount) - Number(editData.paid_amount),
+        payment_status: Number(editData.paid_amount) >= Number(editData.original_amount) ? 'pago' : Number(editData.paid_amount) > 0 ? 'parcialmente_pago' : selectedInstallment.payment_status === 'pago' ? 'pendente' : selectedInstallment.payment_status,
+        last_payment_date: editData.last_payment_date || selectedInstallment.last_payment_date,
+      });
+      toast.success('Parcela atualizada!');
+      setEditOpen(false);
+      loadInstallments();
+    } catch (error) {
+      toast.error('Erro ao atualizar parcela');
+    }
+  };
+
+  const openEdit = (inst) => {
+    setSelectedInstallment(inst);
+    setEditData({
+      due_date: inst.due_date,
+      original_amount: inst.original_amount,
+      paid_amount: inst.paid_amount || 0,
+      last_payment_date: inst.last_payment_date || '',
+    });
+    setEditOpen(true);
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setFilterStatus('todos');
