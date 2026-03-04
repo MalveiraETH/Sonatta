@@ -91,6 +91,10 @@ export default function Registrations() {
         <TabsContent value="recorrentes" className="mt-6">
           <RecurringExpensesTab />
         </TabsContent>
+
+        <TabsContent value="pagamentos" className="mt-6">
+          <PaymentTypesTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
