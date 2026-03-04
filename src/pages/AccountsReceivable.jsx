@@ -530,6 +530,7 @@ export default function AccountsReceivable() {
                     <TableCell>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</TableCell>
                     <TableCell>{inst.installment_number}</TableCell>
                     <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
+                    <TableCell>{inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
                     <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(inst.remaining_amount)}</TableCell>
                     <TableCell className="text-center">
@@ -543,6 +544,10 @@ export default function AccountsReceivable() {
                           <DropdownMenuItem onClick={() => { setSelectedInstallment(inst); setDetailsOpen(true); }}>
                             <Eye className="h-4 w-4 mr-2" />
                             Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(inst)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Editar
                           </DropdownMenuItem>
                           {inst.payment_status !== 'pago' && (
                             <DropdownMenuItem onClick={() => { 
