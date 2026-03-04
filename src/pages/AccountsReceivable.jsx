@@ -146,17 +146,31 @@ export default function AccountsReceivable() {
     return matchSearch && matchStatus && matchMethod && matchDate;
   });
 
+  const getNetAmount = (inst) => {
+    if (inst.fee_rate > 0 && inst.payment_method === 'cartao_credito') {
+      return (inst.original_amount || 0) * (1 - (inst.fee_rate || 0) / 100);
+    }
+    return inst.original_amount || 0;
+  };
+
+  const getNetRemaining = (inst) => {
+    if (inst.fee_rate > 0 && inst.payment_method === 'cartao_credito') {
+      return (inst.remaining_amount || 0) * (1 - (inst.fee_rate || 0) / 100);
+    }
+    return inst.remaining_amount || 0;
+  };
+
   const stats = {
-    toReceive: filteredInstallments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
+    toReceive: filteredInstallments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + getNetRemaining(i), 0),
     overdue: filteredInstallments.filter(i => {
       if (i.payment_status === 'pago') return false;
       const dueDate = new Date(i.due_date);
       const today = new Date();
       return dueDate < today;
-    }).reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
+    }).reduce((sum, i) => sum + getNetRemaining(i), 0),
     pixParcelado: filteredInstallments.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length,
     cartaoCredito: filteredInstallments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length,
-    totalPaid: filteredInstallments.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + (i.original_amount || 0), 0)
+    totalPaid: filteredInstallments.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + getNetAmount(i), 0)
   };
 
   const handlePayment = async () => {
