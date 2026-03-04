@@ -315,10 +315,8 @@ export default function PaymentTypesTab() {
                   <div key={i} className="border rounded-lg overflow-hidden">
                     <div className="p-3 bg-slate-50 flex items-center gap-2">
                       <div className="flex-1">
-                        <Select value={brand.brand} onValueChange={v => updateBrand(i, 'brand', v)}>
-                          <SelectTrigger><SelectValue placeholder="Selecione a bandeira..." /></SelectTrigger>
-                          <SelectContent>{BRAND_OPTIONS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
-                        </Select>
+                        <Input list="brand-options-credit" value={brand.brand} onChange={e => updateBrand(i, 'brand', e.target.value)} placeholder="Ex: Visa, Master..." />
+                        <datalist id="brand-options-credit">{BRAND_OPTIONS.map(b => <option key={b} value={b} />)}</datalist>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => setExpandedBrands(e => ({ ...e, [i]: !e[i] }))}>
                         {expandedBrands[i] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
