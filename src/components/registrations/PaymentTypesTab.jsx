@@ -195,8 +195,16 @@ export default function PaymentTypesTab() {
       return parts.join(' · ') || 'Sem taxa configurada';
     }
     if (['cartao_debito', 'cartao_credito'].includes(pt.type)) {
-      const n = (pt.card_brands || []).length;
-      return `${n} bandeira${n !== 1 ? 's' : ''} cadastrada${n !== 1 ? 's' : ''}`;
+      const brands = pt.card_brands || [];
+      if (brands.length === 0) return 'Nenhuma bandeira cadastrada';
+      return brands.map(b => {
+        const name = b.brand || '?';
+        if (pt.type === 'cartao_credito') {
+          const nParcelas = (b.installment_rates || []).length;
+          return `${name} (${nParcelas}x)`;
+        }
+        return name;
+      }).join(', ');
     }
     return '—';
   };
