@@ -956,8 +956,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                               </SelectTrigger>
                               <SelectContent>
                                 {(() => {
-                                  const pt = getPaymentTypeConfig(payment.method);
-                                  const brand = (pt?.card_brands || []).find(b => b.brand === payment.card_brand);
+                                  const brand = findBrandConfig(payment.method, payment.card_brand);
                                   const available = payment.method === 'cartao_credito' && brand
                                     ? (brand.installment_rates || []).map(ir => Number(ir.installments)).sort((a,b)=>a-b)
                                     : [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
