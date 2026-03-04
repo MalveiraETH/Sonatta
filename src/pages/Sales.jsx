@@ -631,6 +631,10 @@ Obrigado pela preferência!
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(getTotalPayments(sale))}</TableCell>
+                    <TableCell className="text-right text-amber-600 text-sm">
+                      {getCardFeeTotal(sale) > 0 ? `-${formatCurrency(getCardFeeTotal(sale))}` : <span className="text-slate-400">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(getNetTotal(sale))}</TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
