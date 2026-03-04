@@ -891,6 +891,31 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Brand selector for debit/credit */}
+                      {(payment.method === 'cartao_debito' || payment.method === 'cartao_credito') && (() => {
+                        const pt = getPaymentTypeConfig(payment.method);
+                        const brands = pt ? (pt.card_brands || []) : [];
+                        return (
+                          <div>
+                            <Label className="text-xs">Bandeira</Label>
+                            <Select
+                              value={payment.card_brand || ''}
+                              onValueChange={(value) => updatePayment(index, 'card_brand', value)}
+                            >
+                              <SelectTrigger className="text-sm">
+                                <SelectValue placeholder="Selecione a bandeira..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {brands.map(b => (
+                                  <SelectItem key={b.brand} value={b.brand}>{b.brand}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })()}
+
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label className="text-xs">Valor <span className="text-red-500">*</span></Label>
@@ -913,21 +938,42 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           <div>
                             <Label className="text-xs">Parcelas</Label>
                             <Select
-                              value={String(payment.installments)}
+                              value={String(payment.installments || 1)}
                               onValueChange={(value) => updatePayment(index, 'installments', Number(value))}
                             >
                               <SelectTrigger className="text-sm">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((n) => (
-                                  <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                                ))}
+                                {(() => {
+                                  const pt = getPaymentTypeConfig(payment.method);
+                                  const brand = (pt?.card_brands || []).find(b => b.brand === payment.card_brand);
+                                  const available = payment.method === 'cartao_credito' && brand
+                                    ? (brand.installment_rates || []).map(ir => Number(ir.installments)).sort((a,b)=>a-b)
+                                    : [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+                                  return available.map(n => (
+                                    <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                                  ));
+                                })()}
                               </SelectContent>
                             </Select>
                           </div>
                         )}
                       </div>
+
+                      {/* Fee info for debit */}
+                      {payment.method === 'cartao_debito' && payment.card_brand && payment.fee_rate > 0 && (
+                        <p className="text-xs text-slate-500 bg-amber-50 px-2 py-1 rounded">
+                          Taxa {payment.card_brand}: {payment.fee_rate}% → valor líquido: {formatCurrency(payment.amount * (1 - payment.fee_rate / 100))}
+                        </p>
+                      )}
+                      {/* Fee info for credit */}
+                      {payment.method === 'cartao_credito' && payment.card_brand && payment.installments > 0 && payment.fee_rate > 0 && (
+                        <p className="text-xs text-slate-500 bg-amber-50 px-2 py-1 rounded">
+                          Taxa {payment.installments}x {payment.card_brand}: {payment.fee_rate}% → parcela c/ taxa: {formatCurrency((payment.amount / (payment.installments || 1)) * (1 + payment.fee_rate / 100))}
+                        </p>
+                      )}
+
                       {payment.method === 'pix_parcelado' && payment.installments > 1 && (
                         <div>
                           <Label className="text-xs">Data do 1º Vencimento</Label>
