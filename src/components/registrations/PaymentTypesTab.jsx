@@ -20,7 +20,7 @@ const TYPE_LABELS = {
   cartao_credito: 'Cartão de Crédito',
 };
 
-const BRAND_OPTIONS = ['Visa', 'Master', 'Elo', 'Amex', 'Hipercard', 'Outro'];
+const BRAND_OPTIONS = ['Visa', 'Master', 'Elo', 'Amex', 'Hipercard'];
 
 const emptyForm = () => ({
   type: '',
