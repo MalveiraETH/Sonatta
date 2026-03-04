@@ -919,18 +919,14 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                         <div>
                           <Label className="text-xs">Valor <span className="text-red-500">*</span></Label>
                           <Input
-                            type="number"
-                            inputMode="decimal"
-                            step="0.01"
-                            value={payment.amount}
-                            onFocus={(e) => {
-                              if (e.target.value === '0') {
-                                e.target.select();
-                              }
-                            }}
-                            onChange={(e) => updatePayment(index, 'amount', Number(e.target.value))}
-                            placeholder="0.00"
-                            className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
+                           type="number"
+                           inputMode="decimal"
+                           step="0.01"
+                           value={payment.amount === 0 ? '' : payment.amount}
+                           onFocus={(e) => e.target.select()}
+                           onChange={(e) => updatePayment(index, 'amount', e.target.value === '' ? 0 : Number(e.target.value))}
+                           placeholder="0.00"
+                           className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                           />
                         </div>
                         {(payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') && (
