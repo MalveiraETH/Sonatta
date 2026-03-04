@@ -213,6 +213,9 @@ export default function Reports() {
             dataPagamento = format(new Date(s.updated_date), 'dd/MM/yyyy');
           }
           
+          const feeRate = pd.fee_rate || 0;
+          const isCard = ['cartao_credito', 'cartao_debito'].includes(pd.method);
+          const netAmount = isCard && feeRate > 0 ? (pd.amount || 0) * (1 - feeRate / 100) : (pd.amount || 0);
           data.push({
             'Número': s.sale_number,
             'Cliente': s.client_name,
@@ -220,7 +223,10 @@ export default function Reports() {
             'CPF/CNPJ Responsável': client?.payer_document || '',
             'Prof. Indicação': profIndicacao?.full_name || '',
             'Prof. Responsável': profResponsavel?.full_name || '',
-            'Valor': pd.amount || 0,
+            'Valor Bruto': pd.amount || 0,
+            'Bandeira': pd.card_brand || '',
+            'Taxa Cartão (%)': feeRate || '',
+            'Valor Líquido': netAmount,
             'Método': paymentMethodLabels[pd.method] || pd.method,
             'Parcelas': pd.installments > 1 ? pd.installments : '',
             'Status': status,
