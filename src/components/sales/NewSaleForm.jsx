@@ -286,14 +286,35 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     recalculateTotals(newItems, formData.payment_details);
   };
 
-  // Get active payment type config
-  const getPaymentTypeConfig = (method) => paymentTypes.find(pt => pt.type === method);
+  // Aggregate all card_brands from all active records of a given type
+  const getAggregatedBrands = (method) => {
+    const records = paymentTypes.filter(pt => pt.type === method);
+    const allBrands = [];
+    const seen = new Set();
+    for (const pt of records) {
+      for (const b of (pt.card_brands || [])) {
+        if (b.brand && !seen.has(b.brand)) {
+          seen.add(b.brand);
+          allBrands.push(b);
+        }
+      }
+    }
+    return allBrands;
+  };
+
+  // Find a brand's config across all records of that type
+  const findBrandConfig = (method, brand) => {
+    for (const pt of paymentTypes.filter(p => p.type === method)) {
+      const found = (pt.card_brands || []).find(b => b.brand === brand);
+      if (found) return found;
+    }
+    return null;
+  };
 
   // Get installment rate for credit card brand+installments
   const getCreditRate = (method, brand, installments) => {
-    const pt = getPaymentTypeConfig(method);
-    if (!pt || !brand) return 0;
-    const brandData = (pt.card_brands || []).find(b => b.brand === brand);
+    if (!brand) return 0;
+    const brandData = findBrandConfig(method, brand);
     if (!brandData) return 0;
     const ir = (brandData.installment_rates || []).find(r => Number(r.installments) === Number(installments));
     return ir ? Number(ir.rate) : 0;
@@ -301,9 +322,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   // Get debit rate for a brand
   const getDebitRate = (brand) => {
-    const pt = getPaymentTypeConfig('cartao_debito');
-    if (!pt || !brand) return 0;
-    const brandData = (pt.card_brands || []).find(b => b.brand === brand);
+    if (!brand) return 0;
+    const brandData = findBrandConfig('cartao_debito', brand);
     return brandData ? Number(brandData.rate) : 0;
   };
 
