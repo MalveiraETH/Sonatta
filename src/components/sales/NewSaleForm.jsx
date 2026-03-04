@@ -474,6 +474,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               client_id: formData.client_id,
               client_name: formData.client_name,
               payment_method: payment.method,
+              card_brand: payment.card_brand || '',
+              fee_rate: payment.fee_rate || 0,
               installment_number: i,
               due_date: dueDate.toISOString().split('T')[0],
               original_amount: baseAmount,
