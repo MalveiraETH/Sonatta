@@ -291,10 +291,8 @@ export default function PaymentTypesTab() {
                     <div className="grid grid-cols-[1fr,120px,36px] gap-2 items-end">
                       <div>
                         <Label className="text-xs">Bandeira *</Label>
-                        <Select value={brand.brand} onValueChange={v => updateBrand(i, 'brand', v)}>
-                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>{BRAND_OPTIONS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
-                        </Select>
+                        <Input list="brand-options-debit" value={brand.brand} onChange={e => updateBrand(i, 'brand', e.target.value)} placeholder="Ex: Visa, Master..." />
+                        <datalist id="brand-options-debit">{BRAND_OPTIONS.map(b => <option key={b} value={b} />)}</datalist>
                       </div>
                       <div>
                         <Label className="text-xs">Taxa (%) *</Label>
