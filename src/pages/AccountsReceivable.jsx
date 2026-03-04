@@ -59,6 +59,8 @@ export default function AccountsReceivable() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editData, setEditData] = useState({});
 
   useEffect(() => {
     loadInstallments();
