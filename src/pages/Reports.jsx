@@ -1221,17 +1221,26 @@ export default function Reports() {
                       })
                       .map(inst => (
                         <TableRow key={inst.id}>
-                          <TableCell className="font-medium">{inst.client_name}</TableCell>
-                          <TableCell>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</TableCell>
-                          <TableCell>{inst.installment_number}</TableCell>
-                          <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
-                          <TableCell>
-                            {inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : '-'}
-                          </TableCell>
-                          <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(inst.paid_amount)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(inst.remaining_amount)}</TableCell>
-                          <TableCell>
+                         <TableCell className="font-medium">{inst.client_name}</TableCell>
+                         <TableCell>
+                           {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}
+                           {inst.card_brand && <span className="ml-1 text-xs text-slate-500">({inst.card_brand})</span>}
+                         </TableCell>
+                         <TableCell>{inst.installment_number}</TableCell>
+                         <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
+                         <TableCell>{inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : '-'}</TableCell>
+                         <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
+                         <TableCell className="text-right text-amber-600">
+                           {inst.fee_rate > 0 ? `${inst.fee_rate}%` : '—'}
+                         </TableCell>
+                         <TableCell className="text-right font-semibold text-emerald-700">
+                           {formatCurrency(inst.fee_rate > 0 && inst.payment_method === 'cartao_credito'
+                             ? (inst.original_amount || 0) * (1 - (inst.fee_rate || 0) / 100)
+                             : inst.original_amount)}
+                         </TableCell>
+                         <TableCell className="text-right">{formatCurrency(inst.paid_amount)}</TableCell>
+                         <TableCell className="text-right font-medium">{formatCurrency(inst.remaining_amount)}</TableCell>
+                         <TableCell>
                             <span className={`text-xs px-2 py-1 rounded-full ${
                               inst.payment_status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 
                               inst.payment_status === 'atrasado' ? 'bg-red-100 text-red-700' : 
