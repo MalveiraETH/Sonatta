@@ -840,13 +840,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   step="0.0001"
                   min="0"
                   max="100"
-                  value={discountPercent}
-                  onFocus={(e) => {
-                    if (e.target.value === '0') {
-                      e.target.select();
-                    }
-                  }}
-                  onChange={(e) => updateDiscount(Number(e.target.value))}
+                  value={discountPercent === 0 ? '' : discountPercent}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => updateDiscount(e.target.value === '' ? 0 : Number(e.target.value))}
                   placeholder="0"
                   className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                 />
