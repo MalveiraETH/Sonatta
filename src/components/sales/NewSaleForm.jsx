@@ -286,10 +286,31 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     recalculateTotals(newItems, formData.payment_details);
   };
 
+  // Get active payment type config
+  const getPaymentTypeConfig = (method) => paymentTypes.find(pt => pt.type === method);
+
+  // Get installment rate for credit card brand+installments
+  const getCreditRate = (method, brand, installments) => {
+    const pt = getPaymentTypeConfig(method);
+    if (!pt || !brand) return 0;
+    const brandData = (pt.card_brands || []).find(b => b.brand === brand);
+    if (!brandData) return 0;
+    const ir = (brandData.installment_rates || []).find(r => Number(r.installments) === Number(installments));
+    return ir ? Number(ir.rate) : 0;
+  };
+
+  // Get debit rate for a brand
+  const getDebitRate = (brand) => {
+    const pt = getPaymentTypeConfig('cartao_debito');
+    if (!pt || !brand) return 0;
+    const brandData = (pt.card_brands || []).find(b => b.brand === brand);
+    return brandData ? Number(brandData.rate) : 0;
+  };
+
   const addPayment = () => {
     setFormData({
       ...formData,
-      payment_details: [{ method: 'pix', amount: 0, installments: 1, status: 'pendente' }, ...formData.payment_details]
+      payment_details: [{ method: 'pix', amount: 0, installments: 1, status: 'pendente', card_brand: '', fee_rate: 0 }, ...formData.payment_details]
     });
   };
 
@@ -300,7 +321,24 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   const updatePayment = (index, field, value) => {
     const newPayments = [...formData.payment_details];
-    newPayments[index] = { ...newPayments[index], [field]: value };
+    const updated = { ...newPayments[index], [field]: value };
+
+    // Auto-reset brand/fee when method changes
+    if (field === 'method') {
+      updated.card_brand = '';
+      updated.fee_rate = 0;
+      updated.installments = 1;
+    }
+    // Auto-calc fee for debit when brand changes
+    if (field === 'card_brand' && updated.method === 'cartao_debito') {
+      updated.fee_rate = getDebitRate(value);
+    }
+    // Auto-calc fee for credit when brand or installments change
+    if ((field === 'card_brand' || field === 'installments') && updated.method === 'cartao_credito') {
+      updated.fee_rate = getCreditRate('cartao_credito', updated.card_brand, updated.installments);
+    }
+
+    newPayments[index] = updated;
     setFormData({ ...formData, payment_details: newPayments });
   };
 
