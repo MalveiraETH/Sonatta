@@ -604,9 +604,13 @@ export default function AccountsReceivable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setSelectedInstallment(inst); setDetailsOpen(true); }}>
+                      <DropdownMenuItem onClick={() => { setSelectedInstallment(inst); setDetailsOpen(true); }}>
                           <Eye className="h-4 w-4 mr-2" />
                           Detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(inst)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar
                         </DropdownMenuItem>
                         {inst.payment_status !== 'pago' && (
                           <DropdownMenuItem onClick={() => { 
