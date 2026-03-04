@@ -168,15 +168,17 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   const loadData = async () => {
     try {
-      const [clientsData, productsData, categoriesData, user] = await Promise.all([
+      const [clientsData, productsData, categoriesData, paymentTypesData, user] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Product.list(),
         base44.entities.ExpenseCategory.filter({ type: 'receita' }),
+        base44.entities.PaymentType.filter({ status: 'ativo' }),
         base44.auth.me()
       ]);
       setClients(clientsData);
       setProducts(productsData);
       setCategories(categoriesData);
+      setPaymentTypes(paymentTypesData);
       setCurrentUser(user);
       
       if (!sale && !quote) {
