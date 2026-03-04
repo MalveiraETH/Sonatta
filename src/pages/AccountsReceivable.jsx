@@ -39,7 +39,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Filter, MoreVertical, Eye, DollarSign, AlertCircle, Clock, CheckCircle2, Search, X, CreditCard, Wallet } from 'lucide-react';
+import { Filter, MoreVertical, Eye, DollarSign, AlertCircle, Clock, CheckCircle2, Search, X, CreditCard, Wallet, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
