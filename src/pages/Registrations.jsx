@@ -62,6 +62,13 @@ export default function Registrations() {
               <RotateCw className="h-5 w-5" />
               <span className="text-xs font-medium">Recorrentes</span>
             </TabsTrigger>
+            <TabsTrigger 
+              value="pagamentos" 
+              className="flex-1 min-w-[90px] h-11 flex flex-col items-center justify-center gap-1 data-[state=active]:bg-[#6B3FA0] data-[state=active]:text-white rounded-lg transition-all"
+            >
+              <Banknote className="h-5 w-5" />
+              <span className="text-xs font-medium">Pagamentos</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
