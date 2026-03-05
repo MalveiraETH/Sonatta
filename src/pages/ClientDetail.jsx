@@ -234,50 +234,105 @@ export default function ClientDetail() {
         </div>
       </div>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                <Phone className="h-5 w-5 text-blue-600" />
+      {/* Info Card - Dados Completos */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base text-slate-700">Dados do Cliente</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Phone className="h-4 w-4 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Telefone</p>
-                <p className="font-medium">{client.phone || '-'}</p>
+                <p className="text-xs text-slate-400">Telefone (WhatsApp)</p>
+                <p className="font-medium text-sm">{client.phone || '-'}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
-                <Mail className="h-5 w-5 text-purple-600" />
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Mail className="h-4 w-4 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">E-mail</p>
-                <p className="font-medium truncate">{client.email || '-'}</p>
+                <p className="text-xs text-slate-400">E-mail</p>
+                <p className="font-medium text-sm break-all">{client.email || '-'}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                <User className="h-5 w-5 text-emerald-600" />
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <User className="h-4 w-4 text-slate-600" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Responsável</p>
-                <p className="font-medium">{client.responsible_professional || '-'}</p>
+                <p className="text-xs text-slate-400">CPF</p>
+                <p className="font-medium text-sm">{client.cpf || '-'}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Calendar className="h-4 w-4 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Data de Nascimento</p>
+                <p className="font-medium text-sm">
+                  {client.birth_date ? format(new Date(client.birth_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR }) : '-'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 sm:col-span-2">
+              <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <MapPin className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Endereço</p>
+                <p className="font-medium text-sm">{client.address || '-'}</p>
+              </div>
+            </div>
+
+            {(client.payer_name || client.payer_document) && (
+              <>
+                <div className="sm:col-span-full border-t pt-3 mt-1">
+                  <p className="text-xs font-semibold text-[#6B3FA0] mb-3">Responsável pelo Pagamento</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <User className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Nome do Responsável</p>
+                    <p className="font-medium text-sm">{client.payer_name || '-'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FileText className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">CPF ou CNPJ do Responsável</p>
+                    <p className="font-medium text-sm">{client.payer_document || '-'}</p>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {client.notes && (
+              <div className="sm:col-span-full flex items-start gap-3 border-t pt-3 mt-1">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <FileText className="h-4 w-4 text-slate-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Observações</p>
+                  <p className="text-sm text-slate-700">{client.notes}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs */}
       <Tabs defaultValue="devices" className="space-y-4">
