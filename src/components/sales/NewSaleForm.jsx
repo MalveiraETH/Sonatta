@@ -327,10 +327,28 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     return brandData ? Number(brandData.rate) : 0;
   };
 
+  // Calculate fee fields for all payment_details and return enriched array + totals
+  const calcPaymentFees = (payments) => {
+    const enriched = payments.map(p => {
+      let feeRate = 0;
+      if (p.method === 'cartao_debito' && p.card_brand) {
+        feeRate = getDebitRate(p.card_brand);
+      } else if (p.method === 'cartao_credito' && p.card_brand) {
+        feeRate = getCreditRate('cartao_credito', p.card_brand, p.installments || 1);
+      }
+      const amount = Number(p.amount) || 0;
+      const feeAmount = Math.round(amount * feeRate / 100 * 100) / 100;
+      const netAmount = Math.round((amount - feeAmount) * 100) / 100;
+      return { ...p, fee_rate: feeRate, fee_amount: feeAmount, net_amount: netAmount };
+    });
+    const totalFeeAmount = Math.round(enriched.reduce((s, p) => s + p.fee_amount, 0) * 100) / 100;
+    return { enriched, totalFeeAmount };
+  };
+
   const addPayment = () => {
     setFormData({
       ...formData,
-      payment_details: [{ method: 'pix', amount: 0, installments: 1, status: 'pendente', card_brand: '', fee_rate: 0 }, ...formData.payment_details]
+      payment_details: [{ method: 'pix', amount: 0, installments: 1, status: 'pendente', card_brand: '', fee_rate: 0, fee_amount: 0, net_amount: 0 }, ...formData.payment_details]
     });
   };
 
