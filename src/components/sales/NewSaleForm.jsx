@@ -910,6 +910,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       {/* Brand selector for debit/credit */}
                       {(payment.method === 'cartao_debito' || payment.method === 'cartao_credito') && (() => {
                         const brands = getAggregatedBrands(payment.method);
+                        // Include current saved brand even if not in list yet (avoids blank on load)
+                        const allOptions = payment.card_brand && !brands.find(b => b.brand === payment.card_brand)
+                          ? [{ brand: payment.card_brand }, ...brands]
+                          : brands;
                         return (
                           <div>
                             <Label className="text-xs">Bandeira</Label>
@@ -921,7 +925,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                                 <SelectValue placeholder="Selecione a bandeira..." />
                               </SelectTrigger>
                               <SelectContent>
-                                {brands.map(b => (
+                                {allOptions.map(b => (
                                   <SelectItem key={b.brand} value={b.brand}>{b.brand}</SelectItem>
                                 ))}
                               </SelectContent>
