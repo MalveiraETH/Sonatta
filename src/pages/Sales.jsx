@@ -638,11 +638,13 @@ Obrigado pela preferência!
                         {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(getTotalPayments(sale))}</TableCell>
-                    <TableCell className="text-right text-amber-600 text-sm">
-                      {getCardFeeTotal(sale) > 0 ? `-${formatCurrency(getCardFeeTotal(sale))}` : <span className="text-slate-400">—</span>}
+                    <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(getTotalPayments(sale))}</TableCell>
+                    <TableCell className="text-right tabular-nums text-sm">
+                      {getCardFeeTotal(sale) > 0
+                        ? <span className="text-amber-600">{formatCurrency(getCardFeeTotal(sale))}</span>
+                        : <span className="text-slate-400">—</span>}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-700">
+                    <TableCell className="text-right font-semibold tabular-nums text-emerald-700">
                       {formatCurrency(getNetTotal(sale) || getTotalPayments(sale))}
                     </TableCell>
                     <TableCell className="text-center">

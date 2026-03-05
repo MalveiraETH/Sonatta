@@ -48,12 +48,10 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AccountsPayable from './pages/AccountsPayable';
-import AccountsReceivable from './pages/AccountsReceivable';
 import Appointments from './pages/Appointments';
 import ClientDetail from './pages/ClientDetail';
 import Clients from './pages/Clients';
 import Contracts from './pages/Contracts';
-import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import PixReport from './pages/PixReport';
 import ProductDetail from './pages/ProductDetail';
@@ -61,20 +59,20 @@ import Professionals from './pages/Professionals';
 import Quotes from './pages/Quotes';
 import Registrations from './pages/Registrations';
 import Reports from './pages/Reports';
-import Sales from './pages/Sales';
 import Settings from './pages/Settings';
 import Tests from './pages/Tests';
+import AccountsReceivable from './pages/AccountsReceivable';
+import Dashboard from './pages/Dashboard';
+import Sales from './pages/Sales';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AccountsPayable": AccountsPayable,
-    "AccountsReceivable": AccountsReceivable,
     "Appointments": Appointments,
     "ClientDetail": ClientDetail,
     "Clients": Clients,
     "Contracts": Contracts,
-    "Dashboard": Dashboard,
     "Inventory": Inventory,
     "PixReport": PixReport,
     "ProductDetail": ProductDetail,
@@ -82,9 +80,11 @@ export const PAGES = {
     "Quotes": Quotes,
     "Registrations": Registrations,
     "Reports": Reports,
-    "Sales": Sales,
     "Settings": Settings,
     "Tests": Tests,
+    "AccountsReceivable": AccountsReceivable,
+    "Dashboard": Dashboard,
+    "Sales": Sales,
 }
 
 export const pagesConfig = {
