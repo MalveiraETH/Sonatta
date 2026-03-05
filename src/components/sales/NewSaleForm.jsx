@@ -497,46 +497,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       const newSale = await base44.entities.Sale.create(dataToSave);
       await logCreation('Venda', `${saleNumber} - ${formData.client_name}`, newSale.id);
 
-      // Criar parcelas para Pix Parcelado e Cartão de Crédito (qualquer quantidade)
-      for (const payment of formData.payment_details) {
-        if (payment.method === 'pix_parcelado' || payment.method === 'cartao_credito') {
-          const numInstallments = payment.installments || 1;
-          let baseAmount = payment.amount / numInstallments;
-
-          // A parcela registrada em contas a receber é o valor bruto sem taxa
-          // (a taxa é desconto da loja, não acréscimo ao cliente)
-
-          let baseDueDate;
-          if (payment.method === 'pix_parcelado' && firstDueDate) {
-            baseDueDate = new Date(firstDueDate);
-          } else {
-            baseDueDate = new Date(saleDate);
-            baseDueDate.setDate(baseDueDate.getDate() + 30);
-          }
-          
-          for (let i = 1; i <= numInstallments; i++) {
-            const dueDate = new Date(baseDueDate);
-            dueDate.setMonth(dueDate.getMonth() + (i - 1));
-            
-            await base44.entities.Installment.create({
-              sale_id: newSale.id,
-              sale_number: saleNumber,
-              client_id: formData.client_id,
-              client_name: formData.client_name,
-              payment_method: payment.method,
-              card_brand: payment.card_brand || '',
-              fee_rate: payment.fee_rate || 0,
-              installment_number: i,
-              due_date: dueDate.toISOString().split('T')[0],
-              original_amount: baseAmount,
-              paid_amount: 0,
-              remaining_amount: baseAmount,
-              payment_status: 'pendente',
-              payment_history: []
-            });
-          }
-        }
-      }
+      // Criar parcelas em Contas a Receber para Pix Parcelado e Cartão de Crédito
+      await createInstallmentsForSale(newSale, saleDate);
 
       // Atualizar estoque
       for (const item of formData.items) {
