@@ -146,18 +146,23 @@ export default function AccountsReceivable() {
     return matchSearch && matchStatus && matchMethod && matchDate;
   });
 
+  const getGrossAmount = (inst) => inst.gross_amount || inst.original_amount || 0;
+
   const getNetAmount = (inst) => {
-    if (inst.fee_rate > 0 && inst.payment_method === 'cartao_credito') {
-      return (inst.original_amount || 0) * (1 - (inst.fee_rate || 0) / 100);
-    }
-    return inst.original_amount || 0;
+    if (inst.net_amount !== undefined && inst.net_amount !== null) return inst.net_amount;
+    if (inst.fee_rate > 0) return getGrossAmount(inst) * (1 - inst.fee_rate / 100);
+    return getGrossAmount(inst);
+  };
+
+  const getFeeAmount = (inst) => {
+    if (inst.fee_amount !== undefined && inst.fee_amount !== null) return inst.fee_amount;
+    if (inst.fee_rate > 0) return getGrossAmount(inst) * (inst.fee_rate / 100);
+    return 0;
   };
 
   const getNetRemaining = (inst) => {
-    if (inst.fee_rate > 0 && inst.payment_method === 'cartao_credito') {
-      return (inst.remaining_amount || 0) * (1 - (inst.fee_rate || 0) / 100);
-    }
-    return inst.remaining_amount || 0;
+    const feeRatio = getGrossAmount(inst) > 0 ? getNetAmount(inst) / getGrossAmount(inst) : 1;
+    return (inst.remaining_amount || 0) * feeRatio;
   };
 
   const stats = {
