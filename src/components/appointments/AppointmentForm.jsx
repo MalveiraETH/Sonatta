@@ -290,6 +290,7 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
                   <SelectItem value="agendado">Agendado</SelectItem>
                   <SelectItem value="confirmado">Confirmado</SelectItem>
                   <SelectItem value="realizado">Realizado</SelectItem>
+                  <SelectItem value="faltou">Faltou</SelectItem>
                   <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
