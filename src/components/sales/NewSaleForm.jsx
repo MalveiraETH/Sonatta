@@ -466,6 +466,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           status: newStatus,
         };
         await base44.entities.Sale.update(sale.id, dataToUpdate);
+        // Sync installments (Contas a Receber) to reflect new payment_details
+        await syncInstallmentsForSale({ ...dataToUpdate, id: sale.id }, saleDate);
         await logEdit('Venda', `${saleNumber} - ${formData.client_name}`, sale.id);
         toast.success('Venda atualizada com sucesso!');
         onOpenChange(false);
