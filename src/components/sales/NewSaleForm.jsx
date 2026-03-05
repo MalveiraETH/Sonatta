@@ -445,14 +445,21 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     try {
       const saleNumber = formData.sale_number || generateSaleNumber();
 
+      // Calculate fees for all payments before saving
+      const { enriched: enrichedPayments, totalFeeAmount } = calcPaymentFees(formData.payment_details);
+      const totalNetAmount = Math.round((formData.total - totalFeeAmount) * 100) / 100;
+
       if (sale) {
         // MODO EDIÇÃO: recalcular status baseado nos pagamentos
-        const hasPendingMethodEdit = formData.payment_details.some(pd => 
+        const hasPendingMethodEdit = enrichedPayments.some(pd => 
           pd.method === 'pix_parcelado' || pd.method === 'cartao_credito'
         );
         const newStatus = hasPendingMethodEdit ? 'pendente' : 'pago';
         const dataToUpdate = {
           ...formData,
+          payment_details: enrichedPayments,
+          total_fee_amount: totalFeeAmount,
+          total_net_amount: totalNetAmount,
           sale_number: saleNumber,
           sale_date: format(saleDate, 'yyyy-MM-dd'),
           status: newStatus,
@@ -466,14 +473,16 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       }
 
       // Definir status inicial baseado no método de pagamento
-      // dinheiro e pix à vista = pago imediatamente; pix_parcelado e cartao_credito = pendente
-      const hasPendingMethod = formData.payment_details.some(pd => 
+      const hasPendingMethod = enrichedPayments.some(pd => 
         pd.method === 'pix_parcelado' || pd.method === 'cartao_credito'
       );
       const initialStatus = hasPendingMethod ? 'pendente' : 'pago';
 
       const dataToSave = {
         ...formData,
+        payment_details: enrichedPayments,
+        total_fee_amount: totalFeeAmount,
+        total_net_amount: totalNetAmount,
         sale_number: saleNumber,
         sale_date: format(saleDate, 'yyyy-MM-dd'),
         status: initialStatus,
