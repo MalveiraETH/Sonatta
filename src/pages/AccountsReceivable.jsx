@@ -554,11 +554,13 @@ export default function AccountsReceivable() {
                     <TableCell>{inst.installment_number}</TableCell>
                     <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
                     <TableCell>{inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(inst.original_amount)}</TableCell>
-                    <TableCell className="text-right text-amber-600">
-                     {inst.fee_rate > 0 ? `${inst.fee_rate}%` : <span className="text-slate-400 text-xs">—</span>}
+                    <TableCell className="text-right">{formatCurrency(getGrossAmount(inst))}</TableCell>
+                    <TableCell className="text-right text-amber-600 text-xs">
+                      {getFeeAmount(inst) > 0
+                        ? <span>{inst.fee_rate}% ({formatCurrency(getFeeAmount(inst))})</span>
+                        : <span className="text-slate-400">—</span>}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(getNetRemaining(inst))}</TableCell>
+                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(getNetAmount(inst))}</TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
