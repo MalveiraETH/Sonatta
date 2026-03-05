@@ -63,6 +63,7 @@ import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
 import Tests from './pages/Tests';
+import Appointments from './pages/Appointments';
 import __Layout from './Layout.jsx';
 
 
@@ -83,6 +84,7 @@ export const PAGES = {
     "Sales": Sales,
     "Settings": Settings,
     "Tests": Tests,
+    "Appointments": Appointments,
 }
 
 export const pagesConfig = {
