@@ -141,6 +141,10 @@ export default function Sales() {
   };
 
   const getCardFeeTotal = (sale) => {
+    // Use persisted field if available, fallback to runtime calculation for old records
+    if (sale.total_fee_amount !== undefined && sale.total_fee_amount !== null) {
+      return sale.total_fee_amount;
+    }
     return (sale.payment_details || []).reduce((sum, p) => {
       const isCard = p.method === 'cartao_credito' || p.method === 'cartao_debito';
       if (isCard && p.fee_rate > 0) {
@@ -151,6 +155,10 @@ export default function Sales() {
   };
 
   const getNetTotal = (sale) => {
+    // Use persisted field if available, fallback for old records
+    if (sale.total_net_amount !== undefined && sale.total_net_amount !== null && sale.total_net_amount > 0) {
+      return sale.total_net_amount;
+    }
     return getTotalPayments(sale) - getCardFeeTotal(sale);
   };
 
