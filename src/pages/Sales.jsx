@@ -354,10 +354,13 @@ Obrigado pela preferência!
 
   const stats = {
     total: sales.length,
-    totalValue: sales.reduce((sum, s) => sum + (s.total || 0), 0),
+    totalGross: sales.filter(s => s.status !== 'cancelado').reduce((sum, s) => sum + (s.total || 0), 0),
+    totalNet: sales.filter(s => s.status !== 'cancelado').reduce((sum, s) => sum + getNetTotal(s), 0),
     pagas: sales.filter(s => s.status === 'pago').length,
     pendentes: sales.filter(s => s.status === 'pendente').length,
-    avgTicket: sales.length > 0 ? sales.reduce((sum, s) => sum + (s.total || 0), 0) / sales.length : 0
+    avgTicket: sales.filter(s => s.status !== 'cancelado').length > 0
+      ? sales.filter(s => s.status !== 'cancelado').reduce((sum, s) => sum + getNetTotal(s), 0) / sales.filter(s => s.status !== 'cancelado').length
+      : 0
   };
 
   const FiltersContent = () => (
@@ -430,8 +433,9 @@ Obrigado pela preferência!
           <Card className="p-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturamento</p>
-                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalValue)}</p>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturamento Líquido</p>
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalNet)}</p>
+                <p className="text-xs text-slate-400 mt-0.5">Bruto: {formatCurrency(stats.totalGross)}</p>
               </div>
               <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
             </div>
@@ -440,7 +444,7 @@ Obrigado pela preferência!
           <Card className="p-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Ticket Médio</p>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Ticket Médio Líq.</p>
                 <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.avgTicket)}</p>
               </div>
               <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
@@ -638,12 +642,12 @@ Obrigado pela preferência!
                         {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(getTotalPayments(sale))}</TableCell>
+                    <TableCell className="text-right text-slate-600">{formatCurrency(getTotalPayments(sale))}</TableCell>
                     <TableCell className="text-right text-amber-600 text-sm">
-                      {getCardFeeTotal(sale) > 0 ? `-${formatCurrency(getCardFeeTotal(sale))}` : <span className="text-slate-400">—</span>}
+                      {getCardFeeTotal(sale) > 0 ? formatCurrency(getCardFeeTotal(sale)) : <span className="text-slate-400">R$ 0,00</span>}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-700">
-                      {formatCurrency(getNetTotal(sale) || getTotalPayments(sale))}
+                    <TableCell className="text-right">
+                      <span className="font-bold text-emerald-700 text-base">{formatCurrency(getNetTotal(sale))}</span>
                     </TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
@@ -808,7 +812,22 @@ Obrigado pela preferência!
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(getTotalPayments(sale))}</div>
+                  <div className="flex items-end gap-3 mt-1">
+                    <div>
+                      <p className="text-xs text-slate-400">Bruto</p>
+                      <p className="text-sm text-slate-600">{formatCurrency(getTotalPayments(sale))}</p>
+                    </div>
+                    {getCardFeeTotal(sale) > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-400">Taxa</p>
+                        <p className="text-sm text-amber-600">{formatCurrency(getCardFeeTotal(sale))}</p>
+                      </div>
+                    )}
+                    <div className="ml-auto text-right">
+                      <p className="text-xs text-slate-400">Líquido</p>
+                      <p className="text-xl font-bold text-emerald-700">{formatCurrency(getNetTotal(sale))}</p>
+                    </div>
+                  </div>
                 </div>
               </Card>
             ))

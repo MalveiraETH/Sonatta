@@ -166,16 +166,16 @@ export default function AccountsReceivable() {
   };
 
   const stats = {
-    toReceive: filteredInstallments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
+    toReceive: filteredInstallments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + getNetAmount(i), 0),
     overdue: filteredInstallments.filter(i => {
       if (i.payment_status === 'pago') return false;
       const dueDate = new Date(i.due_date);
       const today = new Date();
       return dueDate < today;
-    }).reduce((sum, i) => sum + (i.remaining_amount || 0), 0),
+    }).reduce((sum, i) => sum + getNetAmount(i), 0),
     pixParcelado: filteredInstallments.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length,
     cartaoCredito: filteredInstallments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length,
-    totalPaid: filteredInstallments.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + getGrossAmount(i), 0)
+    totalPaid: filteredInstallments.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + getNetAmount(i), 0)
   };
 
   const handlePayment = async () => {
@@ -546,21 +546,30 @@ export default function AccountsReceivable() {
                         {badge.label}
                       </span>
                     </TableCell>
-                    <TableCell className="font-medium">{inst.client_name}</TableCell>
                     <TableCell>
-                     {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}
-                     {inst.card_brand && <span className="ml-1 text-xs text-slate-500">({inst.card_brand})</span>}
+                      <div className="font-medium text-slate-900">{inst.client_name}</div>
+                      <div className="text-xs text-slate-500">{inst.sale_number}</div>
                     </TableCell>
-                    <TableCell>{inst.installment_number}</TableCell>
+                    <TableCell>
+                      <div>{inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}</div>
+                      {inst.card_brand && <div className="text-xs text-slate-500">{inst.card_brand}</div>}
+                    </TableCell>
+                    <TableCell>
+                      {inst.installments_total
+                        ? <span className="font-medium">{inst.installment_number}/{inst.installments_total}</span>
+                        : inst.installment_number}
+                    </TableCell>
                     <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
                     <TableCell>{inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(getGrossAmount(inst))}</TableCell>
-                    <TableCell className="text-right text-amber-600 text-xs">
+                    <TableCell className="text-right text-slate-600">{formatCurrency(getGrossAmount(inst))}</TableCell>
+                    <TableCell className="text-right text-xs">
                       {getFeeAmount(inst) > 0
-                        ? <span>{inst.fee_rate}% ({formatCurrency(getFeeAmount(inst))})</span>
-                        : <span className="text-slate-400">—</span>}
+                        ? <span className="text-amber-600">{inst.fee_rate > 0 ? `${inst.fee_rate}% ` : ''}{formatCurrency(getFeeAmount(inst))}</span>
+                        : <span className="text-slate-400">R$ 0,00</span>}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(getNetAmount(inst))}</TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-bold text-emerald-700 text-base">{formatCurrency(getNetAmount(inst))}</span>
+                    </TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -621,8 +630,13 @@ export default function AccountsReceivable() {
                           {badge.label}
                         </span>
                       </div>
-                      <div className="text-sm text-slate-600">
-                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'} • Parcela {inst.installment_number} • {formatLocalDate(inst.due_date)}
+                      <div className="text-xs text-slate-500">{inst.sale_number}</div>
+                      <div className="text-sm text-slate-600 mt-0.5">
+                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'}
+                        {inst.card_brand && ` • ${inst.card_brand}`}
+                        {' • Parcela '}
+                        {inst.installments_total ? `${inst.installment_number}/${inst.installments_total}` : inst.installment_number}
+                        {' • '}{formatLocalDate(inst.due_date)}
                       </div>
                     </div>
                     <DropdownMenu>
@@ -654,7 +668,22 @@ export default function AccountsReceivable() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(inst.remaining_amount)}</div>
+                  <div className="flex items-end gap-3 mt-1">
+                    <div>
+                      <p className="text-xs text-slate-400">Bruto</p>
+                      <p className="text-sm text-slate-600">{formatCurrency(getGrossAmount(inst))}</p>
+                    </div>
+                    {getFeeAmount(inst) > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-400">Taxa</p>
+                        <p className="text-sm text-amber-600">{formatCurrency(getFeeAmount(inst))}</p>
+                      </div>
+                    )}
+                    <div className="ml-auto text-right">
+                      <p className="text-xs text-slate-400">Líquido</p>
+                      <p className="text-xl font-bold text-emerald-700">{formatCurrency(getNetAmount(inst))}</p>
+                    </div>
+                  </div>
                 </div>
               </Card>
             );
