@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logCreation, logEdit } from '@/components/utils/auditLogger';
+import { createInstallmentsForSale, syncInstallmentsForSale } from '@/components/sales/syncInstallments';
 
 export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
