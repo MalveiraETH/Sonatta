@@ -643,7 +643,7 @@ Obrigado pela preferência!
                       {getCardFeeTotal(sale) > 0 ? `-${formatCurrency(getCardFeeTotal(sale))}` : <span className="text-slate-400">—</span>}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-emerald-700">
-                      {formatCurrency(getNetTotal(sale))}
+                      {formatCurrency(getNetTotal(sale) || getTotalPayments(sale))}
                     </TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
