@@ -349,6 +349,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       updated.fee_rate = 0;
       updated.installments = 1;
     }
+    // Recalc fee when loading existing brand (no field change needed, just ensure fee is right)
+
     // Auto-calc fee for debit when brand changes
     if (field === 'card_brand' && updated.method === 'cartao_debito') {
       updated.fee_rate = getDebitRate(value);
