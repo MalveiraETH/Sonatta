@@ -95,17 +95,26 @@ export default function Tests() {
       
       // Atualizar status automático para teste pendente
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const syncOps = [];
       const updatedTests = testsData.map(test => {
-        // Só muda para pendente se tiver data final e já passou, e não for agendado/finalizado
         if (
           (test.status === 'em_teste' || test.status === 'teste_estendido') &&
           test.end_date &&
-          new Date(test.end_date) < today
+          new Date(test.end_date + 'T00:00:00') < today
         ) {
-          return { ...test, status: 'teste_pendente' };
+          const updated = { ...test, status: 'teste_pendente' };
+          // Persiste a mudança e sincroniza agendamentos
+          syncOps.push(
+            base44.entities.Test.update(test.id, { status: 'teste_pendente' })
+              .then(() => syncTestAppointments(test.id, updated))
+              .catch(console.error)
+          );
+          return updated;
         }
         return test;
       });
+      if (syncOps.length > 0) await Promise.all(syncOps);
 
       setTests(updatedTests);
       setCurrentUser(user);
