@@ -44,7 +44,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: test.client_id || '',
           start_date: test.start_date || '',
+          start_time: test.start_time || '',
           end_date: test.end_date || '',
+          end_time: test.end_time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
           referral_professional_id: test.referral_professional_id || '',
@@ -55,7 +57,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: preselectedClientId || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
+          start_time: '',
           end_date: '',
+          end_time: '',
           devices: [],
           professional_id: '',
           referral_professional_id: '',
