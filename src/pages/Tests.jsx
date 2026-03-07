@@ -359,15 +359,16 @@ export default function Tests() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                 <SelectItem value="em_teste">Em Teste</SelectItem>
                 <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                 <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
                 <SelectItem value="teste_pendente">Teste Pendente</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                </SelectContent>
+                </Select>
+                </div>
 
-          <Button variant="outline" onClick={clearFilters}>
+                <Button variant="outline" onClick={clearFilters}>
             Limpar
           </Button>
         </div>
