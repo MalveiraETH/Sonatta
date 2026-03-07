@@ -215,7 +215,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                   <Input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    const autoStatus = resolveInitialStatus(newDate);
+                    setFormData({ ...formData, start_date: newDate, status: autoStatus });
+                  }} />
 
                 </div>
                 <div>
