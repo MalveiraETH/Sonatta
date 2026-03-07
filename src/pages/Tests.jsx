@@ -452,12 +452,14 @@ export default function Tests() {
                   <TableCell className="text-sm">{test.professional_name || '-'}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                      test.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
                       test.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
                       test.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
                       test.status === 'teste_finalizado' ? 'bg-emerald-100 text-emerald-700' :
                       'bg-red-100 text-red-700'
                     }`}>
-                      {test.status === 'em_teste' ? 'Em Teste' :
+                      {test.status === 'teste_agendado' ? 'Agendado' :
+                       test.status === 'em_teste' ? 'Em Teste' :
                        test.status === 'teste_estendido' ? 'Estendido' :
                        test.status === 'teste_finalizado' ? 'Finalizado' : 'Pendente'}
                     </span>
