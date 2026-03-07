@@ -204,18 +204,33 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 <div>
                   <Label>Data Início *</Label>
                   <Input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
-
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
                 </div>
                 <div>
                   <Label>Data Final *</Label>
                   <Input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+                </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Horário Início</Label>
+                  <Input
+                    type="time"
+                    value={formData.start_time || ''}
+                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Horário Final</Label>
+                  <Input
+                    type="time"
+                    value={formData.end_time || ''}
+                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
                 </div>
               </div>
 
@@ -285,7 +300,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                     <SelectItem value="em_teste">Em Teste</SelectItem>
                     <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                     <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
