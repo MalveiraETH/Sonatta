@@ -137,7 +137,9 @@ export default function Tests() {
 
   const handleFinalize = async (test) => {
     try {
+      const updated = { ...test, status: 'teste_finalizado' };
       await base44.entities.Test.update(test.id, { status: 'teste_finalizado' });
+      await syncTestAppointments(test.id, updated);
       toast.success('Teste finalizado');
       loadData();
     } catch (error) {
