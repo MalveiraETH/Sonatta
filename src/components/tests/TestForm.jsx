@@ -120,17 +120,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const updateClientStatus = async (clientId, testStatus) => {
     try {
       let clientStatus = 'em_teste';
-
-      if (testStatus === 'em_teste') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_estendido') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_finalizado') {
-        clientStatus = 'cliente_ativo';
-      } else if (testStatus === 'teste_pendente') {
-        clientStatus = 'em_teste';
-      }
-
+      if (testStatus === 'teste_agendado') clientStatus = 'em_teste';
+      else if (testStatus === 'em_teste') clientStatus = 'em_teste';
+      else if (testStatus === 'teste_estendido') clientStatus = 'em_teste';
+      else if (testStatus === 'teste_finalizado') clientStatus = 'cliente_ativo';
+      else if (testStatus === 'teste_pendente') clientStatus = 'em_teste';
       await base44.entities.Client.update(clientId, { status: clientStatus });
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
@@ -215,7 +209,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                   <Input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                  onChange={(e) => {
+                   const newStart = e.target.value;
+                   const autoStatus = resolveStatus(newStart, formData.status);
+                   setFormData({ ...formData, start_date: newStart, status: autoStatus });
+                  }} />
 
                 </div>
                 <div>
@@ -294,6 +292,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                     <SelectItem value="em_teste">Em Teste</SelectItem>
                     <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                     <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
