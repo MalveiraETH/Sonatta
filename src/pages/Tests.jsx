@@ -58,7 +58,8 @@ import {
   Activity,
   AlertCircle,
   ClockIcon,
-  MessageCircle
+  MessageCircle,
+  CalendarCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
