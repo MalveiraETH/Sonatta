@@ -228,6 +228,7 @@ export default function Tests() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
             <SelectItem value="em_teste">Em Teste</SelectItem>
             <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
             <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
