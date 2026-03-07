@@ -288,7 +288,7 @@ export default function Tests() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card 
           className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
           onClick={() => setStatusFilter('em_teste')}
