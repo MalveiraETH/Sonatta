@@ -44,9 +44,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: test.client_id || '',
           start_date: test.start_date || '',
-          start_time: test.start_time || '',
           end_date: test.end_date || '',
-          end_time: test.end_time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
           referral_professional_id: test.referral_professional_id || '',
@@ -57,9 +55,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: preselectedClientId || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
-          start_time: '',
           end_date: '',
-          end_time: '',
           devices: [],
           professional_id: '',
           referral_professional_id: '',
@@ -208,33 +204,18 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 <div>
                   <Label>Data Início *</Label>
                   <Input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+
                 </div>
                 <div>
                   <Label>Data Final *</Label>
                   <Input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-                </div>
-              </div>
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Horário Início</Label>
-                  <Input
-                    type="time"
-                    value={formData.start_time || ''}
-                    onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Horário Final</Label>
-                  <Input
-                    type="time"
-                    value={formData.end_time || ''}
-                    onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
                 </div>
               </div>
 
@@ -304,6 +285,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                     <SelectItem value="em_teste">Em Teste</SelectItem>
                     <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                     <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
