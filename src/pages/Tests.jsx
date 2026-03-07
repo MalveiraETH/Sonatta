@@ -291,6 +291,19 @@ export default function Tests() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card 
           className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('teste_agendado')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Agendado</p>
+              <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.agendado}</p>
+            </div>
+            <CalendarCheck className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 opacity-60" />
+          </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
           onClick={() => setStatusFilter('em_teste')}
         >
           <div className="flex items-start justify-between">
