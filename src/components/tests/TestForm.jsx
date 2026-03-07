@@ -20,20 +20,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { createTestAppointments, syncTestAppointments } from './syncTestAppointments';
 
 // Componente de busca/autocomplete reutilizável
-function SearchableSelect({ value, onChange, options, placeholder, labelKey = 'label', valueKey = 'value' }) {
+function SearchableSelect({ value, onChange, options, placeholder }) {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const ref = React.useRef(null);
+  const ref = useRef(null);
 
-  const selectedOption = options.find(o => o[valueKey] === value);
-
+  const selectedOption = options.find(o => o.value === value);
   const filtered = options.filter(o =>
-    o[labelKey]?.toLowerCase().includes(search.toLowerCase())
+    o.label?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Fechar ao clicar fora
   useEffect(() => {
     const handleClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
@@ -74,16 +73,12 @@ function SearchableSelect({ value, onChange, options, placeholder, labelKey = 'l
           />
         ) : (
           <span className={selectedOption ? 'text-foreground' : 'text-muted-foreground'}>
-            {selectedOption ? selectedOption[labelKey] : placeholder}
+            {selectedOption ? selectedOption.label : placeholder}
           </span>
         )}
         <div className="flex items-center gap-1">
           {value && !open && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-slate-400 hover:text-slate-600 p-0.5"
-            >
+            <button type="button" onClick={handleClear} className="text-slate-400 hover:text-slate-600 p-0.5">
               <X className="h-3 w-3" />
             </button>
           )}
@@ -97,11 +92,11 @@ function SearchableSelect({ value, onChange, options, placeholder, labelKey = 'l
           ) : (
             filtered.map(option => (
               <div
-                key={option[valueKey]}
-                className={`px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${value === option[valueKey] ? 'bg-accent' : ''}`}
-                onMouseDown={(e) => { e.preventDefault(); handleSelect(option[valueKey]); }}
+                key={option.value}
+                className={`px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${value === option.value ? 'bg-accent' : ''}`}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(option.value); }}
               >
-                {option[labelKey]}
+                {option.label}
               </div>
             ))
           )}
@@ -187,15 +182,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
   const updateDevice = (index, productId) => {
     const product = products.find(p => p.id === productId);
-    if (product) {
-      const newDevices = [...formData.devices];
-      newDevices[index] = { product_id: product.id, product_name: product.name, serial_number: product.serial_number };
-      setFormData({ ...formData, devices: newDevices });
-    } else {
-      const newDevices = [...formData.devices];
-      newDevices[index] = { product_id: '', product_name: '', serial_number: '' };
-      setFormData({ ...formData, devices: newDevices });
-    }
+    const newDevices = [...formData.devices];
+    newDevices[index] = product
+      ? { product_id: product.id, product_name: product.name, serial_number: product.serial_number }
+      : { product_id: '', product_name: '', serial_number: '' };
+    setFormData({ ...formData, devices: newDevices });
   };
 
   const updateClientStatus = async (clientId, testStatus) => {
@@ -233,14 +224,22 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       };
 
       if (test) {
+        // Edição
         await base44.entities.Test.update(test.id, testData);
-        await updateClientStatus(formData.client_id, testData.status);
+        await Promise.all([
+          updateClientStatus(formData.client_id, testData.status),
+          syncTestAppointments(test.id, testData)
+        ]);
         toast.success('Teste atualizado');
       } else {
+        // Criação
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
-        await base44.entities.Test.create(testData);
-        await updateClientStatus(formData.client_id, testData.status);
+        const created = await base44.entities.Test.create(testData);
+        await Promise.all([
+          updateClientStatus(formData.client_id, testData.status),
+          createTestAppointments(created.id, testData)
+        ]);
         toast.success('Teste agendado com sucesso');
       }
 
@@ -253,7 +252,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     }
   };
 
-  // Opções formatadas para os selects pesquisáveis
   const clientOptions = clients.map(c => ({ value: c.id, label: c.full_name }));
   const professionalOptions = professionals.map(p => ({ value: p.id, label: p.full_name }));
   const productOptions = products.map(p => ({ value: p.id, label: `${p.name} - NS: ${p.serial_number}` }));
@@ -280,16 +278,12 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Data Início *</Label>
-                  <Input
-                    type="date"
-                    value={formData.start_date}
+                  <Input type="date" value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
                 </div>
                 <div>
                   <Label>Horário Início</Label>
-                  <Input
-                    type="time"
-                    value={formData.start_time}
+                  <Input type="time" value={formData.start_time}
                     onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
                 </div>
               </div>
@@ -297,16 +291,12 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Data Final</Label>
-                  <Input
-                    type="date"
-                    value={formData.end_date}
+                  <Input type="date" value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
                 </div>
                 <div>
                   <Label>Horário Final</Label>
-                  <Input
-                    type="time"
-                    value={formData.end_time}
+                  <Input type="time" value={formData.end_time}
                     onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
                 </div>
               </div>
@@ -315,8 +305,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 <div className="flex items-center justify-between mb-2">
                   <Label>Aparelhos</Label>
                   <Button type="button" size="sm" onClick={addDevice} variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Aparelho
+                    <Plus className="h-4 w-4 mr-2" />Adicionar Aparelho
                   </Button>
                 </div>
                 <div className="space-y-2">
@@ -363,9 +352,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 <div>
                   <Label>Status</Label>
                   <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                       <SelectItem value="em_teste">Em Teste</SelectItem>
@@ -379,8 +366,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
               <div>
                 <Label>Observações</Label>
-                <Textarea
-                  value={formData.notes}
+                <Textarea value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3} />
               </div>
@@ -390,9 +376,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           {extendMode && (
             <div>
               <Label>Nova Data Final *</Label>
-              <Input
-                type="date"
-                value={formData.end_date}
+              <Input type="date" value={formData.end_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
             </div>
           )}
