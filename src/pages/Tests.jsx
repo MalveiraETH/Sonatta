@@ -208,7 +208,13 @@ export default function Tests() {
       const phone = (client?.phone || '').replace(/\D/g, '');
       const phoneFormatted = phone.startsWith('55') ? phone : `55${phone}`;
       const url = `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(message)}`;
-      window.open(url, '_blank');
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       toast.error('Erro ao gerar mensagem');
     }
