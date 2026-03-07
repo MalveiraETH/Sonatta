@@ -201,21 +201,15 @@ export default function Tests() {
         base44.entities.Client.filter({ id: test.client_id })
       ]);
       const saved = userData.whatsapp_test_templates || {};
-      const { TEST_TEMPLATES_DEFAULTS } = await import('@/components/settings/WhatsAppTestTemplate');
       const targetStatus = status || test.status;
       const templateText = saved[targetStatus] || TEST_TEMPLATES_DEFAULTS[targetStatus] || '';
       const message = buildWhatsAppMessage(test, templateText);
       const client = clients[0];
       const phone = (client?.phone || '').replace(/\D/g, '');
+      if (!phone) { toast.error('Cliente sem telefone cadastrado'); return; }
       const phoneFormatted = phone.startsWith('55') ? phone : `55${phone}`;
       const url = `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(message)}`;
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.location.href = url;
     } catch (error) {
       toast.error('Erro ao gerar mensagem');
     }
