@@ -95,8 +95,12 @@ export default function Tests() {
       // Atualizar status automático para teste pendente
       const today = new Date();
       const updatedTests = testsData.map(test => {
-        if ((test.status === 'em_teste' || test.status === 'teste_estendido') && 
-            new Date(test.end_date) < today) {
+        // Só muda para pendente se tiver data final e já passou, e não for agendado/finalizado
+        if (
+          (test.status === 'em_teste' || test.status === 'teste_estendido') &&
+          test.end_date &&
+          new Date(test.end_date) < today
+        ) {
           return { ...test, status: 'teste_pendente' };
         }
         return test;

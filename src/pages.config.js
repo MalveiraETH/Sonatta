@@ -49,6 +49,7 @@
  */
 import AccountsPayable from './pages/AccountsPayable';
 import AccountsReceivable from './pages/AccountsReceivable';
+import Appointments from './pages/Appointments';
 import ClientDetail from './pages/ClientDetail';
 import Clients from './pages/Clients';
 import Contracts from './pages/Contracts';
@@ -63,13 +64,13 @@ import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
 import Tests from './pages/Tests';
-import Appointments from './pages/Appointments';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AccountsPayable": AccountsPayable,
     "AccountsReceivable": AccountsReceivable,
+    "Appointments": Appointments,
     "ClientDetail": ClientDetail,
     "Clients": Clients,
     "Contracts": Contracts,
@@ -84,7 +85,6 @@ export const PAGES = {
     "Sales": Sales,
     "Settings": Settings,
     "Tests": Tests,
-    "Appointments": Appointments,
 }
 
 export const pagesConfig = {
