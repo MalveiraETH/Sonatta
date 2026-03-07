@@ -231,6 +231,9 @@ export default function Tests() {
     pendente: tests.filter(t => t.status === 'teste_pendente').length
   };
 
+  // Import CalendarCheck for the new card
+
+
   const FiltersContent = () => (
     <div className="space-y-4">
       <div className="space-y-2">
