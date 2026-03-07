@@ -42,7 +42,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import TestForm from '@/components/tests/TestForm';
-import { syncTestAppointments } from '@/components/tests/syncTestAppointments';
+import { syncTestAppointments, getAppointmentStatus } from '@/components/tests/syncTestAppointments';
 import { 
   Search, 
   Filter, 
