@@ -211,6 +211,7 @@ export default function Tests() {
 
   const stats = {
     total: tests.length,
+    agendado: tests.filter(t => t.status === 'teste_agendado').length,
     emTeste: tests.filter(t => t.status === 'em_teste').length,
     estendido: tests.filter(t => t.status === 'teste_estendido').length,
     finalizado: tests.filter(t => t.status === 'teste_finalizado').length,
