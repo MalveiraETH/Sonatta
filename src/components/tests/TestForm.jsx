@@ -52,9 +52,10 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           notes: test.notes || ''
         });
       } else {
+        const today = format(new Date(), 'yyyy-MM-dd');
         setFormData({
           client_id: preselectedClientId || '',
-          start_date: format(new Date(), 'yyyy-MM-dd'),
+          start_date: today,
           end_date: '',
           devices: [],
           professional_id: '',
