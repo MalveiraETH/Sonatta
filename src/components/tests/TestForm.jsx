@@ -4,8 +4,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle } from
-'@/components/ui/dialog';
+  DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,14 +13,13 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue } from
-'@/components/ui/select';
+  SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
-export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
+export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null, preselectedAppointmentData = null }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
@@ -29,11 +27,13 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
+    start_time: '',
     end_date: '',
+    end_time: '',
     devices: [],
     professional_id: '',
     referral_professional_id: '',
-    status: 'em_teste',
+    status: 'teste_agendado',
     notes: ''
   });
 
@@ -44,22 +44,26 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: test.client_id || '',
           start_date: test.start_date || '',
+          start_time: test.start_time || '',
           end_date: test.end_date || '',
+          end_time: test.end_time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
           referral_professional_id: test.referral_professional_id || '',
-          status: test.status || 'em_teste',
+          status: test.status || 'teste_agendado',
           notes: test.notes || ''
         });
       } else {
         setFormData({
-          client_id: preselectedClientId || '',
+          client_id: preselectedClientId || preselectedAppointmentData?.client_id || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
+          start_time: '',
           end_date: '',
+          end_time: '',
           devices: [],
-          professional_id: '',
-          referral_professional_id: '',
-          status: 'em_teste',
+          professional_id: preselectedAppointmentData?.professional_id || '',
+          referral_professional_id: preselectedAppointmentData?.test_referral_id || '',
+          status: 'teste_agendado',
           notes: ''
         });
       }
@@ -69,10 +73,10 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const loadData = async () => {
     try {
       const [clientsData, professionalsData, productsData] = await Promise.all([
-      base44.entities.Client.list(),
-      base44.entities.Professional.list(),
-      base44.entities.Product.filter({ stock_type: 'serializado', status: 'disponivel' })]
-      );
+        base44.entities.Client.list(),
+        base44.entities.Professional.list(),
+        base44.entities.Product.filter({ stock_type: 'serializado', status: 'disponivel' })
+      ]);
       setClients(clientsData);
       setProfessionals(professionalsData);
       setProducts(productsData);
@@ -111,17 +115,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const updateClientStatus = async (clientId, testStatus) => {
     try {
       let clientStatus = 'em_teste';
-
-      if (testStatus === 'em_teste') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_estendido') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_finalizado') {
-        clientStatus = 'cliente_ativo';
-      } else if (testStatus === 'teste_pendente') {
-        clientStatus = 'em_teste';
-      }
-
+      if (testStatus === 'em_teste') clientStatus = 'em_teste';
+      else if (testStatus === 'teste_estendido') clientStatus = 'em_teste';
+      else if (testStatus === 'teste_finalizado') clientStatus = 'cliente_ativo';
+      else if (testStatus === 'teste_pendente') clientStatus = 'em_teste';
+      else if (testStatus === 'teste_agendado') clientStatus = 'em_teste';
       await base44.entities.Client.update(clientId, { status: clientStatus });
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
@@ -131,8 +129,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const endDateRequired = formData.status !== 'teste_agendado';
-    if (!formData.client_id || !formData.start_date || (endDateRequired && !formData.end_date)) {
+    if (!formData.client_id || !formData.start_date) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -143,30 +140,27 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       const professional = professionals.find((p) => p.id === formData.professional_id);
       const referralProfessional = professionals.find((p) => p.id === formData.referral_professional_id);
 
+      // Para novo teste, status sempre é teste_agendado
+      const statusToSave = extendMode ? 'teste_estendido' : (test ? formData.status : 'teste_agendado');
+
       const testData = {
         ...formData,
         client_name: client?.full_name,
         professional_name: professional?.full_name,
         referral_professional_name: referralProfessional?.full_name,
-        status: extendMode ? 'teste_estendido' : formData.status
+        status: statusToSave
       };
 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
-
-        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-
         toast.success('Teste atualizado');
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
-
-        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-
-        toast.success('Teste cadastrado');
+        toast.success('Teste agendado');
       }
 
       if (onSuccess) onSuccess();
@@ -185,100 +179,116 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           <DialogTitle>{extendMode ? 'Estender Teste' : test ? 'Editar Teste' : 'Novo Teste'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!extendMode &&
-          <>
-              <div>
-                <Label>Cliente *</Label>
-                <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) =>
-                  <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
+          {!extendMode && <>
+            <div>
+              <Label>Cliente *</Label>
+              <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) =>
+                    <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
                   )}
-                  </SelectContent>
-                </Select>
-              </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Data Início *</Label>
-                  <Input
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Data Início *</Label>
+                <Input
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
+              </div>
+              <div>
+                <Label>Horário Início</Label>
+                <Input
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
+              </div>
+            </div>
 
-                </div>
-                <div>
-                  <Label>Data Final {formData.status !== 'teste_agendado' ? '*' : ''}</Label>
-                  <Input
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Data Final</Label>
+                <Input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-
-                </div>
               </div>
-
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Aparelhos</Label>
-                  <Button type="button" size="sm" onClick={addDevice} variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Aparelho
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {formData.devices.map((device, index) =>
-                <div key={index} className="flex gap-2">
-                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Selecione por NS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) =>
-                      <SelectItem key={product.id} value={product.id}>
-                              {product.name} - NS: {product.serial_number}
-                            </SelectItem>
-                      )}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                <Label>Horário Final</Label>
+                <Input
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Aparelhos</Label>
+                <Button type="button" size="sm" onClick={addDevice} variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Aparelho
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {formData.devices.map((device, index) =>
+                  <div key={index} className="flex gap-2">
+                    <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione por NS" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) =>
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} - NS: {product.serial_number}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
-                </div>
               </div>
+            </div>
 
-              <div>
-                <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Profissional Atendimento</Label>
-                <Select value={formData.professional_id} onValueChange={(v) => setFormData({ ...formData, professional_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o profissional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {professionals.map((prof) =>
-                  <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
+            <div>
+              <Label>Profissional Atendimento</Label>
+              <Select value={formData.professional_id} onValueChange={(v) => setFormData({ ...formData, professional_id: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {professionals.map((prof) =>
+                    <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
                   )}
-                  </SelectContent>
-                </Select>
-              </div>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div>
-                <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Profissional Indicação Teste</Label>
-                <Select value={formData.referral_professional_id} onValueChange={(v) => setFormData({ ...formData, referral_professional_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o profissional de indicação" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {professionals.map((prof) =>
-                  <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
+            <div>
+              <Label>Profissional Indicação Teste</Label>
+              <Select value={formData.referral_professional_id} onValueChange={(v) => setFormData({ ...formData, referral_professional_id: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o profissional de indicação" />
+                </SelectTrigger>
+                <SelectContent>
+                  {professionals.map((prof) =>
+                    <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
                   )}
-                  </SelectContent>
-                </Select>
-              </div>
+                </SelectContent>
+              </Select>
+            </div>
 
+            {/* Status só aparece na edição */}
+            {test && (
               <div>
                 <Label>Status</Label>
                 <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
@@ -286,6 +296,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                     <SelectItem value="em_teste">Em Teste</SelectItem>
                     <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                     <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
@@ -293,28 +304,26 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                   </SelectContent>
                 </Select>
               </div>
+            )}
 
-              <div>
-                <Label>Observações</Label>
-                <Textarea
+            <div>
+              <Label>Observações</Label>
+              <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3} />
+            </div>
+          </>}
 
-              </div>
-            </>
-          }
-
-          {extendMode &&
-          <div>
+          {extendMode && (
+            <div>
               <Label>Nova Data Final *</Label>
               <Input
-              type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
             </div>
-          }
+          )}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onClose}>
@@ -326,6 +335,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           </div>
         </form>
       </DialogContent>
-    </Dialog>);
-
+    </Dialog>
+  );
 }
