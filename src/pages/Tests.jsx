@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dialog';
 import TestForm from '@/components/tests/TestForm';
 import { syncTestAppointments, getAppointmentStatus } from '@/components/tests/syncTestAppointments';
+import { TEST_TEMPLATES_DEFAULTS } from '@/components/settings/WhatsAppTestTemplate';
 import { 
   Search, 
   Filter, 
