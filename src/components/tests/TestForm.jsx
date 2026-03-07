@@ -131,7 +131,8 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.client_id || !formData.start_date || !formData.end_date) {
+    const endDateRequired = formData.status !== 'teste_agendado';
+    if (!formData.client_id || !formData.start_date || (endDateRequired && !formData.end_date)) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -210,7 +211,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
                 </div>
                 <div>
-                  <Label>Data Final *</Label>
+                  <Label>Data Final {formData.status !== 'teste_agendado' ? '*' : ''}</Label>
                   <Input
                   type="date"
                   value={formData.end_date}
@@ -285,7 +286,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                     <SelectItem value="em_teste">Em Teste</SelectItem>
                     <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                     <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
