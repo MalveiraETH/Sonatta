@@ -505,7 +505,7 @@ export default function AccountsPayable() {
           <TableBody>
             {filteredExpenses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-slate-500">
+                <TableCell colSpan={7} className="text-center py-12 text-slate-500">
                   Nenhuma despesa encontrada
                 </TableCell>
               </TableRow>
@@ -593,7 +593,7 @@ export default function AccountsPayable() {
                         </span>
                       </div>
                       <div className="text-sm text-slate-600">
-                        {exp.category_name} • {format(new Date(exp.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                        {exp.category_name} • Venc: {exp.due_date ? formatLocalDate(exp.due_date) : '-'}{exp.payment_date ? ` • Pago: ${formatLocalDate(exp.payment_date)}` : ''}
                       </div>
                     </div>
                     <DropdownMenu>
@@ -664,8 +664,14 @@ export default function AccountsPayable() {
               </div>
               <div>
                 <span className="text-slate-500">Vencimento:</span>
-                <p className="font-medium">{format(new Date(selectedExpense.due_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                <p className="font-medium">{selectedExpense.due_date ? formatLocalDate(selectedExpense.due_date) : '-'}</p>
               </div>
+              {selectedExpense.payment_date && (
+                <div>
+                  <span className="text-slate-500">Data de Pagamento:</span>
+                  <p className="font-medium">{formatLocalDate(selectedExpense.payment_date)}</p>
+                </div>
+              )}
               <div>
                 <span className="text-slate-500">Valor:</span>
                 <p className="font-medium text-lg">{formatCurrency(selectedExpense.amount)}</p>
