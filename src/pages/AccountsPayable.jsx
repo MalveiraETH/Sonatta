@@ -559,6 +559,13 @@ export default function AccountsPayable() {
             )}
           </TableBody>
         </Table>
+        {hasMore && (
+          <div className="p-4 text-center border-t">
+            <Button variant="outline" onClick={() => setVisibleCount(v => v + 25)}>
+              Carregar mais ({filteredExpenses.length - visibleCount} restantes)
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* Cards - Mobile */}
@@ -568,7 +575,7 @@ export default function AccountsPayable() {
             Nenhuma despesa encontrada
           </Card>
         ) : (
-          filteredExpenses.map(exp => {
+          visibleExpenses.map(exp => {
             const badge = getStatusBadge(exp);
             const Icon = badge.icon;
             return (
