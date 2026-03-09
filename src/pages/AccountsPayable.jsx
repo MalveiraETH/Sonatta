@@ -74,7 +74,7 @@ export default function AccountsPayable() {
   const loadExpenses = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Expense.list('-due_date');
+      const data = await base44.entities.Expense.list('-payment_date');
       setExpenses(data);
     } catch (error) {
       toast.error('Erro ao carregar despesas');
