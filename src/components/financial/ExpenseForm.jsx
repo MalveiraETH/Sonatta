@@ -216,7 +216,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {months.map(month => (
+                  {MONTHS.map(month => (
                     <SelectItem key={month} value={month}>{month}</SelectItem>
                   ))}
                 </SelectContent>
