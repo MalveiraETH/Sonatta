@@ -11,6 +11,28 @@ import { toast } from 'sonner';
 
 const INSTALLABLE_METHODS = ['boleto', 'cartao_credito'];
 
+const MONTHS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+const getDefaultFormData = () => ({
+  competency_month: MONTHS[new Date().getMonth()],
+  competency_year: new Date().getFullYear(),
+  event_date: format(new Date(), 'yyyy-MM-dd'),
+  due_date: format(new Date(), 'yyyy-MM-dd'),
+  payment_date: '',
+  amount: '',
+  category_id: '',
+  counterparty_id: '',
+  type: 'variavel',
+  payment_method: 'pix',
+  installments: 1,
+  invoice_number: '',
+  notes: '',
+  status: 'a_pagar'
+});
+
 // Safe date arithmetic without UTC conversion issues
 const addDays = (dateStr, days) => {
   const [year, month, day] = dateStr.split('-').map(Number);
