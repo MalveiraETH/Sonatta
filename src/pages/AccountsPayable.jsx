@@ -628,6 +628,13 @@ export default function AccountsPayable() {
             );
           })
         )}
+        {hasMore && (
+          <div className="text-center pt-2">
+            <Button variant="outline" onClick={() => setVisibleCount(v => v + 25)}>
+              Carregar mais ({filteredExpenses.length - visibleCount} restantes)
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Modals */}
