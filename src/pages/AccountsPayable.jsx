@@ -509,7 +509,7 @@ export default function AccountsPayable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredExpenses.map(exp => {
+              visibleExpenses.map(exp => {
                 const badge = getStatusBadge(exp);
                 const Icon = badge.icon;
                 return (
