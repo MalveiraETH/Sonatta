@@ -523,7 +523,8 @@ export default function AccountsPayable() {
                     </TableCell>
                     <TableCell className="font-medium">{exp.category_name}</TableCell>
                     <TableCell>{exp.counterparty_name || '-'}</TableCell>
-                    <TableCell>{format(new Date(exp.due_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                    <TableCell>{exp.due_date ? formatLocalDate(exp.due_date) : '-'}</TableCell>
+                    <TableCell>{exp.payment_date ? formatLocalDate(exp.payment_date) : '-'}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(exp.amount)}</TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
