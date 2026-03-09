@@ -209,6 +209,8 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
+  const currentMonthPT = months[new Date().getMonth()];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
