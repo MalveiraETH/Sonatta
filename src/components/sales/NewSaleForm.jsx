@@ -848,7 +848,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <Input
                   type="number"
                   inputMode="decimal"
-                  step="0.0001"
+                  step="0.0000001"
                   min="0"
                   max="100"
                   value={discountPercent === 0 ? '' : discountPercent}

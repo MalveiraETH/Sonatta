@@ -432,7 +432,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                 <Label className="text-xs">Desconto (%)</Label>
                 <Input
                   type="number"
-                  step="0.01"
+                  step="0.0000001"
                   min="0"
                   max="100"
                   value={discountPercent}
