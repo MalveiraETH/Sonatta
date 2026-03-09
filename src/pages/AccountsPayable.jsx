@@ -205,7 +205,16 @@ export default function AccountsPayable() {
     setFilterCounterparty('todos');
     setDateStart('');
     setDateEnd('');
+    setVisibleCount(25);
   };
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisibleCount(25);
+  }, [searchTerm, filterStatus, filterCategory, filterCounterparty, dateStart, dateEnd]);
+
+  const visibleExpenses = filteredExpenses.slice(0, visibleCount);
+  const hasMore = filteredExpenses.length > visibleCount;
 
   const FiltersContent = () => (
     <div className="space-y-4">
