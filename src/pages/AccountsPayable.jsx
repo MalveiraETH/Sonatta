@@ -497,6 +497,7 @@ export default function AccountsPayable() {
               <TableHead>Categoria</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Vencimento</TableHead>
+              <TableHead>Dt. Pagamento</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="text-center">Ações</TableHead>
             </TableRow>
