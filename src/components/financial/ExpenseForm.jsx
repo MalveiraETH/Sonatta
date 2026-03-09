@@ -24,7 +24,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
   const [categories, setCategories] = useState([]);
   const [counterparties, setCounterparties] = useState([]);
   const [formData, setFormData] = useState({
-    competency_month: format(new Date(), 'MMMM'),
+    competency_month: months[new Date().getMonth()],
     competency_year: new Date().getFullYear(),
     event_date: format(new Date(), 'yyyy-MM-dd'),
     due_date: format(new Date(), 'yyyy-MM-dd'),
@@ -49,7 +49,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
       setFormData(expense);
     } else {
       setFormData({
-        competency_month: format(new Date(), 'MMMM'),
+        competency_month: months[new Date().getMonth()],
         competency_year: new Date().getFullYear(),
         event_date: format(new Date(), 'yyyy-MM-dd'),
         due_date: format(new Date(), 'yyyy-MM-dd'),
