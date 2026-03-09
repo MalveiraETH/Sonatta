@@ -6,8 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { format, addMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
+
+const INSTALLABLE_METHODS = ['boleto', 'cartao_credito'];
+
+// Safe date arithmetic without UTC conversion issues
+const addDays = (dateStr, days) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = null }) {
   const [loading, setLoading] = useState(false);
@@ -32,10 +42,30 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
     if (expense) {
       setFormData(expense);
+    } else {
+      setFormData({
+        competency_month: format(new Date(), 'MMMM'),
+        competency_year: new Date().getFullYear(),
+        event_date: format(new Date(), 'yyyy-MM-dd'),
+        due_date: format(new Date(), 'yyyy-MM-dd'),
+        payment_date: '',
+        amount: '',
+        category_id: '',
+        counterparty_id: '',
+        type: 'variavel',
+        payment_method: 'pix',
+        installments: 1,
+        invoice_number: '',
+        notes: '',
+        status: 'a_pagar'
+      });
     }
-  }, [expense]);
+  }, [expense, open]);
 
   const loadData = async () => {
     try {
@@ -50,55 +80,118 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
     }
   };
 
+  const isInstallable = INSTALLABLE_METHODS.includes(formData.payment_method);
+
+  const handlePaymentMethodChange = (value) => {
+    const newIsInstallable = INSTALLABLE_METHODS.includes(value);
+    setFormData({
+      ...formData,
+      payment_method: value,
+      installments: newIsInstallable ? formData.installments : 1
+    });
+  };
+
+  const handleInstallmentsChange = (e) => {
+    const val = parseInt(e.target.value) || 1;
+    setFormData({ ...formData, installments: Math.min(Math.max(val, 1), 24) });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      toast.error('Informe o valor total da despesa');
+      return;
+    }
+    if (!formData.due_date) {
+      toast.error('Informe a data de vencimento');
+      return;
+    }
+    if (!formData.category_id) {
+      toast.error('Selecione uma categoria');
+      return;
+    }
+
+    const installments = isInstallable ? (parseInt(formData.installments) || 1) : 1;
+
+    if (!isInstallable && installments > 1) {
+      toast.error('Este método não permite parcelamento. Use Boleto ou Crédito.');
+      return;
+    }
+
+    if (isInstallable && installments > 24) {
+      toast.error('Máximo de 24 parcelas');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const category = categories.find(c => c.id === formData.category_id);
       const counterparty = counterparties.find(c => c.id === formData.counterparty_id);
+      const totalAmount = parseFloat(formData.amount);
 
       const baseData = {
         ...formData,
         category_name: category?.name,
         counterparty_name: counterparty?.name,
-        amount: parseFloat(formData.amount)
+        amount: totalAmount,
+        installments: installments,
       };
 
       if (expense) {
         await base44.entities.Expense.update(expense.id, baseData);
         toast.success('Despesa atualizada!');
       } else {
-        if (formData.installments > 1) {
-          const isCardInstallment = formData.payment_method === 'cartao_credito' && formData.installments > 2;
-          const parentExpense = await base44.entities.Expense.create(baseData);
-          
-          for (let i = 1; i <= formData.installments; i++) {
-            let dueDate;
-            if (isCardInstallment) {
-              // Para cartão com mais de 2 parcelas: primeira parcela em 30 dias
-              dueDate = new Date(formData.due_date);
-              dueDate.setDate(dueDate.getDate() + (i * 30));
-            } else {
-              dueDate = addMonths(new Date(formData.due_date), i - 1);
-            }
-            
+        if (installments <= 1) {
+          // À vista: 1 lançamento
+          const status = formData.payment_date ? 'pago' : 'a_pagar';
+          await base44.entities.Expense.create({
+            ...baseData,
+            installment_number: 1,
+            installments: 1,
+            status,
+          });
+          toast.success('Despesa cadastrada!');
+        } else {
+          // Parcelado: N lançamentos
+          const perInstallment = Math.floor((totalAmount / installments) * 100) / 100;
+          const lastAmount = Math.round((totalAmount - perInstallment * (installments - 1)) * 100) / 100;
+
+          // Criar primeira parcela para usar como referência de grupo
+          const firstRecord = await base44.entities.Expense.create({
+            ...baseData,
+            amount: perInstallment,
+            due_date: formData.due_date,
+            payment_date: '',
+            installment_number: 1,
+            installments: installments,
+            status: 'a_pagar',
+          });
+
+          // Atualizar a primeira com parent_expense_id = ela mesma (identificador de grupo)
+          await base44.entities.Expense.update(firstRecord.id, {
+            parent_expense_id: firstRecord.id
+          });
+
+          // Criar parcelas 2..N
+          for (let i = 2; i <= installments; i++) {
+            const dueDate = addDays(formData.due_date, (i - 1) * 30);
+            const isLast = i === installments;
             await base44.entities.Expense.create({
               ...baseData,
-              due_date: format(dueDate, 'yyyy-MM-dd'),
+              amount: isLast ? lastAmount : perInstallment,
+              due_date: dueDate,
+              payment_date: '',
               installment_number: i,
-              parent_expense_id: parentExpense.id,
-              status: isCardInstallment ? 'a_pagar' : baseData.status
+              installments: installments,
+              parent_expense_id: firstRecord.id,
+              status: 'a_pagar',
             });
           }
-        } else {
-          // Para não parceladas: se tem data de pagamento, status é "pago"
-          if (formData.payment_date) {
-            baseData.status = 'pago';
-          }
-          await base44.entities.Expense.create(baseData);
+
+          toast.success(`${installments} parcelas criadas com sucesso!`);
         }
-        toast.success('Despesa cadastrada!');
       }
 
       if (onSuccess) onSuccess();
@@ -160,7 +253,12 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Data Vencimento *</Label>
+              <Label>
+                Data Vencimento *
+                {isInstallable && parseInt(formData.installments) > 1 && (
+                  <span className="text-xs text-slate-500 ml-1">(parcela 1)</span>
+                )}
+              </Label>
               <Input
                 type="date"
                 required
@@ -195,7 +293,6 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
             <Select
               value={formData.category_id}
               onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
@@ -241,12 +338,12 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid gap-4 ${isInstallable ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <div>
               <Label>Método de Pagamento</Label>
               <Select
                 value={formData.payment_method}
-                onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+                onValueChange={handlePaymentMethodChange}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -254,22 +351,33 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
                 <SelectContent>
                   <SelectItem value="dinheiro">Dinheiro</SelectItem>
                   <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                  <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
+                  <SelectItem value="cartao_debito">Débito</SelectItem>
                   <SelectItem value="boleto">Boleto</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
+                  <SelectItem value="cartao_credito">Crédito</SelectItem>
                 </SelectContent>
               </Select>
+              {!isInstallable && (
+                <p className="text-xs text-slate-500 mt-1">Pagamento à vista</p>
+              )}
             </div>
-            <div>
-              <Label>Quantidade de Parcelas</Label>
-              <Input
-                type="number"
-                min="1"
-                value={formData.installments}
-                onChange={(e) => setFormData({ ...formData, installments: parseInt(e.target.value) })}
-              />
-            </div>
+
+            {isInstallable && (
+              <div>
+                <Label>Número de Parcelas</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="24"
+                  value={formData.installments}
+                  onChange={handleInstallmentsChange}
+                />
+                {parseInt(formData.installments) > 1 && formData.amount && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    ≈ {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(formData.amount) / parseInt(formData.installments))} / parcela
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
