@@ -70,25 +70,18 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
         toast.success('Despesa atualizada!');
       } else {
         if (formData.installments > 1) {
-          const isCardInstallment = formData.payment_method === 'cartao_credito' && formData.installments > 2;
-          const parentExpense = await base44.entities.Expense.create(baseData);
+          const installmentAmount = parseFloat((baseData.amount / formData.installments).toFixed(2));
           
           for (let i = 1; i <= formData.installments; i++) {
-            let dueDate;
-            if (isCardInstallment) {
-              // Para cartão com mais de 2 parcelas: primeira parcela em 30 dias
-              dueDate = new Date(formData.due_date);
-              dueDate.setDate(dueDate.getDate() + (i * 30));
-            } else {
-              dueDate = addMonths(new Date(formData.due_date), i - 1);
-            }
+            const dueDate = addMonths(new Date(formData.due_date), i - 1);
             
             await base44.entities.Expense.create({
               ...baseData,
+              amount: installmentAmount,
               due_date: format(dueDate, 'yyyy-MM-dd'),
               installment_number: i,
-              parent_expense_id: parentExpense.id,
-              status: isCardInstallment ? 'a_pagar' : baseData.status
+              installments_total: formData.installments,
+              status: 'a_pagar'
             });
           }
         } else {
