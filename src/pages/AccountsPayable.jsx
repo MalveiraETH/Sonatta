@@ -64,6 +64,7 @@ export default function AccountsPayable() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [counterparties, setCounterparties] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(25);
 
   useEffect(() => {
     loadExpenses();
