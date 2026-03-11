@@ -338,11 +338,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         feeRate = getCreditRate('cartao_credito', p.card_brand, p.installments || 1);
       }
       const amount = Number(p.amount) || 0;
-      const feeAmount = Math.round(amount * feeRate / 100 * 100) / 100;
-      const netAmount = Math.round((amount - feeAmount) * 100) / 100;
+      const feeAmount = Number(((amount * feeRate) / 100).toFixed(2));
+      const netAmount = Number((amount - feeAmount).toFixed(2));
       return { ...p, fee_rate: feeRate, fee_amount: feeAmount, net_amount: netAmount };
     });
-    const totalFeeAmount = Math.round(enriched.reduce((s, p) => s + p.fee_amount, 0) * 100) / 100;
+    const totalFeeAmount = Number(enriched.reduce((s, p) => s + p.fee_amount, 0).toFixed(2));
     return { enriched, totalFeeAmount };
   };
 
