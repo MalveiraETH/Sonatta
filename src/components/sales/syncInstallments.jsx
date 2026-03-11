@@ -93,38 +93,39 @@ export async function createInstallmentsForSale(sale, saleDate) {
 /**
  * Sync installments when a sale is edited.
  * Policy:
- * - If no paid installments exist: delete all and recreate.
- * - If paid installments exist: keep paid ones, update/recreate unpaid.
+ * - Cancel all payments (reset to pending/overdue based on due_date)
+ * - Delete all existing installments
+ * - Recreate installments from new payment_details
  * Only cartao_credito and pix_parcelado generate installments.
  */
 export async function syncInstallmentsForSale(sale, saleDate) {
   const existing = await base44.entities.Installment.filter({ sale_id: sale.id });
-  const paidOnes = existing.filter(i => i.payment_status === 'pago');
 
-  if (paidOnes.length === 0) {
-    // Safe to delete all and recreate
-    for (const inst of existing) {
-      await base44.entities.Installment.delete(inst.id);
-    }
-    await createInstallmentsForSale(sale, saleDate);
-  } else {
-    // Keep paid, update/recreate unpaid
-    const unpaidOnes = existing.filter(i => i.payment_status !== 'pago');
-    for (const inst of unpaidOnes) {
-      await base44.entities.Installment.delete(inst.id);
-    }
-    // Recreate unpaid installments based on new payment_details
-    const payments = (sale.payment_details || []).filter(
-      p => p.method === 'cartao_credito' || p.method === 'pix_parcelado'
-    );
-    for (const payment of payments) {
-      const allRecords = buildInstallments(payment, sale, saleDate);
-      // Skip installment numbers that are already paid
-      const paidNumbers = paidOnes.map(p => p.installment_number);
-      const toCreate = allRecords.filter(r => !paidNumbers.includes(r.installment_number));
-      for (const rec of toCreate) {
-        await base44.entities.Installment.create(rec);
-      }
+  // Step 1: Cancel all paid installments (reset to pending/overdue)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  for (const inst of existing) {
+    if (inst.payment_status === 'pago' || inst.payment_status === 'parcialmente_pago') {
+      const dueDate = new Date(inst.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = dueDate < today;
+      
+      await base44.entities.Installment.update(inst.id, {
+        paid_amount: 0,
+        remaining_amount: inst.original_amount,
+        payment_status: isOverdue ? 'atrasado' : 'pendente',
+        last_payment_date: null,
+        payment_history: []
+      });
     }
   }
+
+  // Step 2: Delete all installments
+  for (const inst of existing) {
+    await base44.entities.Installment.delete(inst.id);
+  }
+
+  // Step 3: Recreate installments from new payment_details
+  await createInstallmentsForSale(sale, saleDate);
 }
