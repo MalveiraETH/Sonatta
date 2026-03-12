@@ -52,6 +52,17 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.category_id) {
+      toast.error('Selecione uma categoria');
+      return;
+    }
+    
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+      toast.error('Informe um valor válido');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -94,7 +105,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
         toast.success('Despesa cadastrada!');
       }
 
-      if (onSuccess) onSuccess();
+      if (onSuccess) await onSuccess();
       if (onOpenChange) onOpenChange(false);
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);

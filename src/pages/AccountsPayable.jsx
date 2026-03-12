@@ -171,6 +171,12 @@ export default function AccountsPayable() {
       return;
     }
 
+    if (!selectedExpense) {
+      toast.error('Erro: despesa não encontrada');
+      return;
+    }
+
+    setLoading(true);
     try {
       const totalAmount = selectedExpense.amount + (Number(paymentData.fees) || 0);
       await base44.entities.Expense.update(selectedExpense.id, {
@@ -181,9 +187,13 @@ export default function AccountsPayable() {
       toast.success('Pagamento registrado!');
       setPaymentOpen(false);
       setPaymentData({ date: '', fees: 0 });
-      loadExpenses();
+      setSelectedExpense(null);
+      await loadExpenses();
     } catch (error) {
+      console.error('Erro ao registrar pagamento:', error);
       toast.error('Erro ao registrar pagamento');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -709,8 +719,10 @@ export default function AccountsPayable() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentOpen(false)}>Cancelar</Button>
-            <Button onClick={handlePay} className="bg-emerald-600 hover:bg-emerald-700">Confirmar Pagamento</Button>
+            <Button variant="outline" onClick={() => setPaymentOpen(false)} disabled={loading}>Cancelar</Button>
+            <Button onClick={handlePay} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
+              {loading ? 'Processando...' : 'Confirmar Pagamento'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
