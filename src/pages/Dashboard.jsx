@@ -84,15 +84,12 @@ export default function Dashboard() {
       const installmentsPaidThisMonth = installments
         .filter(i => {
           if (i.payment_status !== 'pago' || !i.last_payment_date) return false;
-          const paymentDate = new Date(i.last_payment_date + 'T00:00:00');
+          const paymentDate = new Date(i.last_payment_date);
           const paymentMonth = paymentDate.getMonth();
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
         })
-        .reduce((sum, i) => {
-          // Usar net_amount (valor líquido já calculado com desconto da taxa)
-          return sum + (i.net_amount || i.paid_amount || 0);
-        }, 0);
+        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
 
       const totalMonthRevenue = cashPaymentsFromSales + installmentsPaidThisMonth;
 
