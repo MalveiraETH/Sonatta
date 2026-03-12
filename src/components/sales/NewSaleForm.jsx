@@ -528,10 +528,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         }
       }
 
-      // Atualizar status do cliente
-      const client = clients.find(c => c.id === formData.client_id);
-      if (client && client.status !== 'cliente_ativo') {
-        await base44.entities.Client.update(client.id, { status: 'cliente_ativo' });
+      // Atualizar status do cliente para "cliente_ativo" após venda
+      if (formData.client_id) {
+        await base44.entities.Client.update(formData.client_id, { status: 'cliente_ativo' });
       }
 
       toast.success('Venda registrada com sucesso!');
