@@ -1074,13 +1074,72 @@ export default function Reports() {
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Total a Receber</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">
-                {formatCurrency(installments.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + (i.remaining_amount || 0), 0))}
+                {formatCurrency((() => {
+                  const getCurrentMonthDateRange = () => {
+                    const now = new Date();
+                    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    return { start, end };
+                  };
+
+                  const filterByDueDate = (inst) => {
+                    if (!dueDateStart && !dueDateEnd) {
+                      const { start, end } = getCurrentMonthDateRange();
+                      const dueDate = new Date(inst.due_date);
+                      return dueDate >= start && dueDate <= end;
+                    }
+                    const dueDate = new Date(inst.due_date);
+                    if (dueDateStart && dueDateEnd) {
+                      return dueDate >= new Date(dueDateStart) && dueDate <= new Date(dueDateEnd);
+                    }
+                    return true;
+                  };
+
+                  return installments
+                    .filter(i => i.payment_status !== 'pago' && filterByDueDate(i))
+                    .reduce((sum, i) => {
+                      const feeRate = i.fee_rate || 0;
+                      const isCard = i.payment_method === 'cartao_credito';
+                      const netAmount = isCard && feeRate > 0 ? (i.original_amount || 0) * (1 - feeRate / 100) : (i.original_amount || 0);
+                      const netRemaining = (i.remaining_amount || 0) * (netAmount / (i.original_amount || 1));
+                      return sum + netRemaining;
+                    }, 0);
+                })())}
               </p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Total Recebido</p>
               <p className="text-2xl font-bold text-emerald-600 mt-1">
-                {formatCurrency(installments.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + (i.paid_amount || 0), 0))}
+                {formatCurrency((() => {
+                  const getCurrentMonthDateRange = () => {
+                    const now = new Date();
+                    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    return { start, end };
+                  };
+
+                  const filterByPaymentDate = (inst) => {
+                    if (!paymentDateStart && !paymentDateEnd) {
+                      const { start, end } = getCurrentMonthDateRange();
+                      const paymentDate = new Date(inst.last_payment_date);
+                      return paymentDate >= start && paymentDate <= end;
+                    }
+                    const paymentDate = new Date(inst.last_payment_date);
+                    if (paymentDateStart && paymentDateEnd) {
+                      return paymentDate >= new Date(paymentDateStart) && paymentDate <= new Date(paymentDateEnd);
+                    }
+                    return true;
+                  };
+
+                  return installments
+                    .filter(i => i.payment_status === 'pago' && i.last_payment_date && filterByPaymentDate(i))
+                    .reduce((sum, i) => {
+                      const feeRate = i.fee_rate || 0;
+                      const isCard = i.payment_method === 'cartao_credito';
+                      const netAmount = isCard && feeRate > 0 ? (i.paid_amount || 0) * (1 - feeRate / 100) : (i.paid_amount || 0);
+                      return sum + netAmount;
+                    }, 0);
+                })())}
               </p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
