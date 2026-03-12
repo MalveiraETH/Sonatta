@@ -40,15 +40,14 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses, tests, hearingAidProducts] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses, tests] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
         base44.entities.Product.list(),
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
-        base44.entities.Test.list(),
-        base44.entities.Product.filter({ category: 'aparelho_auditivo' })
+        base44.entities.Test.list()
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -90,7 +89,13 @@ export default function Dashboard() {
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
         })
-        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+        .reduce((sum, i) => {
+          // Usar valor líquido (descontando taxa) para parcelas de cartão
+          const feeRate = i.fee_rate || 0;
+          const isCard = i.payment_method === 'cartao_credito';
+          const netAmount = isCard && feeRate > 0 ? (i.paid_amount || 0) * (1 - feeRate / 100) : (i.paid_amount || 0);
+          return sum + netAmount;
+        }, 0);
 
       const totalMonthRevenue = cashPaymentsFromSales + installmentsPaidThisMonth;
 
@@ -105,30 +110,6 @@ export default function Dashboard() {
 
       const monthResult = totalMonthRevenue - monthExpenses;
 
-      // Calcular faturado do mês (vendas realizadas + a receber previsto)
-      const totalSalesAmount = monthSalesData.reduce((sum, sale) => {
-        const subtotal = sale.items?.reduce((s, item) => s + ((item.quantity || 1) * (item.unit_price || 0)), 0) || 0;
-        return sum + (subtotal - (sale.discount || 0));
-      }, 0);
-
-      const receivablesThisMonth = installments
-        .filter(i => {
-          const dueDate = new Date(i.due_date);
-          const dueMonth = dueDate.getMonth();
-          const dueYear = dueDate.getFullYear();
-          return dueYear === filterYear && dueMonth >= filterMonthStart && dueMonth <= filterMonthEnd;
-        })
-        .reduce((sum, i) => sum + (i.original_amount || 0), 0);
-
-      const totalBilled = totalSalesAmount + receivablesThisMonth;
-
-      // Contar aparelhos auditivos vendidos (baseado na categoria real do produto)
-      const hearingAidIds = new Set(hearingAidProducts.map(p => p.id));
-      const hearingAidsCount = monthSalesData.reduce((count, sale) => {
-        const aids = sale.items?.filter(item => hearingAidIds.has(item.product_id)) || [];
-        return count + aids.reduce((sum, aid) => sum + (aid.quantity || 1), 0);
-      }, 0);
-
       const lowStock = products.filter(p => 
         (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
         (p.stock_type === 'serializado' && p.status === 'disponivel' && p.quantity <= 1)
@@ -142,10 +123,8 @@ export default function Dashboard() {
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         totalMonthRevenue,
-        totalBilled,
         monthExpenses,
         monthResult,
-        hearingAidsCount,
         lowStockProducts: lowStock.length,
         overduePixCount: overduePixInstallments.length,
         overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
@@ -248,18 +227,8 @@ export default function Dashboard() {
 
       {/* KPIs Financeiros */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturado do Mês</p>
-              <p className="text-lg sm:text-2xl font-bold text-indigo-600">{formatCurrency(stats.totalBilled)}</p>
-            </div>
-            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500 opacity-60" />
-          </div>
-        </Card>
-
         <Link to={createPageUrl('AccountsReceivable')}>
-          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Receita do Mês</p>
@@ -271,7 +240,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('AccountsPayable')}>
-          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Contas a Pagar</p>
@@ -282,7 +251,7 @@ export default function Dashboard() {
           </Card>
         </Link>
 
-        <Card className={`p-4 border-0 shadow-sm ${(stats.monthResult || 0) >= 0 ? '' : 'bg-red-50/50'}`}>
+        <Card className={`p-4 ${(stats.monthResult || 0) >= 0 ? '' : 'bg-red-50/50'}`}>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs sm:text-sm text-slate-500 mb-1">Resultado</p>
@@ -293,12 +262,9 @@ export default function Dashboard() {
             <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 opacity-60 ${(stats.monthResult || 0) >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
           </div>
         </Card>
-      </div>
 
-      {/* Segunda linha de KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Sales')}>
-          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Vendas do Mês</p>
@@ -308,9 +274,12 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
+      </div>
 
+      {/* KPIs Operacionais */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Clients')}>
-          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Clientes</p>
@@ -322,7 +291,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Tests')}>
-          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Em Teste</p>
@@ -334,7 +303,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Appointments')}>
-          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Agendamentos Hoje</p>
@@ -346,7 +315,7 @@ export default function Dashboard() {
         </Link>
 
         <Link to={createPageUrl('Clients')} state={{ filter: 'cliente_ativo' }}>
-          <Card className="p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Clientes Ativos</p>
@@ -356,16 +325,6 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
-
-        <Card className="p-4 border-0 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Aparelhos Vendidos</p>
-              <p className="text-lg sm:text-2xl font-bold text-teal-600">{stats.hearingAidsCount || 0}</p>
-            </div>
-            <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-teal-500 opacity-60" />
-          </div>
-        </Card>
       </div>
 
       {/* Alertas Críticos */}
