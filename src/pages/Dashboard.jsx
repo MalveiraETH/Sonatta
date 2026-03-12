@@ -83,18 +83,15 @@ export default function Dashboard() {
       // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no período
       const installmentsPaidThisMonth = installments
         .filter(i => {
-          if (i.payment_status !== 'pago') return false;
-          const paymentDate = new Date(i.last_payment_date || i.created_date);
+          if (i.payment_status !== 'pago' || !i.last_payment_date) return false;
+          const paymentDate = new Date(i.last_payment_date + 'T00:00:00');
           const paymentMonth = paymentDate.getMonth();
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
         })
         .reduce((sum, i) => {
-          // Usar valor líquido (descontando taxa) para parcelas de cartão
-          const feeRate = i.fee_rate || 0;
-          const isCard = i.payment_method === 'cartao_credito';
-          const netAmount = isCard && feeRate > 0 ? (i.paid_amount || 0) * (1 - feeRate / 100) : (i.paid_amount || 0);
-          return sum + netAmount;
+          // Usar net_amount (valor líquido já calculado com desconto da taxa)
+          return sum + (i.net_amount || i.paid_amount || 0);
         }, 0);
 
       const totalMonthRevenue = cashPaymentsFromSales + installmentsPaidThisMonth;
