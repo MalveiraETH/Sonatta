@@ -72,27 +72,78 @@ export default function Dashboard() {
         return saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
       });
 
-      // Receita total do mês = valores pagos à vista nas vendas + parcelas recebidas
-      // 1. Das vendas do mês: somar apenas pagamentos à vista (dinheiro, pix, cartao_debito, transferencia)
-      const cashPaymentsFromSales = monthSalesData.reduce((sum, sale) => {
+      // FATURADO = Vendas (valor líquido, data venda) + Parcelas (valor líquido, data vencimento, qualquer status)
+      const billedFromSales = monthSalesData.reduce((sum, sale) => {
+        return sum + (sale.total_net_amount || sale.total || 0);
+      }, 0);
+
+      const billedFromInstallments = installments
+        .filter(i => {
+          const dueDate = new Date(i.due_date);
+          const dueMonth = dueDate.getMonth();
+          const dueYear = dueDate.getFullYear();
+          return dueYear === filterYear && dueMonth >= filterMonthStart && dueMonth <= filterMonthEnd;
+        })
+        .reduce((sum, i) => sum + (i.net_amount || i.original_amount || 0), 0);
+
+      const totalBilled = billedFromSales + billedFromInstallments;
+
+      // RECEITAS = Vendas PIX e Débito (valor líquido, data venda) + Parcelas Pagas (valor líquido, data pagamento)
+      const revenueFromCashSales = monthSalesData.reduce((sum, sale) => {
         const cashPayments = sale.payment_details?.filter(p => 
           ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
         ) || [];
-        return sum + cashPayments.reduce((pSum, p) => pSum + (p.amount || 0), 0);
+        return sum + cashPayments.reduce((pSum, p) => {
+          const netAmount = p.net_amount || p.amount || 0;
+          return pSum + netAmount;
+        }, 0);
       }, 0);
 
-      // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no período
-      const installmentsPaidThisMonth = installments
+      const revenueFromInstallmentsPaid = installments
         .filter(i => {
-          if (i.payment_status !== 'pago') return false;
-          const paymentDate = new Date(i.last_payment_date || i.created_date);
+          if (i.payment_status !== 'pago' || !i.last_payment_date) return false;
+          const paymentDate = new Date(i.last_payment_date);
           const paymentMonth = paymentDate.getMonth();
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
         })
-        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+        .reduce((sum, i) => {
+          const netAmount = i.net_amount || i.paid_amount || 0;
+          return sum + netAmount;
+        }, 0);
 
-      const totalMonthRevenue = cashPaymentsFromSales + installmentsPaidThisMonth;
+      const totalMonthRevenue = revenueFromCashSales + revenueFromInstallmentsPaid;
+
+      // APARELHOS VENDIDOS (categoria aparelho_auditivo, data de saída)
+      const devicesExitMovements = stockMovements.filter(m => {
+        if (m.type !== 'saida' || !m.sale_date) return false;
+        const exitDate = new Date(m.sale_date);
+        const exitMonth = exitDate.getMonth();
+        const exitYear = exitDate.getFullYear();
+        if (exitYear !== filterYear || exitMonth < filterMonthStart || exitMonth > filterMonthEnd) return false;
+        
+        const product = products.find(p => p.id === m.product_id);
+        return product?.category === 'aparelho_auditivo';
+      });
+      const devicesSold = devicesExitMovements.reduce((sum, m) => sum + (m.quantity || 0), 0);
+
+      // BATERIAS VENDIDAS (categoria bateria, data de saída)
+      const batteriesExitMovements = stockMovements.filter(m => {
+        if (m.type !== 'saida' || !m.sale_date) return false;
+        const exitDate = new Date(m.sale_date);
+        const exitMonth = exitDate.getMonth();
+        const exitYear = exitDate.getFullYear();
+        if (exitYear !== filterYear || exitMonth < filterMonthStart || exitMonth > filterMonthEnd) return false;
+        
+        const product = products.find(p => p.id === m.product_id);
+        return product?.category === 'bateria';
+      });
+      const batteriesSold = batteriesExitMovements.reduce((sum, m) => sum + (m.quantity || 0), 0);
+
+      // APARELHOS NO ESTOQUE (categoria aparelho_auditivo, status disponível)
+      const devicesInStock = products.filter(p => 
+        p.category === 'aparelho_auditivo' && p.status === 'disponivel'
+      ).reduce((sum, p) => sum + (p.quantity || 1), 0);
 
       const monthExpenses = expenses
         .filter(e => {
