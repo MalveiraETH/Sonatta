@@ -72,27 +72,48 @@ export default function Dashboard() {
         return saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
       });
 
-      // Receita total do mês = valores pagos à vista nas vendas + parcelas recebidas
-      // 1. Das vendas do mês: somar apenas pagamentos à vista (dinheiro, pix, cartao_debito, transferencia)
-      const cashPaymentsFromSales = monthSalesData.reduce((sum, sale) => {
-        const cashPayments = sale.payment_details?.filter(p => 
-          ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
-        ) || [];
-        return sum + cashPayments.reduce((pSum, p) => pSum + (p.amount || 0), 0);
+      // FATURADO = vendas do período (valor líquido) + todas parcelas do período (valor líquido, por vencimento, qualquer status)
+      const salesRevenue = monthSalesData.reduce((sum, sale) => {
+        const totalNet = sale.total_net_amount || (sale.payment_details?.reduce((pSum, p) => {
+          const feeRate = p.fee_rate || 0;
+          const isCard = ['cartao_credito', 'cartao_debito'].includes(p.method);
+          const netAmount = isCard && feeRate > 0 ? (p.amount || 0) * (1 - feeRate / 100) : (p.amount || 0);
+          return pSum + netAmount;
+        }, 0) || sale.total || 0);
+        return sum + totalNet;
       }, 0);
 
-      // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no período
-      const installmentsPaidThisMonth = installments
+      const installmentsDuePeriod = installments
         .filter(i => {
-          if (i.payment_status !== 'pago') return false;
-          const paymentDate = new Date(i.last_payment_date || i.created_date);
+          const dueDate = new Date(i.due_date);
+          const dueMonth = dueDate.getMonth();
+          const dueYear = dueDate.getFullYear();
+          return dueYear === filterYear && dueMonth >= filterMonthStart && dueMonth <= filterMonthEnd;
+        })
+        .reduce((sum, i) => {
+          const feeRate = i.fee_rate || 0;
+          const isCard = i.payment_method === 'cartao_credito';
+          const netAmount = isCard && feeRate > 0 ? (i.original_amount || 0) * (1 - feeRate / 100) : (i.original_amount || 0);
+          return sum + netAmount;
+        }, 0);
+
+      const totalBilled = salesRevenue + installmentsDuePeriod;
+
+      // RECEITAS = parcelas pagas no período (valor líquido, por data de pagamento, status pago)
+      const totalMonthRevenue = installments
+        .filter(i => {
+          if (i.payment_status !== 'pago' || !i.last_payment_date) return false;
+          const paymentDate = new Date(i.last_payment_date);
           const paymentMonth = paymentDate.getMonth();
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
         })
-        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
-
-      const totalMonthRevenue = cashPaymentsFromSales + installmentsPaidThisMonth;
+        .reduce((sum, i) => {
+          const feeRate = i.fee_rate || 0;
+          const isCard = i.payment_method === 'cartao_credito';
+          const netAmount = isCard && feeRate > 0 ? (i.paid_amount || 0) * (1 - feeRate / 100) : (i.paid_amount || 0);
+          return sum + netAmount;
+        }, 0);
 
       const monthExpenses = expenses
         .filter(e => {
