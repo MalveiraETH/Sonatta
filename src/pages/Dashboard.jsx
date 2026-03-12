@@ -40,14 +40,15 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses, tests] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses, tests, stockMovements] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
         base44.entities.Product.list(),
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
-        base44.entities.Test.list()
+        base44.entities.Test.list(),
+        base44.entities.StockMovement.list()
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -83,8 +84,8 @@ export default function Dashboard() {
       // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no período
       const installmentsPaidThisMonth = installments
         .filter(i => {
-          if (i.payment_status !== 'pago' || !i.last_payment_date) return false;
-          const paymentDate = new Date(i.last_payment_date);
+          if (i.payment_status !== 'pago') return false;
+          const paymentDate = new Date(i.last_payment_date || i.created_date);
           const paymentMonth = paymentDate.getMonth();
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
@@ -116,9 +117,13 @@ export default function Dashboard() {
         activeClients: clients.filter(c => c.status === 'cliente_ativo').length,
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
+        totalBilled,
         totalMonthRevenue,
         monthExpenses,
-        monthResult,
+        monthResult: totalMonthRevenue - monthExpenses,
+        devicesSold,
+        batteriesSold,
+        devicesInStock,
         lowStockProducts: lowStock.length,
         overduePixCount: overduePixInstallments.length,
         overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
@@ -221,11 +226,21 @@ export default function Dashboard() {
 
       {/* KPIs Financeiros */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturado</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.totalBilled)}</p>
+            </div>
+            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
+          </div>
+        </Card>
+
         <Link to={createPageUrl('AccountsReceivable')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Receita do Mês</p>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Receitas</p>
                 <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalMonthRevenue)}</p>
               </div>
               <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
@@ -256,7 +271,10 @@ export default function Dashboard() {
             <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 opacity-60 ${(stats.monthResult || 0) >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
           </div>
         </Card>
+      </div>
 
+      {/* KPIs Operacionais */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Sales')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
@@ -268,54 +286,39 @@ export default function Dashboard() {
             </div>
           </Card>
         </Link>
-      </div>
 
-      {/* KPIs Operacionais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Link to={createPageUrl('Clients')}>
+        <Link to={createPageUrl('Inventory')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Total Clientes</p>
-                <p className="text-lg sm:text-2xl font-bold text-slate-900">{stats.totalClients || 0}</p>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Aparelhos Vendidos</p>
+                <p className="text-lg sm:text-2xl font-bold text-indigo-600">{stats.devicesSold || 0}</p>
               </div>
-              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-slate-500 opacity-60" />
+              <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500 opacity-60" />
             </div>
           </Card>
         </Link>
 
-        <Link to={createPageUrl('Tests')}>
+        <Link to={createPageUrl('Inventory')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Em Teste</p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-600">{stats.testsActive || 0}</p>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Baterias Vendidas</p>
+                <p className="text-lg sm:text-2xl font-bold text-amber-600">{stats.batteriesSold || 0}</p>
               </div>
-              <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
+              <Package className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 opacity-60" />
             </div>
           </Card>
         </Link>
 
-        <Link to={createPageUrl('Appointments')}>
+        <Link to={createPageUrl('Inventory')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Agendamentos Hoje</p>
-                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.todayAppointments || 0}</p>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Aparelhos no Estoque</p>
+                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.devicesInStock || 0}</p>
               </div>
-              <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
-            </div>
-          </Card>
-        </Link>
-
-        <Link to={createPageUrl('Clients')} state={{ filter: 'cliente_ativo' }}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Clientes Ativos</p>
-                <p className="text-lg sm:text-2xl font-bold text-[#6B3FA0]">{stats.activeClients || 0}</p>
-              </div>
-              <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#6B3FA0] opacity-60" />
+              <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
             </div>
           </Card>
         </Link>
