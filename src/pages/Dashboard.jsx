@@ -40,15 +40,14 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses, tests, stockMovements] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses, tests] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
         base44.entities.Product.list(),
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
-        base44.entities.Test.list(),
-        base44.entities.StockMovement.filter({ type: 'saida' })
+        base44.entities.Test.list()
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -72,35 +71,17 @@ export default function Dashboard() {
         return saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
       });
 
-      // FATURADO = vendas do período (valor líquido) + todas parcelas do período (valor líquido, por vencimento, qualquer status)
-      const salesRevenue = monthSalesData.reduce((sum, sale) => {
-        const totalNet = sale.total_net_amount || (sale.payment_details?.reduce((pSum, p) => {
-          const feeRate = p.fee_rate || 0;
-          const isCard = ['cartao_credito', 'cartao_debito'].includes(p.method);
-          const netAmount = isCard && feeRate > 0 ? (p.amount || 0) * (1 - feeRate / 100) : (p.amount || 0);
-          return pSum + netAmount;
-        }, 0) || sale.total || 0);
-        return sum + totalNet;
+      // Receita total do mês = valores pagos à vista nas vendas + parcelas recebidas
+      // 1. Das vendas do mês: somar apenas pagamentos à vista (dinheiro, pix, cartao_debito, transferencia)
+      const cashPaymentsFromSales = monthSalesData.reduce((sum, sale) => {
+        const cashPayments = sale.payment_details?.filter(p => 
+          ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
+        ) || [];
+        return sum + cashPayments.reduce((pSum, p) => pSum + (p.amount || 0), 0);
       }, 0);
 
-      const installmentsDuePeriod = installments
-        .filter(i => {
-          const dueDate = new Date(i.due_date);
-          const dueMonth = dueDate.getMonth();
-          const dueYear = dueDate.getFullYear();
-          return dueYear === filterYear && dueMonth >= filterMonthStart && dueMonth <= filterMonthEnd;
-        })
-        .reduce((sum, i) => {
-          const feeRate = i.fee_rate || 0;
-          const isCard = i.payment_method === 'cartao_credito';
-          const netAmount = isCard && feeRate > 0 ? (i.original_amount || 0) * (1 - feeRate / 100) : (i.original_amount || 0);
-          return sum + netAmount;
-        }, 0);
-
-      const totalBilled = salesRevenue + installmentsDuePeriod;
-
-      // RECEITAS = parcelas pagas no período (valor líquido, por data de pagamento, status pago)
-      const totalMonthRevenue = installments
+      // 2. Parcelas de pix_parcelado e cartao_credito que foram PAGAS no período
+      const installmentsPaidThisMonth = installments
         .filter(i => {
           if (i.payment_status !== 'pago' || !i.last_payment_date) return false;
           const paymentDate = new Date(i.last_payment_date);
@@ -108,12 +89,9 @@ export default function Dashboard() {
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
         })
-        .reduce((sum, i) => {
-          const feeRate = i.fee_rate || 0;
-          const isCard = i.payment_method === 'cartao_credito';
-          const netAmount = isCard && feeRate > 0 ? (i.paid_amount || 0) * (1 - feeRate / 100) : (i.paid_amount || 0);
-          return sum + netAmount;
-        }, 0);
+        .reduce((sum, i) => sum + (i.paid_amount || 0), 0);
+
+      const totalMonthRevenue = cashPaymentsFromSales + installmentsPaidThisMonth;
 
       const monthExpenses = expenses
         .filter(e => {
@@ -125,20 +103,6 @@ export default function Dashboard() {
         .reduce((sum, e) => sum + (e.amount || 0), 0);
 
       const monthResult = totalMonthRevenue - monthExpenses;
-
-      // APARELHOS VENDIDOS = produtos categoria aparelho_auditivo que tem movimentação de saída no período
-      const hearingAidsSold = stockMovements.filter(m => {
-        if (!m.sale_date) return false;
-        const saleDate = new Date(m.sale_date);
-        const saleMonth = saleDate.getMonth();
-        const saleYear = saleDate.getFullYear();
-        // Verificar se o produto é aparelho auditivo
-        const product = products.find(p => p.id === m.product_id);
-        return product?.category === 'aparelho_auditivo' && 
-               saleYear === filterYear && 
-               saleMonth >= filterMonthStart && 
-               saleMonth <= filterMonthEnd;
-      }).reduce((sum, m) => sum + (m.quantity || 0), 0);
 
       const lowStock = products.filter(p => 
         (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
@@ -152,11 +116,9 @@ export default function Dashboard() {
         activeClients: clients.filter(c => c.status === 'cliente_ativo').length,
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
-        totalBilled,
         totalMonthRevenue,
         monthExpenses,
         monthResult,
-        hearingAidsSold,
         lowStockProducts: lowStock.length,
         overduePixCount: overduePixInstallments.length,
         overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
@@ -259,21 +221,11 @@ export default function Dashboard() {
 
       {/* KPIs Financeiros */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturado</p>
-              <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.totalBilled)}</p>
-            </div>
-            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
-          </div>
-        </Card>
-
         <Link to={createPageUrl('AccountsReceivable')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Receitas</p>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Receita do Mês</p>
                 <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalMonthRevenue)}</p>
               </div>
               <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
@@ -304,10 +256,22 @@ export default function Dashboard() {
             <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 opacity-60 ${(stats.monthResult || 0) >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
           </div>
         </Card>
+
+        <Link to={createPageUrl('Sales')}>
+          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-500 mb-1">Vendas do Mês</p>
+                <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.monthSales || 0}</p>
+              </div>
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 opacity-60" />
+            </div>
+          </Card>
+        </Link>
       </div>
 
       {/* KPIs Operacionais */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Link to={createPageUrl('Clients')}>
           <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
             <div className="flex items-start justify-between">
@@ -352,18 +316,6 @@ export default function Dashboard() {
                 <p className="text-lg sm:text-2xl font-bold text-[#6B3FA0]">{stats.activeClients || 0}</p>
               </div>
               <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#6B3FA0] opacity-60" />
-            </div>
-          </Card>
-        </Link>
-
-        <Link to={createPageUrl('Inventory')}>
-          <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Aparelhos Vendidos</p>
-                <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.hearingAidsSold || 0}</p>
-              </div>
-              <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 opacity-60" />
             </div>
           </Card>
         </Link>
