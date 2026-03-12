@@ -1020,9 +1020,9 @@ export default function Reports() {
         {/* CONTAS A RECEBER */}
         <TabsContent value="receivables" className="space-y-6">
           <Card className="p-4 border-0 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>Data Vencto Início</Label>
+                <Label>Período Inicial</Label>
                 <Input
                   type="date"
                   value={dueDateStart}
@@ -1030,7 +1030,7 @@ export default function Reports() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data Vencto Fim</Label>
+                <Label>Período Final</Label>
                 <Input
                   type="date"
                   value={dueDateEnd}
@@ -1038,20 +1038,28 @@ export default function Reports() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data Pagto Início</Label>
-                <Input
-                  type="date"
-                  value={paymentDateStart}
-                  onChange={(e) => setPaymentDateStart(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Data Pagto Fim</Label>
-                <Input
-                  type="date"
-                  value={paymentDateEnd}
-                  onChange={(e) => setPaymentDateEnd(e.target.value)}
-                />
+                <Label>Status</Label>
+                <Select
+                  value={paymentDateStart || 'todos'}
+                  onValueChange={(value) => {
+                    if (value === 'todos') {
+                      setPaymentDateStart('');
+                      setPaymentDateEnd('');
+                    } else {
+                      setPaymentDateStart(value);
+                      setPaymentDateEnd('');
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-end">
                 <Button 
@@ -1095,8 +1103,16 @@ export default function Reports() {
                     return true;
                   };
 
+                  const statusFilter = paymentDateStart;
+                  
                   return installments
-                    .filter(i => i.payment_status !== 'pago' && filterByDueDate(i))
+                    .filter(i => {
+                      if (!filterByDueDate(i)) return false;
+                      if (statusFilter === 'pago') return i.payment_status === 'pago';
+                      if (statusFilter === 'pendente') return i.payment_status !== 'pago';
+                      return true;
+                    })
+                    .filter(i => i.payment_status !== 'pago')
                     .reduce((sum, i) => {
                       const feeRate = i.fee_rate || 0;
                       const isCard = i.payment_method === 'cartao_credito';
@@ -1118,21 +1134,29 @@ export default function Reports() {
                     return { start, end };
                   };
 
-                  const filterByPaymentDate = (inst) => {
-                    if (!paymentDateStart && !paymentDateEnd) {
+                  const filterByDueDate = (inst) => {
+                    if (!dueDateStart && !dueDateEnd) {
                       const { start, end } = getCurrentMonthDateRange();
-                      const paymentDate = new Date(inst.last_payment_date);
-                      return paymentDate >= start && paymentDate <= end;
+                      const dueDate = new Date(inst.due_date);
+                      return dueDate >= start && dueDate <= end;
                     }
-                    const paymentDate = new Date(inst.last_payment_date);
-                    if (paymentDateStart && paymentDateEnd) {
-                      return paymentDate >= new Date(paymentDateStart) && paymentDate <= new Date(paymentDateEnd);
+                    const dueDate = new Date(inst.due_date);
+                    if (dueDateStart && dueDateEnd) {
+                      return dueDate >= new Date(dueDateStart) && dueDate <= new Date(dueDateEnd);
                     }
                     return true;
                   };
 
+                  const statusFilter = paymentDateStart;
+
                   return installments
-                    .filter(i => i.payment_status === 'pago' && i.last_payment_date && filterByPaymentDate(i))
+                    .filter(i => {
+                      if (!filterByDueDate(i)) return false;
+                      if (statusFilter === 'pago') return i.payment_status === 'pago';
+                      if (statusFilter === 'pendente') return i.payment_status !== 'pago';
+                      return true;
+                    })
+                    .filter(i => i.payment_status === 'pago')
                     .reduce((sum, i) => {
                       const feeRate = i.fee_rate || 0;
                       const isCard = i.payment_method === 'cartao_credito';
@@ -1164,39 +1188,30 @@ export default function Reports() {
               <Button onClick={() => {
                 const data = installments
                   .filter(inst => {
-                    let passesFilter = true;
-                    
-                    // Filtro de vencimento
-                    if (dueDateStart || dueDateEnd) {
+                    const getCurrentMonthDateRange = () => {
+                      const now = new Date();
+                      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                      return { start, end };
+                    };
+
+                    // Filtro de período
+                    if (!dueDateStart && !dueDateEnd) {
+                      const { start, end } = getCurrentMonthDateRange();
                       const dueDate = new Date(inst.due_date);
-                      if (dueDateStart) {
-                        const start = new Date(dueDateStart);
-                        if (dueDate < start) passesFilter = false;
-                      }
-                      if (dueDateEnd) {
-                        const end = new Date(dueDateEnd);
-                        if (dueDate > end) passesFilter = false;
-                      }
+                      if (!(dueDate >= start && dueDate <= end)) return false;
+                    } else if (dueDateStart || dueDateEnd) {
+                      const dueDate = new Date(inst.due_date);
+                      if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
+                      if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
                     }
-                    
-                    // Filtro de pagamento
-                    if (paymentDateStart || paymentDateEnd) {
-                      if (inst.payment_status !== 'pago' || !inst.last_payment_date) {
-                        passesFilter = false;
-                      } else {
-                        const paymentDate = new Date(inst.last_payment_date);
-                        if (paymentDateStart) {
-                          const start = new Date(paymentDateStart);
-                          if (paymentDate < start) passesFilter = false;
-                        }
-                        if (paymentDateEnd) {
-                          const end = new Date(paymentDateEnd);
-                          if (paymentDate > end) passesFilter = false;
-                        }
-                      }
-                    }
-                    
-                    return passesFilter;
+
+                    // Filtro de status
+                    const statusFilter = paymentDateStart;
+                    if (statusFilter === 'pago' && inst.payment_status !== 'pago') return false;
+                    if (statusFilter === 'pendente' && inst.payment_status === 'pago') return false;
+
+                    return true;
                   })
                   .map(i => {
                    const feeRate = i.fee_rate || 0;
@@ -1244,39 +1259,30 @@ export default function Reports() {
                   <TableBody>
                     {installments
                       .filter(inst => {
-                        let passesFilter = true;
-                        
-                        // Filtro de vencimento
-                        if (dueDateStart || dueDateEnd) {
+                        const getCurrentMonthDateRange = () => {
+                          const now = new Date();
+                          const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                          return { start, end };
+                        };
+
+                        // Filtro de período
+                        if (!dueDateStart && !dueDateEnd) {
+                          const { start, end } = getCurrentMonthDateRange();
                           const dueDate = new Date(inst.due_date);
-                          if (dueDateStart) {
-                            const start = new Date(dueDateStart);
-                            if (dueDate < start) passesFilter = false;
-                          }
-                          if (dueDateEnd) {
-                            const end = new Date(dueDateEnd);
-                            if (dueDate > end) passesFilter = false;
-                          }
+                          if (!(dueDate >= start && dueDate <= end)) return false;
+                        } else if (dueDateStart || dueDateEnd) {
+                          const dueDate = new Date(inst.due_date);
+                          if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
+                          if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
                         }
-                        
-                        // Filtro de pagamento
-                        if (paymentDateStart || paymentDateEnd) {
-                          if (inst.payment_status !== 'pago' || !inst.last_payment_date) {
-                            passesFilter = false;
-                          } else {
-                            const paymentDate = new Date(inst.last_payment_date);
-                            if (paymentDateStart) {
-                              const start = new Date(paymentDateStart);
-                              if (paymentDate < start) passesFilter = false;
-                            }
-                            if (paymentDateEnd) {
-                              const end = new Date(paymentDateEnd);
-                              if (paymentDate > end) passesFilter = false;
-                            }
-                          }
-                        }
-                        
-                        return passesFilter;
+
+                        // Filtro de status
+                        const statusFilter = paymentDateStart;
+                        if (statusFilter === 'pago' && inst.payment_status !== 'pago') return false;
+                        if (statusFilter === 'pendente' && inst.payment_status === 'pago') return false;
+
+                        return true;
                       })
                       .map(inst => (
                         <TableRow key={inst.id}>
@@ -1320,9 +1326,9 @@ export default function Reports() {
         {/* CONTAS A PAGAR */}
         <TabsContent value="payables" className="space-y-6">
           <Card className="p-4 border-0 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>Data Vencto Início</Label>
+                <Label>Período Inicial</Label>
                 <Input
                   type="date"
                   value={dueDateStart}
@@ -1330,7 +1336,7 @@ export default function Reports() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data Vencto Fim</Label>
+                <Label>Período Final</Label>
                 <Input
                   type="date"
                   value={dueDateEnd}
@@ -1338,20 +1344,29 @@ export default function Reports() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Data Pagto Início</Label>
-                <Input
-                  type="date"
-                  value={paymentDateStart}
-                  onChange={(e) => setPaymentDateStart(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Data Pagto Fim</Label>
-                <Input
-                  type="date"
-                  value={paymentDateEnd}
-                  onChange={(e) => setPaymentDateEnd(e.target.value)}
-                />
+                <Label>Status</Label>
+                <Select
+                  value={paymentDateStart || 'todos'}
+                  onValueChange={(value) => {
+                    if (value === 'todos') {
+                      setPaymentDateStart('');
+                      setPaymentDateEnd('');
+                    } else {
+                      setPaymentDateStart(value);
+                      setPaymentDateEnd('');
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                    <SelectItem value="a_pagar">A Pagar</SelectItem>
+                    <SelectItem value="atrasado">Atrasado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-end">
                 <Button 
@@ -1407,39 +1422,35 @@ export default function Reports() {
               <Button onClick={() => {
                 const data = expenses
                   .filter(exp => {
-                    let passesFilter = true;
-                    
-                    // Filtro de vencimento
-                    if (dueDateStart || dueDateEnd) {
+                    const getCurrentMonthDateRange = () => {
+                      const now = new Date();
+                      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                      return { start, end };
+                    };
+
+                    // Filtro de período
+                    if (!dueDateStart && !dueDateEnd) {
+                      const { start, end } = getCurrentMonthDateRange();
                       const dueDate = new Date(exp.due_date);
-                      if (dueDateStart) {
-                        const start = new Date(dueDateStart);
-                        if (dueDate < start) passesFilter = false;
-                      }
-                      if (dueDateEnd) {
-                        const end = new Date(dueDateEnd);
-                        if (dueDate > end) passesFilter = false;
-                      }
+                      if (!(dueDate >= start && dueDate <= end)) return false;
+                    } else if (dueDateStart || dueDateEnd) {
+                      const dueDate = new Date(exp.due_date);
+                      if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
+                      if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
                     }
-                    
-                    // Filtro de pagamento
-                    if (paymentDateStart || paymentDateEnd) {
-                      if (exp.status !== 'pago' || !exp.payment_date) {
-                        passesFilter = false;
-                      } else {
-                        const paymentDate = new Date(exp.payment_date);
-                        if (paymentDateStart) {
-                          const start = new Date(paymentDateStart);
-                          if (paymentDate < start) passesFilter = false;
-                        }
-                        if (paymentDateEnd) {
-                          const end = new Date(paymentDateEnd);
-                          if (paymentDate > end) passesFilter = false;
-                        }
-                      }
-                    }
-                    
-                    return passesFilter;
+
+                    // Filtro de status
+                    const statusFilter = paymentDateStart;
+                    const today = new Date();
+                    const dueDate = new Date(exp.due_date);
+                    const actualStatus = exp.status === 'pago' ? 'pago' : (dueDate < today ? 'atrasado' : 'a_pagar');
+
+                    if (statusFilter === 'pago' && actualStatus !== 'pago') return false;
+                    if (statusFilter === 'a_pagar' && actualStatus !== 'a_pagar') return false;
+                    if (statusFilter === 'atrasado' && actualStatus !== 'atrasado') return false;
+
+                    return true;
                   })
                   .map(e => ({
                     'Categoria': e.category_name,
@@ -1475,39 +1486,35 @@ export default function Reports() {
                   <TableBody>
                     {expenses
                       .filter(exp => {
-                        let passesFilter = true;
-                        
-                        // Filtro de vencimento
-                        if (dueDateStart || dueDateEnd) {
+                        const getCurrentMonthDateRange = () => {
+                          const now = new Date();
+                          const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                          return { start, end };
+                        };
+
+                        // Filtro de período
+                        if (!dueDateStart && !dueDateEnd) {
+                          const { start, end } = getCurrentMonthDateRange();
                           const dueDate = new Date(exp.due_date);
-                          if (dueDateStart) {
-                            const start = new Date(dueDateStart);
-                            if (dueDate < start) passesFilter = false;
-                          }
-                          if (dueDateEnd) {
-                            const end = new Date(dueDateEnd);
-                            if (dueDate > end) passesFilter = false;
-                          }
+                          if (!(dueDate >= start && dueDate <= end)) return false;
+                        } else if (dueDateStart || dueDateEnd) {
+                          const dueDate = new Date(exp.due_date);
+                          if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
+                          if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
                         }
-                        
-                        // Filtro de pagamento
-                        if (paymentDateStart || paymentDateEnd) {
-                          if (exp.status !== 'pago' || !exp.payment_date) {
-                            passesFilter = false;
-                          } else {
-                            const paymentDate = new Date(exp.payment_date);
-                            if (paymentDateStart) {
-                              const start = new Date(paymentDateStart);
-                              if (paymentDate < start) passesFilter = false;
-                            }
-                            if (paymentDateEnd) {
-                              const end = new Date(paymentDateEnd);
-                              if (paymentDate > end) passesFilter = false;
-                            }
-                          }
-                        }
-                        
-                        return passesFilter;
+
+                        // Filtro de status
+                        const statusFilter = paymentDateStart;
+                        const today = new Date();
+                        const dueDate = new Date(exp.due_date);
+                        const actualStatus = exp.status === 'pago' ? 'pago' : (dueDate < today ? 'atrasado' : 'a_pagar');
+
+                        if (statusFilter === 'pago' && actualStatus !== 'pago') return false;
+                        if (statusFilter === 'a_pagar' && actualStatus !== 'a_pagar') return false;
+                        if (statusFilter === 'atrasado' && actualStatus !== 'atrasado') return false;
+
+                        return true;
                       })
                       .map(exp => {
                         const today = new Date();
