@@ -103,7 +103,11 @@ export default function Clients() {
 
   const statusLabels = {
     lead: 'Lead',
+    teste_agendado: 'Teste Agendado',
     em_teste: 'Em Teste',
+    teste_estendido: 'Teste Estendido',
+    teste_finalizado: 'Teste Finalizado',
+    teste_pendente: 'Teste Pendente',
     cliente_ativo: 'Cliente Ativo',
     pos_venda: 'Pós-Venda'
   };
@@ -111,7 +115,11 @@ export default function Clients() {
   const stats = {
     total: clients.length,
     leads: clients.filter(c => c.status === 'lead').length,
+    agendado: clients.filter(c => c.status === 'teste_agendado').length,
     emTeste: clients.filter(c => c.status === 'em_teste').length,
+    estendido: clients.filter(c => c.status === 'teste_estendido').length,
+    finalizado: clients.filter(c => c.status === 'teste_finalizado').length,
+    pendente: clients.filter(c => c.status === 'teste_pendente').length,
     ativos: clients.filter(c => c.status === 'cliente_ativo').length
   };
 
@@ -208,11 +216,24 @@ export default function Clients() {
 
         <Card 
           className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('teste_finalizado')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Finalizado</p>
+              <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.finalizado}</p>
+            </div>
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 opacity-60" />
+          </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
           onClick={() => setStatusFilter('cliente_ativo')}
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Ativos</p>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Clientes Ativos</p>
               <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.ativos}</p>
             </div>
             <Users className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
@@ -343,11 +364,15 @@ export default function Clients() {
                   <TableCell>
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                       client.status === 'cliente_ativo' ? 'bg-emerald-100 text-emerald-700' :
+                      client.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
                       client.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
-                      client.status === 'lead' ? 'bg-amber-100 text-amber-700' :
+                      client.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
+                      client.status === 'teste_finalizado' ? 'bg-teal-100 text-teal-700' :
+                      client.status === 'teste_pendente' ? 'bg-red-100 text-red-700' :
+                      client.status === 'lead' ? 'bg-slate-100 text-slate-700' :
                       'bg-slate-100 text-slate-700'
                     }`}>
-                      {statusLabels[client.status]}
+                      {statusLabels[client.status] || client.status}
                     </span>
                   </TableCell>
                   <TableCell className="text-center">
@@ -400,11 +425,15 @@ export default function Clients() {
                       <span className="font-semibold text-slate-900">{client.full_name}</span>
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                         client.status === 'cliente_ativo' ? 'bg-emerald-100 text-emerald-700' :
+                        client.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
                         client.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
-                        client.status === 'lead' ? 'bg-amber-100 text-amber-700' :
+                        client.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
+                        client.status === 'teste_finalizado' ? 'bg-teal-100 text-teal-700' :
+                        client.status === 'teste_pendente' ? 'bg-red-100 text-red-700' :
+                        client.status === 'lead' ? 'bg-slate-100 text-slate-700' :
                         'bg-slate-100 text-slate-700'
                       }`}>
-                        {statusLabels[client.status]}
+                        {statusLabels[client.status] || client.status}
                       </span>
                     </div>
                     <div className="text-sm text-slate-600">

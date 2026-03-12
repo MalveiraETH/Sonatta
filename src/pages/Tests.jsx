@@ -150,6 +150,12 @@ export default function Tests() {
     try {
       const updated = { ...test, status: 'teste_finalizado' };
       await base44.entities.Test.update(test.id, { status: 'teste_finalizado' });
+      
+      // Sincronizar status do cliente
+      if (test.client_id) {
+        await base44.entities.Client.update(test.client_id, { status: 'teste_finalizado' });
+      }
+      
       await syncTestAppointments(test.id, updated);
       toast.success('Teste finalizado');
       loadData();
