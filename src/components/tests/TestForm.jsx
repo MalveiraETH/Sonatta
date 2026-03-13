@@ -29,7 +29,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
+    start_time: '',
     end_date: '',
+    end_time: '',
     devices: [],
     professional_id: '',
     referral_professional_id: '',
@@ -44,7 +46,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: test.client_id || '',
           start_date: test.start_date || '',
+          start_time: test.start_time || '',
           end_date: test.end_date || '',
+          end_time: test.end_time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
           referral_professional_id: test.referral_professional_id || '',
@@ -55,7 +59,9 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: preselectedClientId || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
+          start_time: '',
           end_date: '',
+          end_time: '',
           devices: [],
           professional_id: '',
           referral_professional_id: '',
@@ -110,15 +116,18 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
   const updateClientStatus = async (clientId, testStatus) => {
     try {
-      const statusMap = {
-        'teste_agendado': 'teste_agendado',
-        'em_teste': 'em_teste',
-        'teste_estendido': 'teste_estendido',
-        'teste_finalizado': 'teste_finalizado',
-        'teste_pendente': 'teste_pendente'
-      };
+      let clientStatus = 'em_teste';
 
-      const clientStatus = statusMap[testStatus] || 'em_teste';
+      if (testStatus === 'em_teste') {
+        clientStatus = 'em_teste';
+      } else if (testStatus === 'teste_estendido') {
+        clientStatus = 'em_teste';
+      } else if (testStatus === 'teste_finalizado') {
+        clientStatus = 'cliente_ativo';
+      } else if (testStatus === 'teste_pendente') {
+        clientStatus = 'em_teste';
+      }
+
       await base44.entities.Client.update(clientId, { status: clientStatus });
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
@@ -207,11 +216,30 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
                 </div>
                 <div>
+                  <Label>Horário Início</Label>
+                  <Input
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
+
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label>Data Final *</Label>
                   <Input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
+
+                </div>
+                <div>
+                  <Label>Horário Final</Label>
+                  <Input
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
 
                 </div>
               </div>
