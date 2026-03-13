@@ -9,6 +9,24 @@ import { toast } from 'sonner';
 import { Save, RotateCcw } from 'lucide-react';
 
 export const TEST_TEMPLATES_DEFAULTS = {
+  teste_agendado: `📅 *Teste Agendado - Aparelho Auditivo*
+
+Olá {{client_name}},
+
+Seu teste de aparelho auditivo foi agendado com sucesso! 🎉
+
+📅 *Data de Início:* {{start_date}}{{start_time}}
+📅 *Data de Retorno:* {{end_date}}{{end_time}}
+
+🎧 *Aparelhos Reservados:*
+{{devices_list}}
+
+Por favor, compareça no horário agendado. Em caso de dúvidas ou necessidade de reagendamento, entre em contato conosco.
+
+Aguardamos você! 😊
+
+*Sonatta Soluções Auditivas*`,
+
   em_teste: `🦻 *Início de Teste - Aparelho Auditivo*
 
 Olá {{client_name}},
@@ -72,6 +90,7 @@ Obrigado pela participação! Em breve entraremos em contato com as próximas et
 };
 
 const STATUS_LABELS = {
+  teste_agendado: { label: 'Agendado', color: 'text-purple-600' },
   em_teste: { label: 'Em Teste', color: 'text-blue-600' },
   teste_estendido: { label: 'Estendido', color: 'text-amber-600' },
   teste_pendente: { label: 'Pendente', color: 'text-red-600' },
@@ -102,6 +121,7 @@ export default function WhatsAppTestTemplate() {
       setUser(userData);
       const saved = userData.whatsapp_test_templates || {};
       setTemplates({
+        teste_agendado: saved.teste_agendado || TEST_TEMPLATES_DEFAULTS.teste_agendado,
         em_teste: saved.em_teste || TEST_TEMPLATES_DEFAULTS.em_teste,
         teste_estendido: saved.teste_estendido || TEST_TEMPLATES_DEFAULTS.teste_estendido,
         teste_pendente: saved.teste_pendente || TEST_TEMPLATES_DEFAULTS.teste_pendente,
