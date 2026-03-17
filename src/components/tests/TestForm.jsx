@@ -26,6 +26,8 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
@@ -82,6 +84,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       setClients(clientsData);
       setProfessionals(professionalsData);
       setProducts(productsData);
+      setAllProducts(productsData);
     } catch (error) {
       console.error(error);
     }
@@ -102,7 +105,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   };
 
   const updateDevice = (index, productId) => {
-    const product = products.find((p) => p.id === productId);
+    const product = allProducts.find((p) => p.id === productId);
     if (product) {
       const newDevices = [...formData.devices];
       newDevices[index] = {
@@ -112,6 +115,20 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       };
       setFormData({ ...formData, devices: newDevices });
     }
+  };
+
+  const handleSearchProducts = (search) => {
+    setSearchTerm(search);
+    if (!search.trim()) {
+      setProducts(allProducts);
+      return;
+    }
+    const searchLower = search.toLowerCase();
+    const filtered = allProducts.filter(p => 
+      p.name?.toLowerCase().includes(searchLower) || 
+      p.serial_number?.toLowerCase().includes(searchLower)
+    );
+    setProducts(filtered);
   };
 
   const updateClientStatus = async (clientId, testStatus) => {
@@ -260,25 +277,25 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                           <SelectValue placeholder="Selecione por NS" />
                         </SelectTrigger>
                         <SelectContent>
-                          <div className="p-2">
+                          <div className="p-2 border-b">
                             <Input
                               placeholder="Buscar por nome ou NS..."
-                              className="mb-2"
-                              onChange={(e) => {
-                                const search = e.target.value.toLowerCase();
-                                const filtered = products.filter(p => 
-                                  p.name?.toLowerCase().includes(search) || 
-                                  p.serial_number?.toLowerCase().includes(search)
-                                );
-                                setProducts(filtered);
-                              }}
+                              value={searchTerm}
+                              onChange={(e) => handleSearchProducts(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                             />
                           </div>
-                          {products.map((product) =>
-                            <SelectItem key={product.id} value={product.id}>
-                                    {product.name} - NS: {product.serial_number}
-                                  </SelectItem>
-                            )}
+                          {products.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-slate-500">
+                              Nenhum aparelho encontrado
+                            </div>
+                          ) : (
+                            products.map((product) =>
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} - NS: {product.serial_number}
+                              </SelectItem>
+                            )
+                          )}
                         </SelectContent>
                       </Select>
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
