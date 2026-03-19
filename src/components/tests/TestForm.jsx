@@ -26,14 +26,10 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     client_id: '',
     start_date: '',
-    start_time: '',
     end_date: '',
-    end_time: '',
     devices: [],
     professional_id: '',
     referral_professional_id: '',
@@ -48,9 +44,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: test.client_id || '',
           start_date: test.start_date || '',
-          start_time: test.start_time || '',
           end_date: test.end_date || '',
-          end_time: test.end_time || '',
           devices: test.devices || [],
           professional_id: test.professional_id || '',
           referral_professional_id: test.referral_professional_id || '',
@@ -61,9 +55,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         setFormData({
           client_id: preselectedClientId || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
-          start_time: '',
           end_date: '',
-          end_time: '',
           devices: [],
           professional_id: '',
           referral_professional_id: '',
@@ -84,7 +76,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       setClients(clientsData);
       setProfessionals(professionalsData);
       setProducts(productsData);
-      setAllProducts(productsData);
     } catch (error) {
       console.error(error);
     }
@@ -105,7 +96,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   };
 
   const updateDevice = (index, productId) => {
-    const product = allProducts.find((p) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (product) {
       const newDevices = [...formData.devices];
       newDevices[index] = {
@@ -115,20 +106,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       };
       setFormData({ ...formData, devices: newDevices });
     }
-  };
-
-  const handleSearchProducts = (search) => {
-    setSearchTerm(search);
-    if (!search.trim()) {
-      setProducts(allProducts);
-      return;
-    }
-    const searchLower = search.toLowerCase();
-    const filtered = allProducts.filter(p => 
-      p.name?.toLowerCase().includes(searchLower) || 
-      p.serial_number?.toLowerCase().includes(searchLower)
-    );
-    setProducts(filtered);
   };
 
   const updateClientStatus = async (clientId, testStatus) => {
@@ -163,13 +140,16 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     try {
       const client = clients.find((c) => c.id === formData.client_id);
       const professional = professionals.find((p) => p.id === formData.professional_id);
-      const referralProfessional = professionals.find((p) => p.id === formData.referral_professional_id);
+      const referralProfessional = formData.referral_professional_id 
+        ? professionals.find((p) => p.id === formData.referral_professional_id)
+        : null;
 
       const testData = {
         ...formData,
         client_name: client?.full_name,
-        professional_name: professional?.full_name,
-        referral_professional_name: referralProfessional?.full_name,
+        professional_name: professional?.full_name || '',
+        referral_professional_name: referralProfessional?.full_name || '',
+        referral_professional_id: formData.referral_professional_id || '',
         status: extendMode ? 'teste_estendido' : formData.status
       };
 
@@ -233,30 +213,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
                 </div>
                 <div>
-                  <Label>Horário Início</Label>
-                  <Input
-                  type="time"
-                  value={formData.start_time}
-                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })} />
-
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
                   <Label>Data Final *</Label>
                   <Input
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} />
-
-                </div>
-                <div>
-                  <Label>Horário Final</Label>
-                  <Input
-                  type="time"
-                  value={formData.end_time}
-                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })} />
 
                 </div>
               </div>
@@ -277,25 +238,11 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                           <SelectValue placeholder="Selecione por NS" />
                         </SelectTrigger>
                         <SelectContent>
-                          <div className="p-2 border-b">
-                            <Input
-                              placeholder="Buscar por nome ou NS..."
-                              value={searchTerm}
-                              onChange={(e) => handleSearchProducts(e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                          {products.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-slate-500">
-                              Nenhum aparelho encontrado
-                            </div>
-                          ) : (
-                            products.map((product) =>
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} - NS: {product.serial_number}
-                              </SelectItem>
-                            )
-                          )}
+                          {products.map((product) =>
+                      <SelectItem key={product.id} value={product.id}>
+                              {product.name} - NS: {product.serial_number}
+                            </SelectItem>
+                      )}
                         </SelectContent>
                       </Select>
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
@@ -341,7 +288,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                     <SelectItem value="em_teste">Em Teste</SelectItem>
                     <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                     <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
