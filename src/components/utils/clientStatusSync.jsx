@@ -6,7 +6,7 @@ import { base44 } from '@/api/base44Client';
  */
 export const mapTestStatusToClientStatus = (testStatus) => {
   const statusMap = {
-    'teste_agendado': 'em_teste',
+    'teste_agendado': 'teste_agendado',
     'em_teste': 'em_teste',
     'teste_estendido': 'teste_estendido',
     'teste_finalizado': 'teste_finalizado',
