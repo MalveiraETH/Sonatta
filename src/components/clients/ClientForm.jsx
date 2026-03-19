@@ -143,8 +143,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="full_name"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value.toUpperCase() })}
                 placeholder="Nome completo do cliente"
+                className="uppercase"
               />
             </div>
 
@@ -196,8 +197,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="address"
                 value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value.toUpperCase() })}
                 placeholder="Endereço completo"
+                className="uppercase"
               />
             </div>
 
@@ -210,8 +212,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="payer_name"
                 value={formData.payer_name}
-                onChange={(e) => setFormData({ ...formData, payer_name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, payer_name: e.target.value.toUpperCase() })}
                 placeholder="Nome do responsável pelo pagamento"
+                className="uppercase"
               />
             </div>
 

@@ -130,8 +130,9 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
             <Label>Nome do Produto *</Label>
             <Input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value.toUpperCase() })}
               placeholder="Nome do produto"
+              className="uppercase"
             />
           </div>
 
@@ -176,16 +177,18 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
               <Label>Modelo</Label>
               <Input
                 value={formData.model}
-                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value.toUpperCase() })}
                 placeholder="Modelo"
+                className="uppercase"
               />
             </div>
             <div className="space-y-2">
               <Label>Nº de Série *</Label>
               <Input
                 value={formData.serial_number}
-                onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, serial_number: e.target.value.toUpperCase() })}
                 placeholder="Número de série único"
+                className="uppercase"
               />
             </div>
           </div>
@@ -195,8 +198,9 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
               <Label>NF de Entrada</Label>
               <Input
                 value={formData.nota_fiscal_entrada}
-                onChange={(e) => setFormData({ ...formData, nota_fiscal_entrada: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, nota_fiscal_entrada: e.target.value.toUpperCase() })}
                 placeholder="Número da NF"
+                className="uppercase"
               />
             </div>
             <div className="space-y-2">
