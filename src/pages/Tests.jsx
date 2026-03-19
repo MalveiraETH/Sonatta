@@ -42,7 +42,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import TestForm from '@/components/tests/TestForm';
-import { syncTestAppointments, getAppointmentStatus } from '@/components/tests/syncTestAppointments';
 import { TEST_TEMPLATES_DEFAULTS } from '@/components/settings/WhatsAppTestTemplate';
 import { 
   Search, 
@@ -98,7 +97,6 @@ export default function Tests() {
       // Atualizar status automático para teste pendente
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const syncOps = [];
       const updatedTests = testsData.map(test => {
         if (
           (test.status === 'em_teste' || test.status === 'teste_estendido') &&
@@ -106,17 +104,12 @@ export default function Tests() {
           new Date(test.end_date + 'T00:00:00') < today
         ) {
           const updated = { ...test, status: 'teste_pendente' };
-          // Persiste a mudança e sincroniza agendamentos
-          syncOps.push(
-            base44.entities.Test.update(test.id, { status: 'teste_pendente' })
-              .then(() => syncTestAppointments(test.id, updated))
-              .catch(console.error)
-          );
+          // Persiste a mudança
+          base44.entities.Test.update(test.id, { status: 'teste_pendente' }).catch(console.error);
           return updated;
         }
         return test;
       });
-      if (syncOps.length > 0) await Promise.all(syncOps);
 
       setTests(updatedTests);
       setCurrentUser(user);
@@ -148,7 +141,6 @@ export default function Tests() {
 
   const handleFinalize = async (test) => {
     try {
-      const updated = { ...test, status: 'teste_finalizado' };
       await base44.entities.Test.update(test.id, { status: 'teste_finalizado' });
       
       // Sincronizar status do cliente
@@ -156,7 +148,6 @@ export default function Tests() {
         await base44.entities.Client.update(test.client_id, { status: 'teste_finalizado' });
       }
       
-      await syncTestAppointments(test.id, updated);
       toast.success('Teste finalizado');
       loadData();
     } catch (error) {

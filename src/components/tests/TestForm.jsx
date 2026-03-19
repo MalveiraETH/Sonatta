@@ -140,34 +140,25 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     try {
       const client = clients.find((c) => c.id === formData.client_id);
       const professional = professionals.find((p) => p.id === formData.professional_id);
-      const referralProfessional = formData.referral_professional_id 
-        ? professionals.find((p) => p.id === formData.referral_professional_id)
-        : null;
+      const referralProfessional = professionals.find((p) => p.id === formData.referral_professional_id);
 
       const testData = {
         ...formData,
         client_name: client?.full_name,
-        professional_name: professional?.full_name || '',
-        referral_professional_name: referralProfessional?.full_name || '',
-        referral_professional_id: formData.referral_professional_id || '',
+        professional_name: professional?.full_name,
+        referral_professional_name: referralProfessional?.full_name,
         status: extendMode ? 'teste_estendido' : formData.status
       };
 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
-
-        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-
         toast.success('Teste atualizado');
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
-
-        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
-
         toast.success('Teste cadastrado');
       }
 
