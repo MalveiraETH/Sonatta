@@ -9,6 +9,7 @@ import WhatsAppSaleTemplate from '@/components/settings/WhatsAppSaleTemplate';
 import WhatsAppTestTemplate from '@/components/settings/WhatsAppTestTemplate';
 import ContractTemplate from '@/components/settings/ContractTemplate';
 import ReferenceProducts from '@/components/settings/ReferenceProducts';
+import ClientStatusSync from '@/components/settings/ClientStatusSync';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 export default function Settings() {
@@ -29,6 +30,7 @@ export default function Settings() {
           <TabsTrigger value="contract" className="text-xs sm:text-sm">Contrato</TabsTrigger>
           <TabsTrigger value="billing" className="text-xs sm:text-sm">Custos e Tarifas</TabsTrigger>
           <TabsTrigger value="reference_products" className="text-xs sm:text-sm">Produtos Referência</TabsTrigger>
+          <TabsTrigger value="status_sync" className="text-xs sm:text-sm">Status Clientes</TabsTrigger>
           <TabsTrigger value="audit" className="text-xs sm:text-sm">Auditoria</TabsTrigger>
         </TabsList>
 
@@ -58,6 +60,10 @@ export default function Settings() {
 
         <TabsContent value="reference_products">
           <ReferenceProducts />
+        </TabsContent>
+
+        <TabsContent value="status_sync">
+          <ClientStatusSync />
         </TabsContent>
 
         <TabsContent value="audit">
