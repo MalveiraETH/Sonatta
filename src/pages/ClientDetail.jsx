@@ -12,6 +12,7 @@ import SaleForm from '@/components/sales/SaleForm';
 import NewSaleForm from '@/components/sales/NewSaleForm';
 import InstallmentsControl from '@/components/clients/InstallmentsControl';
 import TestForm from '@/components/tests/TestForm';
+import ClientForm from '@/components/clients/ClientForm';
 import {
   Table,
   TableBody,
@@ -34,7 +35,8 @@ import {
   Ear,
   Trash2,
   BeakerIcon,
-  Package
+  Package,
+  Edit
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -66,6 +68,7 @@ export default function ClientDetail() {
   const [testFormOpen, setTestFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [editFormOpen, setEditFormOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -214,6 +217,10 @@ export default function ClientDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setEditFormOpen(true)} variant="outline">
+            <Edit className="h-4 w-4 mr-2" />
+            Editar
+          </Button>
           <Button onClick={sendWhatsApp} className="bg-emerald-600 hover:bg-emerald-700 text-white">
             <MessageCircle className="h-4 w-4 mr-2" />
             WhatsApp
@@ -726,6 +733,13 @@ export default function ClientDetail() {
         onClose={() => setTestFormOpen(false)}
         onSuccess={loadData}
         preselectedClientId={client.id}
+      />
+
+      <ClientForm
+        open={editFormOpen}
+        onOpenChange={setEditFormOpen}
+        client={client}
+        onSuccess={loadData}
       />
 
         {/* Delete Confirmation Dialog */}

@@ -353,7 +353,11 @@ export default function Clients() {
               </TableRow>
             ) : (
               filteredClients.map(client => (
-                <TableRow key={client.id} className="hover:bg-slate-50">
+                <TableRow 
+                  key={client.id} 
+                  className="hover:bg-slate-50 cursor-pointer"
+                  onClick={() => window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`}
+                >
                   <TableCell>
                     <div>
                       <p className="font-medium">{client.full_name}</p>
@@ -375,32 +379,19 @@ export default function Clients() {
                       {statusLabels[client.status] || client.status}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex items-center">
-                            <Eye className="h-4 w-4 mr-2" />
-                            Detalhes
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setSelectedClient(client); setFormOpen(true); }}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        {client.phone && (
-                          <DropdownMenuItem onClick={() => sendWhatsApp(client)}>
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            WhatsApp
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    {client.phone && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sendWhatsApp(client);
+                        }}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -417,7 +408,11 @@ export default function Clients() {
           </Card>
         ) : (
           filteredClients.map(client => (
-            <Card key={client.id} className="p-4">
+            <Card 
+              key={client.id} 
+              className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`}
+            >
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -440,31 +435,18 @@ export default function Clients() {
                       {client.phone || 'Sem telefone'}
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`} className="flex items-center">
-                          <Eye className="h-4 w-4 mr-2" />
-                          Detalhes
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setSelectedClient(client); setFormOpen(true); }}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      {client.phone && (
-                        <DropdownMenuItem onClick={() => sendWhatsApp(client)}>
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          WhatsApp
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {client.phone && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sendWhatsApp(client);
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </Card>
