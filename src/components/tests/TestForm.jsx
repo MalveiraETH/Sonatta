@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import {
   Dialog,
@@ -18,9 +18,95 @@ import {
 '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, X, ChevronDown } from 'lucide-react';
-import { useState as useSearchState } from 'react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+
+function DeviceSearchInput({ index, device, products, onUpdate, onRemove }) {
+  const [search, setSearch] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const selectedProduct = products.find(p => p.id === device.product_id);
+  const displayValue = selectedProduct ? `${selectedProduct.name} - NS: ${selectedProduct.serial_number}` : '';
+
+  const filtered = products.filter(p =>
+    !search ||
+    p.name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.serial_number?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleSelect = (productId) => {
+    onUpdate(index, productId);
+    setSearch('');
+    setOpen(false);
+  };
+
+  const handleInputChange = (e) => {
+    setSearch(e.target.value);
+    if (!open) setOpen(true);
+    if (e.target.value === '' && device.product_id) {
+      // clear selection on backspace
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Backspace' && search === '' && device.product_id) {
+      // Clear selected product
+      const newDevice = { product_id: '', product_name: '', serial_number: '' };
+      const devices = [];
+      onUpdate(index, null);
+    }
+  };
+
+  return (
+    <div className="flex gap-2 flex-1" ref={ref}>
+      <div className="relative flex-1">
+        <div
+          className="flex items-center border border-input rounded-md px-3 py-2 bg-background cursor-text"
+          onClick={() => { setOpen(true); }}
+        >
+          <input
+            className="flex-1 outline-none text-sm bg-transparent"
+            placeholder={displayValue || 'Selecione por NS'}
+            value={open ? search : displayValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setOpen(true)}
+          />
+          <ChevronDown className="h-4 w-4 text-muted-foreground ml-1 shrink-0" />
+        </div>
+        {open && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-input rounded-md shadow-lg max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum resultado</div>
+            ) : (
+              filtered.map(product => (
+                <div
+                  key={product.id}
+                  className="px-3 py-2 text-sm hover:bg-slate-100 cursor-pointer"
+                  onMouseDown={(e) => { e.preventDefault(); handleSelect(product.id); }}
+                >
+                  {product.name} - NS: {product.serial_number}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+      <button type="button" onClick={() => onRemove(index)} className="p-2 hover:bg-slate-100 rounded-md">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
 export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
   const [loading, setLoading] = useState(false);
