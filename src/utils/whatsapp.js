@@ -1,14 +1,8 @@
 /**
  * Opens WhatsApp in a mobile-friendly way.
- * Using anchor click instead of window.open to avoid popup blockers on mobile.
+ * Uses window.location.href (same method that works on iOS/Android).
  */
 export function openWhatsApp(phone, message = '') {
   const url = `https://wa.me/${phone}${message ? '?text=' + encodeURIComponent(message) : ''}`;
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  window.location.href = url;
 }
