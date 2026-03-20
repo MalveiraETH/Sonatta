@@ -24,6 +24,49 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
+function DeviceCombobox({ device, products, onSelect, onRemove }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex gap-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" className="flex-1 justify-between font-normal">
+            {device.product_id
+              ? products.find(p => p.id === device.product_id)
+                ? `${products.find(p => p.id === device.product_id).name} - NS: ${products.find(p => p.id === device.product_id).serial_number}`
+                : 'Selecione por NS'
+              : 'Selecione por NS'}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+          <Command>
+            <CommandInput placeholder="Buscar por nome ou NS..." />
+            <CommandList>
+              <CommandEmpty>Nenhum aparelho encontrado.</CommandEmpty>
+              <CommandGroup>
+                {products.map(product => (
+                  <CommandItem
+                    key={product.id}
+                    value={`${product.name} ${product.serial_number}`}
+                    onSelect={() => { onSelect(product.id); setOpen(false); }}
+                  >
+                    <Check className={cn('mr-2 h-4 w-4', device.product_id === product.id ? 'opacity-100' : 'opacity-0')} />
+                    {product.name} - NS: {product.serial_number}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <Button type="button" size="icon" variant="ghost" onClick={onRemove}>
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
   const [loading, setLoading] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
