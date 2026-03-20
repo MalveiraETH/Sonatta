@@ -52,6 +52,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
+import { openWhatsApp } from '@/utils/whatsapp';
 import { logDeletion } from '@/components/utils/auditLogger';
 
 export default function Sales() {
@@ -242,20 +243,7 @@ Obrigado pela preferência!
       .replace(/{{total}}/g, formatCurrency(sale.total))
       .replace(/{{payments_list}}/g, paymentsList);
 
-    const waMeUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
-    const whatsappAppUrl = `whatsapp://send?phone=55${phone}&text=${encodeURIComponent(message)}`;
-
-    try {
-      window.location.href = whatsappAppUrl;
-      setTimeout(() => {
-        if (!document.hidden) {
-          window.open(waMeUrl, '_blank');
-        }
-      }, 500);
-    } catch (e) {
-      console.error("Erro ao tentar abrir WhatsApp:", e);
-      window.open(waMeUrl, '_blank');
-    }
+    openWhatsApp(`55${phone}`, message);
   };
 
   const openCancelConfirm = (sale) => {

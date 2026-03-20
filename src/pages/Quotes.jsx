@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logDeletion, logWhatsApp } from '@/components/utils/auditLogger';
+import { openWhatsApp } from '@/utils/whatsapp';
 
 export default function Quotes() {
   const [loading, setLoading] = useState(true);
@@ -217,7 +218,7 @@ Equipe Sonatta Soluções Auditivas
       .replace(/{{warranty}}/g, warrantyText)
       .replace(/{{contact_phone}}/g, contactPhone);
     
-    return `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    return { phone, message };
   };
 
   const sendEmail = async (quote) => {
@@ -351,11 +352,11 @@ Equipe Sonatta Soluções Auditivas
                         toast.error('Cliente não possui telefone cadastrado');
                         return;
                       }
-                      const link = await getWhatsAppLink(quote);
-                      if (link) {
+                      const result = await getWhatsAppLink(quote);
+                      if (result) {
                         await handleStatusChange(quote, 'enviado');
                         await logWhatsApp('Orçamento', `Enviado para ${quote.client_name} - ${quote.quote_number}`, quote.id);
-                        window.location.href = link;
+                        openWhatsApp(`55${result.phone}`, result.message);
                       }
                     }}
                   >

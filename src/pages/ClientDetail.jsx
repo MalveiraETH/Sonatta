@@ -50,6 +50,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
+import { openWhatsApp } from '@/utils/whatsapp';
 import { ptBR } from 'date-fns/locale';
 
 export default function ClientDetail() {
@@ -129,7 +130,7 @@ export default function ClientDetail() {
   const sendWhatsApp = () => {
     if (!client?.phone) return;
     const phone = client.phone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${phone}`, '_blank');
+    openWhatsApp(`55${phone}`);
   };
 
   const sendEmail = () => {
