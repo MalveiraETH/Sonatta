@@ -478,9 +478,63 @@ export default function Reports() {
 
         {/* TESTES */}
         <TabsContent value="tests" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Total Testes</p>
+              <p className="text-2xl font-bold text-[#1e3a5f] mt-1">{tests.length}</p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Em Teste</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{tests.filter(t => t.status === 'em_teste').length}</p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Estendidos</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">{tests.filter(t => t.status === 'teste_estendido').length}</p>
+            </Card>
+            <Card className="p-4 border-0 shadow-sm">
+              <p className="text-sm text-slate-500">Finalizados</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">{tests.filter(t => t.status === 'teste_finalizado').length}</p>
+            </Card>
+          </div>
+
+          <Card className="p-4 border-0 shadow-sm">
+            <div className="flex items-center gap-4">
+              <Label className="shrink-0">Filtrar por Status</Label>
+              <Select value={testStatusFilter} onValueChange={setTestStatusFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="em_teste">Em Teste</SelectItem>
+                  <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
+                  <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
+                  <SelectItem value="teste_pendente">Teste Pendente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Testes Cadastrados</CardTitle>
               <Button onClick={() => {
                 const filteredForExport = testStatusFilter === 'todos' ? tests : tests.filter(t => t.status === testStatusFilter);
                 const data = filteredForExport.map(t => ({
+                  'Número': t.test_number,
+                  'Cliente': t.client_name,
+                  'Data Início': safeFormat(t.start_date),
+                  'Data Final': safeFormat(t.end_date),
+                  'Profissional': t.professional_name || '',
+                  'Indicação': t.referral_professional_name || '',
+                  'Aparelhos': t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
+                  'Status': t.status === 'em_teste' ? 'Em Teste' :
+                           t.status === 'teste_estendido' ? 'Teste Estendido' :
+                           t.status === 'teste_finalizado' ? 'Teste Finalizado' : 'Teste Pendente',
+                  'Observações': t.notes || ''
+                }));
+                exportToExcel(data, 'relatorio_testes');
+              }} variant="outline">
                 <Download className="h-4 w-4 mr-2" />
                 Exportar Excel
               </Button>
