@@ -1671,7 +1671,21 @@ export default function Reports() {
                     {filteredSales.map(sale => {
                       const prof = getReferralProfForSale(sale);
                       if (!prof) return null;
-                  </TableBody>
+
+                      return (
+                        <TableRow key={sale.id}>
+                          <TableCell className="font-medium">{prof.full_name}</TableCell>
+                          <TableCell className="capitalize">{prof.specialty}</TableCell>
+                          <TableCell>{sale.client_name}</TableCell>
+                          <TableCell>{safeFormat(sale.sale_date || sale.created_date)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
+                          <TableCell className="text-right font-bold text-[#A4D233]">
+                            {formatCurrency(getTotalPayments(sale) * 0.10)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }).filter(Boolean)}
+                    </TableBody>
                 </Table>
               </div>
             </CardContent>
