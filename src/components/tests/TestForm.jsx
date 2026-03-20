@@ -59,9 +59,6 @@ function DeviceSearchInput({ index, device, products, onUpdate, onRemove }) {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Backspace' && search === '' && device.product_id) {
-      // Clear selected product
-      const newDevice = { product_id: '', product_name: '', serial_number: '' };
-      const devices = [];
       onUpdate(index, null);
     }
   };
@@ -183,16 +180,20 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
   };
 
   const updateDevice = (index, productId) => {
-    const product = products.find((p) => p.id === productId);
-    if (product) {
-      const newDevices = [...formData.devices];
-      newDevices[index] = {
-        product_id: product.id,
-        product_name: product.name,
-        serial_number: product.serial_number
-      };
-      setFormData({ ...formData, devices: newDevices });
+    const newDevices = [...formData.devices];
+    if (!productId) {
+      newDevices[index] = { product_id: '', product_name: '', serial_number: '' };
+    } else {
+      const product = products.find((p) => p.id === productId);
+      if (product) {
+        newDevices[index] = {
+          product_id: product.id,
+          product_name: product.name,
+          serial_number: product.serial_number
+        };
+      }
     }
+    setFormData({ ...formData, devices: newDevices });
   };
 
   const updateClientStatus = async (clientId, testStatus) => {
