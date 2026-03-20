@@ -190,7 +190,7 @@ export default function Reports() {
       'Telefone': c.phone,
       'Email': c.email || '',
       'Status': c.status,
-      'Data Cadastro': format(new Date(c.created_date), 'dd/MM/yyyy')
+      'Data Cadastro': safeFormat(c.created_date)
     }));
     exportToExcel(data, 'relatorio_clientes');
   };
@@ -221,10 +221,10 @@ export default function Reports() {
           let status = s.status;
           
           if (isPixAVista) {
-            dataPagamento = format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy');
+            dataPagamento = safeFormat(s.sale_date || s.created_date);
             status = 'pago';
           } else if (s.status === 'pago') {
-            dataPagamento = format(new Date(s.updated_date), 'dd/MM/yyyy');
+            dataPagamento = safeFormat(s.updated_date);
           }
           
           const feeRate = pd.fee_rate || 0;
@@ -246,7 +246,7 @@ export default function Reports() {
             'Status': status,
             'Data Pagamento': dataPagamento,
             'NF': s.nota_fiscal || '',
-            'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
+            'Data': safeFormat(s.sale_date || s.created_date)
           });
         });
       } else {
@@ -256,10 +256,10 @@ export default function Reports() {
         let status = s.status;
         
         if (isPixAVista) {
-          dataPagamento = format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy');
+          dataPagamento = safeFormat(s.sale_date || s.created_date);
           status = 'pago';
         } else if (s.status === 'pago') {
-          dataPagamento = format(new Date(s.updated_date), 'dd/MM/yyyy');
+          dataPagamento = safeFormat(s.updated_date);
         }
         
         data.push({
@@ -278,7 +278,7 @@ export default function Reports() {
           'Status': status,
           'Data Pagamento': dataPagamento,
           'NF': s.nota_fiscal || '',
-          'Data': format(new Date(s.sale_date || s.created_date), 'dd/MM/yyyy')
+          'Data': safeFormat(s.sale_date || s.created_date)
         });
       }
     });
@@ -297,7 +297,7 @@ export default function Reports() {
             'Profissional': prof.full_name,
             'Especialidade': prof.specialty,
             'Paciente': sale.client_name,
-            'Data Venda': format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy'),
+            'Data Venda': safeFormat(sale.sale_date || sale.created_date),
             'Valor Total': sale.total,
             'Repasse 10%': (sale.total * 0.10).toFixed(2)
           });
@@ -503,8 +503,8 @@ export default function Reports() {
                 const data = tests.map(t => ({
                   'Número': t.test_number,
                   'Cliente': t.client_name,
-                  'Data Início': format(new Date(t.start_date), 'dd/MM/yyyy'),
-                  'Data Final': format(new Date(t.end_date), 'dd/MM/yyyy'),
+                  'Data Início': safeFormat(t.start_date),
+                  'Data Final': safeFormat(t.end_date),
                   'Profissional': t.professional_name || '',
                   'Indicação': t.referral_professional_name || '',
                   'Aparelhos': t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
@@ -624,7 +624,7 @@ export default function Reports() {
                       'Tipo': 'Pagamento à Vista',
                       'Venda': sale.sale_number,
                       'Cliente': sale.client_name,
-                      'Data': format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy'),
+                      'Data': safeFormat(sale.sale_date || sale.created_date),
                       'Método': p.method === 'pix' ? 'PIX' :
                                 p.method === 'dinheiro' ? 'Dinheiro' :
                                 p.method === 'cartao_debito' ? 'Cartão Débito' :
@@ -646,7 +646,7 @@ export default function Reports() {
                     'Tipo': 'Parcela Recebida',
                     'Venda': i.sale_number,
                     'Cliente': i.client_name,
-                    'Data': format(new Date(i.last_payment_date), 'dd/MM/yyyy'),
+                    'Data': safeFormat(i.last_payment_date),
                     'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
                     'Valor': i.paid_amount || 0
                   });
