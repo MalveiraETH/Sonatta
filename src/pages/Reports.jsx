@@ -45,6 +45,7 @@ export default function Reports() {
   const [expenses, setExpenses] = useState([]);
   const [tests, setTests] = useState([]);
   const [stockMovements, setStockMovements] = useState([]);
+  const [testStatusFilter, setTestStatusFilter] = useState('todos');
 
   useEffect(() => {
     loadData();
@@ -477,44 +478,9 @@ export default function Reports() {
 
         {/* TESTES */}
         <TabsContent value="tests" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-4 border-0 shadow-sm">
-              <p className="text-sm text-slate-500">Total Testes</p>
-              <p className="text-2xl font-bold text-[#1e3a5f] mt-1">{tests.length}</p>
-            </Card>
-            <Card className="p-4 border-0 shadow-sm">
-              <p className="text-sm text-slate-500">Em Teste</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{tests.filter(t => t.status === 'em_teste').length}</p>
-            </Card>
-            <Card className="p-4 border-0 shadow-sm">
-              <p className="text-sm text-slate-500">Estendidos</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{tests.filter(t => t.status === 'teste_estendido').length}</p>
-            </Card>
-            <Card className="p-4 border-0 shadow-sm">
-              <p className="text-sm text-slate-500">Finalizados</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">{tests.filter(t => t.status === 'teste_finalizado').length}</p>
-            </Card>
-          </div>
-
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Testes Cadastrados</CardTitle>
               <Button onClick={() => {
-                const data = tests.map(t => ({
-                  'Número': t.test_number,
-                  'Cliente': t.client_name,
-                  'Data Início': safeFormat(t.start_date),
-                  'Data Final': safeFormat(t.end_date),
-                  'Profissional': t.professional_name || '',
-                  'Indicação': t.referral_professional_name || '',
-                  'Aparelhos': t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
-                  'Status': t.status === 'em_teste' ? 'Em Teste' :
-                           t.status === 'teste_estendido' ? 'Teste Estendido' :
-                           t.status === 'teste_finalizado' ? 'Teste Finalizado' : 'Teste Pendente',
-                  'Observações': t.notes || ''
-                }));
-                exportToExcel(data, 'relatorio_testes');
-              }} variant="outline">
+                const filteredForExport = testStatusFilter === 'todos' ? tests : tests.filter(t => t.status === testStatusFilter);
+                const data = filteredForExport.map(t => ({
                 <Download className="h-4 w-4 mr-2" />
                 Exportar Excel
               </Button>
@@ -534,7 +500,7 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tests.map(test => (
+                    {(testStatusFilter === 'todos' ? tests : tests.filter(t => t.status === testStatusFilter)).map(test => (
                       <TableRow key={test.id}>
                         <TableCell className="font-medium">{test.test_number}</TableCell>
                         <TableCell>{test.client_name}</TableCell>
@@ -899,15 +865,19 @@ export default function Reports() {
                       .filter(() => true)
                       .map(sale => {
                         const client = clients.find(c => c.id === sale.client_id);
-                        const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
-                        const profResponsavel = professionals.find(p => p.id === client?.responsible_professional);
+                        const profIndicacao = sale.test_referral_name ||
+                          professionals.find(p => p.id === sale.test_referral_id)?.full_name ||
+                          professionals.find(p => p.id === client?.referral_professional)?.full_name || '-';
+                        const profResponsavel = sale.seller_name ||
+                          professionals.find(p => p.id === sale.seller_id)?.full_name ||
+                          professionals.find(p => p.id === client?.responsible_professional)?.full_name || '-';
                         
                         return (
                           <TableRow key={sale.id}>
                             <TableCell className="font-medium">{sale.sale_number}</TableCell>
                             <TableCell>{sale.client_name}</TableCell>
-                            <TableCell className="text-sm">{profIndicacao?.full_name || '-'}</TableCell>
-                            <TableCell className="text-sm">{profResponsavel?.full_name || '-'}</TableCell>
+                            <TableCell className="text-sm">{profIndicacao}</TableCell>
+                            <TableCell className="text-sm">{profResponsavel}</TableCell>
                             <TableCell>{safeFormat(sale.sale_date || sale.created_date)}</TableCell>
                             <TableCell>
                               {sale.status === 'pago' ? safeFormat(sale.updated_date) : '-'}
