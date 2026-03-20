@@ -919,10 +919,16 @@ export default function Reports() {
                       .filter(() => true)
                       .map(sale => {
                         const client = clients.find(c => c.id === sale.client_id);
+                        // Busca o teste mais recente do cliente para obter profissionais do atendimento
+                        const clientTest = tests
+                          .filter(t => t.client_id === sale.client_id)
+                          .sort((a, b) => new Date(b.start_date) - new Date(a.start_date))[0];
                         const profIndicacao = sale.test_referral_name ||
+                          clientTest?.referral_professional_name ||
                           professionals.find(p => p.id === sale.test_referral_id)?.full_name ||
                           professionals.find(p => p.id === client?.referral_professional)?.full_name || '-';
                         const profResponsavel = sale.seller_name ||
+                          clientTest?.professional_name ||
                           professionals.find(p => p.id === sale.seller_id)?.full_name ||
                           professionals.find(p => p.id === client?.responsible_professional)?.full_name || '-';
                         
