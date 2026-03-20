@@ -72,7 +72,38 @@ function AppointmentCard({ appointment, onEdit, onDelete, onStatusChange, onTest
       const clients = await base44.entities.Client.filter({ id: appointment.client_id });
       const phone = clients[0]?.phone?.replace(/\D/g, '');
       if (!phone) { toast.error('Cliente sem telefone cadastrado'); return; }
-      window.open(`https://wa.me/55${phone}`, '_blank');
+
+      // Load template
+      const DEFAULT_TEMPLATES = {
+        avaliacao: `Olá, {nome}! 😊\n\nPassando para confirmar sua *Avaliação Auditiva* conosco na Sonatta!\n\n📅 *Data:* {data}\n⏰ *Horário:* {hora}{profissional_linha}\n\nEstamos te esperando! Qualquer dúvida, é só chamar aqui. 🎧\n\n_Sonatta – Soluções Auditivas_`,
+        teste: `Olá, {nome}! 😊\n\nLembrando do seu *Teste de Aparelho Auditivo* marcado na Sonatta!\n\n📅 *Data:* {data}\n⏰ *Horário:* {hora}{profissional_linha}\n\nVamos te ajudar a encontrar a melhor solução auditiva para você! 🎧\n\n_Sonatta – Soluções Auditivas_`,
+        ajuste: `Olá, {nome}! 😊\n\nConfirmando seu agendamento de *Ajuste* na Sonatta!\n\n📅 *Data:* {data}\n⏰ *Horário:* {hora}{profissional_linha}\n\nAté lá! Qualquer dúvida, estamos à disposição. 🎧\n\n_Sonatta – Soluções Auditivas_`,
+        manutencao: `Olá, {nome}! 😊\n\nSeu agendamento de *Manutenção* está confirmado na Sonatta!\n\n📅 *Data:* {data}\n⏰ *Horário:* {hora}{profissional_linha}\n\nVamos cuidar bem do seu aparelho! 🔧🎧\n\n_Sonatta – Soluções Auditivas_`,
+        retorno: `Olá, {nome}! 😊\n\nConfirmando seu *Retorno* na Sonatta!\n\n📅 *Data:* {data}\n⏰ *Horário:* {hora}{profissional_linha}\n\nEstamos ansiosos para ver como você está! 😊\n\n_Sonatta – Soluções Auditivas_`,
+      };
+
+      let templateText = DEFAULT_TEMPLATES[appointment.type] || DEFAULT_TEMPLATES.avaliacao;
+      try {
+        const settings = await base44.entities.AppSettings.filter({ key: 'whatsapp_appointment_templates' });
+        if (settings.length > 0 && settings[0].value?.[appointment.type]) {
+          templateText = settings[0].value[appointment.type];
+        }
+      } catch (e) { /* use default */ }
+
+      const dateFormatted = appointment.date
+        ? new Date(appointment.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+        : '';
+      const profLine = appointment.professional_name ? `\n👩‍⚕️ *Profissional:* ${appointment.professional_name}` : '';
+
+      const message = templateText
+        .replace(/{nome}/g, appointment.client_name || '')
+        .replace(/{data}/g, dateFormatted)
+        .replace(/{hora}/g, appointment.time || '')
+        .replace(/{tipo}/g, TYPE_LABELS[appointment.type] || appointment.type)
+        .replace(/{profissional}/g, appointment.professional_name || '')
+        .replace(/{profissional_linha}/g, profLine);
+
+      window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
     } catch { toast.error('Erro ao abrir WhatsApp'); }
   };
 
