@@ -17,12 +17,16 @@ import {
   SelectValue } from
 '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ChevronsUpDown, Check } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
   const [loading, setLoading] = useState(false);
+  const [clientOpen, setClientOpen] = useState(false);
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [products, setProducts] = useState([]);
@@ -188,16 +192,43 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
           <>
               <div>
                 <Label>Cliente *</Label>
-                <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) =>
-                  <SelectItem key={client.id} value={client.id}>{client.full_name}</SelectItem>
-                  )}
-                  </SelectContent>
-                </Select>
+                <Popover open={clientOpen} onOpenChange={setClientOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                    >
+                      {formData.client_id
+                        ? clients.find(c => c.id === formData.client_id)?.full_name
+                        : 'Selecione o cliente'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <Command>
+                      <CommandInput placeholder="Buscar cliente..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {clients.map(client => (
+                            <CommandItem
+                              key={client.id}
+                              value={client.full_name}
+                              onSelect={() => {
+                                setFormData({ ...formData, client_id: client.id });
+                                setClientOpen(false);
+                              }}
+                            >
+                              <Check className={cn('mr-2 h-4 w-4', formData.client_id === client.id ? 'opacity-100' : 'opacity-0')} />
+                              {client.full_name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -228,25 +259,15 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  {formData.devices.map((device, index) =>
-                <div key={index} className="flex gap-2">
-                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Selecione por NS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) =>
-                      <SelectItem key={product.id} value={product.id}>
-                              {product.name} - NS: {product.serial_number}
-                            </SelectItem>
-                      )}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                )}
+                  {formData.devices.map((device, index) => (
+                    <DeviceCombobox
+                      key={index}
+                      device={device}
+                      products={products}
+                      onSelect={(v) => updateDevice(index, v)}
+                      onRemove={() => removeDevice(index)}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -285,7 +306,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="teste_agendado">Teste Agendado</SelectItem>
                     <SelectItem value="em_teste">Em Teste</SelectItem>
                     <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
                     <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
