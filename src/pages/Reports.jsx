@@ -323,6 +323,8 @@ export default function Reports() {
         });
       }
     });
+    exportToExcel(referralData, 'relatorio_repasse_indicacao');
+  };
 
   if (loading) {
     return (
