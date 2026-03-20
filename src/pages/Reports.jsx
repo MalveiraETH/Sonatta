@@ -173,8 +173,8 @@ export default function Reports() {
         'Modelo': p.model || '',
         'Serial': p.serial_number || '',
         'Status': p.status,
-        'Custo do Produto': p.cost_price || 0,
-        'Venda': p.sale_price || 0,
+        'Custo do Produto': formatCurrency(p.cost_price),
+        'Venda': formatCurrency(p.sale_price),
         'NF de Entrada': p.nota_fiscal_entrada || '',
         'Data Entrada': p.entry_date || '',
         'NF de Saída': exitMovement?.nota_fiscal || '',
@@ -238,10 +238,10 @@ export default function Reports() {
             'CPF/CNPJ Responsável': client?.payer_document || '',
             'Prof. Indicação': profIndicacao?.full_name || '',
             'Prof. Responsável': profResponsavel?.full_name || '',
-            'Valor Bruto': pd.amount || 0,
+            'Valor Bruto': formatCurrency(pd.amount),
             'Bandeira': pd.card_brand || '',
             'Taxa Cartão (%)': feeRate || '',
-            'Valor Líquido': netAmount,
+            'Valor Líquido': formatCurrency(netAmount),
             'Método': paymentMethodLabels[pd.method] || pd.method,
             'Parcelas': pd.installments > 1 ? pd.installments : '',
             'Status': status,
@@ -270,10 +270,10 @@ export default function Reports() {
           'CPF/CNPJ Responsável': client?.payer_document || '',
           'Prof. Indicação': profIndicacao?.full_name || '',
           'Prof. Responsável': profResponsavel?.full_name || '',
-          'Valor Bruto': s.total,
+          'Valor Bruto': formatCurrency(s.total),
           'Bandeira': '',
           'Taxa Cartão (%)': '',
-          'Valor Líquido': s.total,
+          'Valor Líquido': formatCurrency(s.total),
           'Método': paymentMethodLabels[s.payment_method] || s.payment_method || '',
           'Parcelas': s.installments > 1 ? s.installments : '',
           'Status': status,
@@ -318,8 +318,8 @@ export default function Reports() {
           'Especialidade': prof.specialty || '-',
           'Paciente': sale.client_name,
           'Data Venda': safeFormat(sale.sale_date || sale.created_date),
-          'Valor Total': getTotalPayments(sale),
-          'Repasse 10%': (getTotalPayments(sale) * 0.10).toFixed(2)
+          'Valor Total': formatCurrency(getTotalPayments(sale)),
+          'Repasse 10%': formatCurrency(getTotalPayments(sale) * 0.10)
         });
       }
     });
@@ -666,7 +666,7 @@ export default function Reports() {
                                 p.method === 'dinheiro' ? 'Dinheiro' :
                                 p.method === 'cartao_debito' ? 'Cartão Débito' :
                                 p.method === 'transferencia' ? 'Transferência' : 'Boleto',
-                      'Valor': p.amount || 0
+                      'Valor': formatCurrency(p.amount)
                     });
                   });
                 });
@@ -685,7 +685,7 @@ export default function Reports() {
                     'Cliente': i.client_name,
                     'Data': safeFormat(i.last_payment_date),
                     'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
-                    'Valor': i.paid_amount || 0
+                     'Valor': formatCurrency(i.paid_amount)
                   });
                 });
 
@@ -1285,11 +1285,11 @@ export default function Reports() {
                      'Parcela': i.installment_number,
                      'Vencimento': safeFormat(i.due_date),
                      'Data Pagamento': safeFormat(i.last_payment_date),
-                     'Valor Bruto': i.original_amount,
+                     'Valor Bruto': formatCurrency(i.original_amount),
                      'Taxa Cartão (%)': feeRate || '',
-                     'Valor Líquido': netAmount,
-                     'Valor Pago': i.paid_amount,
-                     'Saldo': i.remaining_amount,
+                     'Valor Líquido': formatCurrency(netAmount),
+                     'Valor Pago': formatCurrency(i.paid_amount),
+                     'Saldo': formatCurrency(i.remaining_amount),
                      'Status': i.payment_status === 'pago' ? 'Pago' : i.payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'
                    };
                   });
@@ -1518,7 +1518,7 @@ export default function Reports() {
                     'Fornecedor': e.counterparty_name || '',
                     'Vencimento': safeFormat(e.due_date),
                     'Data Pagamento': safeFormat(e.payment_date),
-                    'Valor': e.amount,
+                    'Valor': formatCurrency(e.amount),
                     'Método': e.payment_method,
                     'Parcela': e.installment_number ? `${e.installment_number}/${e.installments}` : '-',
                     'Status': e.status === 'pago' ? 'Pago' : 'A Pagar'
