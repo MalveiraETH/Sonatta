@@ -87,6 +87,13 @@ export default function Reports() {
     }
   };
 
+  const safeFormat = (dateValue, fmt = 'dd/MM/yyyy') => {
+    if (!dateValue) return '-';
+    const d = new Date(dateValue);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, fmt, { locale: ptBR });
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -901,9 +908,9 @@ export default function Reports() {
                             <TableCell>{sale.client_name}</TableCell>
                             <TableCell className="text-sm">{profIndicacao?.full_name || '-'}</TableCell>
                             <TableCell className="text-sm">{profResponsavel?.full_name || '-'}</TableCell>
-                            <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                            <TableCell>{safeFormat(sale.sale_date || sale.created_date)}</TableCell>
                             <TableCell>
-                              {sale.status === 'pago' ? format(new Date(sale.updated_date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                              {sale.status === 'pago' ? safeFormat(sale.updated_date) : '-'}
                             </TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
                             <TableCell className="text-sm">
@@ -1229,8 +1236,8 @@ export default function Reports() {
                      'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
                      'Bandeira': i.card_brand || '',
                      'Parcela': i.installment_number,
-                     'Vencimento': format(new Date(i.due_date), 'dd/MM/yyyy'),
-                     'Data Pagamento': i.last_payment_date ? format(new Date(i.last_payment_date), 'dd/MM/yyyy') : '-',
+                     'Vencimento': safeFormat(i.due_date),
+                     'Data Pagamento': safeFormat(i.last_payment_date),
                      'Valor Bruto': i.original_amount,
                      'Taxa Cartão (%)': feeRate || '',
                      'Valor Líquido': netAmount,
@@ -1462,8 +1469,8 @@ export default function Reports() {
                   .map(e => ({
                     'Categoria': e.category_name,
                     'Fornecedor': e.counterparty_name || '',
-                    'Vencimento': format(new Date(e.due_date), 'dd/MM/yyyy'),
-                    'Data Pagamento': e.payment_date ? format(new Date(e.payment_date), 'dd/MM/yyyy') : '-',
+                    'Vencimento': safeFormat(e.due_date),
+                    'Data Pagamento': safeFormat(e.payment_date),
                     'Valor': e.amount,
                     'Método': e.payment_method,
                     'Parcela': e.installment_number ? `${e.installment_number}/${e.installments}` : '-',
@@ -1627,7 +1634,7 @@ export default function Reports() {
                           <TableCell className="font-medium">{prof.full_name}</TableCell>
                           <TableCell className="capitalize">{prof.specialty}</TableCell>
                           <TableCell>{sale.client_name}</TableCell>
-                          <TableCell>{format(new Date(sale.sale_date || sale.created_date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                          <TableCell>{safeFormat(sale.sale_date || sale.created_date)}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
                           <TableCell className="text-right font-bold text-[#A4D233]">
                             {formatCurrency(getTotalPayments(sale) * 0.10)}
