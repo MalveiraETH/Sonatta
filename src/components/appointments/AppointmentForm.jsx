@@ -44,59 +44,60 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
     }
   }, [open]);
 
-  useEffect(() => {
-    if (appointment) {
-      setFormData({
-        client_id: appointment.client_id || '',
-        client_name: appointment.client_name || '',
-        professional_id: appointment.professional_id || '',
-        professional_name: appointment.professional_name || '',
-        test_referral_id: appointment.test_referral_id || '',
-        test_referral_name: appointment.test_referral_name || '',
-        date: appointment.date || '',
-        time: appointment.time || '',
-        type: appointment.type || 'avaliacao',
-        status: appointment.status || 'agendado',
-        notes: appointment.notes || ''
-      });
-    } else if (preselectedClient) {
-      setFormData((prev) => ({
-        ...prev,
-        client_id: preselectedClient.id,
-        client_name: preselectedClient.full_name,
-        test_referral_id: '',
-        test_referral_name: '',
-        date: '',
-        time: '',
-        type: 'avaliacao',
-        status: 'agendado',
-        notes: ''
-      }));
-    } else {
-      setFormData({
-        client_id: '',
-        client_name: '',
-        professional_id: '',
-        professional_name: '',
-        test_referral_id: '',
-        test_referral_name: '',
-        date: '',
-        time: '',
-        type: 'avaliacao',
-        status: 'agendado',
-        notes: ''
-      });
-    }
-  }, [appointment, preselectedClient, open]);
-
   const loadData = async () => {
     try {
       const [clientsData, professionalsData] = await Promise.all([
-      base44.entities.Client.list(),
-      base44.entities.Professional.list()]
-      );
+        base44.entities.Client.list(),
+        base44.entities.Professional.list()
+      ]);
       setClients(clientsData);
       setProfessionals(professionalsData);
+
+      // Set formData after professionals are loaded so Select can display correctly
+      if (appointment) {
+        setFormData({
+          client_id: appointment.client_id || '',
+          client_name: appointment.client_name || '',
+          professional_id: appointment.professional_id || '',
+          professional_name: appointment.professional_name || '',
+          test_referral_id: appointment.test_referral_id || '',
+          test_referral_name: appointment.test_referral_name || '',
+          date: appointment.date || '',
+          time: appointment.time || '',
+          type: appointment.type || 'avaliacao',
+          status: appointment.status || 'agendado',
+          notes: appointment.notes || ''
+        });
+      } else if (preselectedClient) {
+        setFormData((prev) => ({
+          ...prev,
+          client_id: preselectedClient.id,
+          client_name: preselectedClient.full_name,
+          professional_id: '',
+          professional_name: '',
+          test_referral_id: '',
+          test_referral_name: '',
+          date: '',
+          time: '',
+          type: 'avaliacao',
+          status: 'agendado',
+          notes: ''
+        }));
+      } else {
+        setFormData({
+          client_id: '',
+          client_name: '',
+          professional_id: '',
+          professional_name: '',
+          test_referral_id: '',
+          test_referral_name: '',
+          date: '',
+          time: '',
+          type: 'avaliacao',
+          status: 'agendado',
+          notes: ''
+        });
+      }
     } catch (e) {
       console.error(e);
     }
@@ -237,6 +238,24 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Profissional Indicação Teste</Label>
+              <Select
+                value={formData.test_referral_id}
+                onValueChange={handleTestReferralChange}>
+
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {professionals.map((prof) =>
+                  <SelectItem key={prof.id} value={prof.id}>
+                      {prof.full_name}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -290,7 +309,6 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
                   <SelectItem value="agendado">Agendado</SelectItem>
                   <SelectItem value="confirmado">Confirmado</SelectItem>
                   <SelectItem value="realizado">Realizado</SelectItem>
-                  <SelectItem value="faltou">Faltou</SelectItem>
                   <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
