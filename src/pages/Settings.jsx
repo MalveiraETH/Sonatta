@@ -7,6 +7,7 @@ import Billing from '@/components/settings/Billing';
 import WhatsAppTemplate from '@/components/settings/WhatsAppTemplate';
 import WhatsAppSaleTemplate from '@/components/settings/WhatsAppSaleTemplate';
 import WhatsAppTestTemplate from '@/components/settings/WhatsAppTestTemplate';
+import WhatsAppAppointmentTemplate from '@/components/settings/WhatsAppAppointmentTemplate';
 import ContractTemplate from '@/components/settings/ContractTemplate';
 import ReferenceProducts from '@/components/settings/ReferenceProducts';
 import ClientStatusSync from '@/components/settings/ClientStatusSync';
@@ -27,6 +28,7 @@ export default function Settings() {
           <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">WhatsApp Orçamento</TabsTrigger>
           <TabsTrigger value="whatsapp_sale" className="text-xs sm:text-sm">WhatsApp Venda</TabsTrigger>
           <TabsTrigger value="whatsapp_test" className="text-xs sm:text-sm">WhatsApp Teste</TabsTrigger>
+          <TabsTrigger value="whatsapp_appointment" className="text-xs sm:text-sm">WhatsApp Agendamento</TabsTrigger>
           <TabsTrigger value="contract" className="text-xs sm:text-sm">Contrato</TabsTrigger>
           <TabsTrigger value="billing" className="text-xs sm:text-sm">Custos e Tarifas</TabsTrigger>
           <TabsTrigger value="reference_products" className="text-xs sm:text-sm">Produtos Referência</TabsTrigger>
@@ -48,6 +50,10 @@ export default function Settings() {
 
         <TabsContent value="whatsapp_test">
           <WhatsAppTestTemplate />
+        </TabsContent>
+
+        <TabsContent value="whatsapp_appointment">
+          <WhatsAppAppointmentTemplate />
         </TabsContent>
 
         <TabsContent value="contract">
