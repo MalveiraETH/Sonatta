@@ -17,7 +17,8 @@ import {
   SelectValue } from
 '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ChevronDown } from 'lucide-react';
+import { useState as useSearchState } from 'react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -152,13 +153,19 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
+
+        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
+
         toast.success('Teste atualizado');
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
+
+        // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);
+
         toast.success('Teste cadastrado');
       }
 
@@ -223,23 +230,14 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
                 </div>
                 <div className="space-y-2">
                   {formData.devices.map((device, index) =>
-                <div key={index} className="flex gap-2">
-                      <Select value={device.product_id} onValueChange={(v) => updateDevice(index, v)}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Selecione por NS" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) =>
-                      <SelectItem key={product.id} value={product.id}>
-                              {product.name} - NS: {product.serial_number}
-                            </SelectItem>
-                      )}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" size="icon" variant="ghost" onClick={() => removeDevice(index)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                <DeviceSearchInput
+                  key={index}
+                  index={index}
+                  device={device}
+                  products={products}
+                  onUpdate={updateDevice}
+                  onRemove={removeDevice}
+                />
                 )}
                 </div>
               </div>
