@@ -35,6 +35,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
+import { openWhatsApp } from '@/utils/whatsapp';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -103,7 +104,7 @@ function AppointmentCard({ appointment, onEdit, onDelete, onStatusChange, onTest
         .replace(/{profissional}/g, appointment.professional_name || '')
         .replace(/{profissional_linha}/g, profLine);
 
-      window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+      openWhatsApp(`55${phone}`, message);
     } catch { toast.error('Erro ao abrir WhatsApp'); }
   };
 
