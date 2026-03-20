@@ -176,7 +176,7 @@ export default function Reports() {
         'Custo do Produto': formatCurrency(p.cost_price),
         'Venda': formatCurrency(p.sale_price),
         'NF de Entrada': p.nota_fiscal_entrada || '',
-        'Data Entrada': p.entry_date || '',
+        'Data Entrada': safeFormat(p.entry_date),
         'NF de Saída': exitMovement?.nota_fiscal || '',
         'Data de Saída': exitMovement?.sale_date ? format(new Date(exitMovement.sale_date), 'dd/MM/yyyy') : ''
       };
