@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/sheet';
 import ClientForm from '@/components/clients/ClientForm';
 import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users } from 'lucide-react';
+import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 
 export default function Clients() {
@@ -93,7 +94,7 @@ export default function Clients() {
       return;
     }
     const phone = client.phone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${phone}`, '_blank');
+    openWhatsApp(`55${phone}`);
   };
 
   const clearFilters = () => {
