@@ -1685,7 +1685,7 @@ export default function Reports() {
                         </TableRow>
                       );
                     }).filter(Boolean)}
-                    </TableBody>
+                  </TableBody>
                 </Table>
               </div>
             </CardContent>
