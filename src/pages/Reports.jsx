@@ -287,27 +287,42 @@ export default function Reports() {
     exportToExcel(data, 'relatorio_vendas');
   };
 
+  const getReferralProfForSale = (sale) => {
+    // 1. Campo direto na venda
+    if (sale.test_referral_id) {
+      const prof = professionals.find(p => p.id === sale.test_referral_id);
+      if (prof) return prof;
+    }
+    // 2. Busca no teste mais recente do cliente
+    const clientTest = tests
+      .filter(t => t.client_id === sale.client_id)
+      .sort((a, b) => new Date(b.start_date) - new Date(a.start_date))[0];
+    if (clientTest?.referral_professional_id) {
+      const prof = professionals.find(p => p.id === clientTest.referral_professional_id);
+      if (prof) return prof;
+    }
+    // 3. Nome salvo no teste (sem ID)
+    if (clientTest?.referral_professional_name) {
+      return { full_name: clientTest.referral_professional_name, specialty: '-' };
+    }
+    return null;
+  };
+
   const exportReferralReport = () => {
     const referralData = [];
-    
     filteredSales.forEach(sale => {
-      if (sale.test_referral_id) {
-        const prof = professionals.find(p => p.id === sale.test_referral_id);
-        if (prof) {
-          referralData.push({
-            'Profissional': prof.full_name,
-            'Especialidade': prof.specialty,
-            'Paciente': sale.client_name,
-            'Data Venda': safeFormat(sale.sale_date || sale.created_date),
-            'Valor Total': sale.total,
-            'Repasse 10%': (sale.total * 0.10).toFixed(2)
-          });
-        }
+      const prof = getReferralProfForSale(sale);
+      if (prof) {
+        referralData.push({
+          'Profissional': prof.full_name,
+          'Especialidade': prof.specialty || '-',
+          'Paciente': sale.client_name,
+          'Data Venda': safeFormat(sale.sale_date || sale.created_date),
+          'Valor Total': getTotalPayments(sale),
+          'Repasse 10%': (getTotalPayments(sale) * 0.10).toFixed(2)
+        });
       }
     });
-    
-    exportToExcel(referralData, 'relatorio_repasse_indicacao');
-  };
 
   if (loading) {
     return (
@@ -1654,24 +1669,8 @@ export default function Reports() {
                   </TableHeader>
                   <TableBody>
                     {filteredSales.map(sale => {
-                      if (!sale.test_referral_id) return null;
-                      
-                      const prof = professionals.find(p => p.id === sale.test_referral_id);
+                      const prof = getReferralProfForSale(sale);
                       if (!prof) return null;
-                      
-                      return (
-                        <TableRow key={sale.id}>
-                          <TableCell className="font-medium">{prof.full_name}</TableCell>
-                          <TableCell className="capitalize">{prof.specialty}</TableCell>
-                          <TableCell>{sale.client_name}</TableCell>
-                          <TableCell>{safeFormat(sale.sale_date || sale.created_date)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
-                          <TableCell className="text-right font-bold text-[#A4D233]">
-                            {formatCurrency(getTotalPayments(sale) * 0.10)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }).filter(Boolean)}
                   </TableBody>
                 </Table>
               </div>
