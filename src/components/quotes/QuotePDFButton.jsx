@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 import { openWhatsApp } from '@/utils/whatsapp';
 
 const LOGO_URL =
-  'https://media.base44.com/images/public/694e93aa7609bf14847de917/17777c948_SONATTA_CARDS-10.png';
+  'https://media.base44.com/images/public/694e93aa7609bf14847de917/073de81ba_SONATTA_CARDS-10.png';
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 const P = {
@@ -81,12 +81,19 @@ async function buildPDF(quote) {
   // White page bg
   setFill(P.pageBg); doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
-  // Logo (left) — fixed height 20 mm, width proportional
-  const LOGO_H = 20;
-  const LOGO_W = 52; // ~3:1 ratio, no stretch
+  // Logo (left) — fixed height 22 mm, width proportional from natural image size
+  const LOGO_MAX_H = 22;
+  const LOGO_MAX_W = 70;
   const logoB64 = await loadB64(LOGO_URL);
   if (logoB64) {
-    doc.addImage(logoB64, 'PNG', ML, 8, LOGO_W, LOGO_H, undefined, 'NONE');
+    // Get natural dimensions from a temp image to preserve aspect ratio
+    const tmpImg = new Image();
+    await new Promise((r) => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = logoB64; });
+    const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
+    let lw = LOGO_MAX_H * ratio;
+    let lh = LOGO_MAX_H;
+    if (lw > LOGO_MAX_W) { lw = LOGO_MAX_W; lh = lw / ratio; }
+    doc.addImage(logoB64, 'PNG', ML, 8, lw, lh, undefined, 'NONE');
   } else {
     setFont('bold', 20); setTxt(P.purple);
     doc.text('SONATTA', ML, 22);
