@@ -49,10 +49,16 @@ export default function QuotePDFSettings() {
 
   const load = async () => {
     setLoading(true);
-    const records = await base44.entities.AppSettings.filter({ setting_key: SETTING_KEY });
-    if (records.length > 0) {
-      setRecordId(records[0].id);
-      setConfig({ ...DEFAULT, ...records[0].setting_value });
+    try {
+      const all = await base44.entities.AppSettings.list();
+      const rec = all.find((r) => r.setting_key === SETTING_KEY);
+      if (rec) {
+        setRecordId(rec.id);
+        setConfig({ ...DEFAULT, ...rec.setting_value });
+      }
+    } catch (e) {
+      console.error('Erro ao carregar config PDF:', e);
+      toast.error('Erro ao carregar configurações');
     }
     setLoading(false);
   };
@@ -61,18 +67,31 @@ export default function QuotePDFSettings() {
 
   const save = async () => {
     setSaving(true);
-    if (recordId) {
-      await base44.entities.AppSettings.update(recordId, { setting_value: config });
-    } else {
-      const rec = await base44.entities.AppSettings.create({
-        setting_key: SETTING_KEY,
-        description: 'Configurações do PDF de Orçamento',
-        setting_value: config,
-      });
-      setRecordId(rec.id);
+    try {
+      if (recordId) {
+        await base44.entities.AppSettings.update(recordId, { setting_value: config });
+      } else {
+        // Double-check: reload to avoid duplicate creation
+        const all = await base44.entities.AppSettings.list();
+        const existing = all.find((r) => r.setting_key === SETTING_KEY);
+        if (existing) {
+          await base44.entities.AppSettings.update(existing.id, { setting_value: config });
+          setRecordId(existing.id);
+        } else {
+          const rec = await base44.entities.AppSettings.create({
+            setting_key: SETTING_KEY,
+            description: 'Configurações do PDF de Orçamento',
+            setting_value: config,
+          });
+          setRecordId(rec.id);
+        }
+      }
+      toast.success('Configurações salvas! Todos os orçamentos gerados usarão estas configurações.');
+    } catch (e) {
+      console.error('Erro ao salvar config PDF:', e);
+      toast.error('Erro ao salvar: ' + e.message);
     }
     setSaving(false);
-    toast.success('Configurações do orçamento PDF salvas!');
   };
 
   if (loading) {
