@@ -123,15 +123,16 @@ async function buildPDF(quote) {
   // Section header helper
   // ══════════════════════════════════════════════════════════════════════════
   const sectionHead = (label) => {
-    // background – very light purple tint
-    setFill([242, 236, 250]);
-    doc.rect(ML, Y, CW, 7.5, 'F');
-    // left accent
+    // Very light tint background (purple ~8% opacity simulation via near-white)
+    setFill([246, 241, 251]);
+    doc.rect(ML, Y, CW, 6.5, 'F');
+    // Thin left accent bar (2 mm wide)
     setFill(P.purple);
-    doc.rect(ML, Y, 2.5, 7.5, 'F');
-    setFont('bold', 9.5); setTxt(P.purple);
-    doc.text(label, ML + 5.5, Y + 5.3);
-    Y += 10;
+    doc.rect(ML, Y, 2, 6.5, 'F');
+    // Section title
+    setFont('bold', 11); setTxt(P.purple);
+    doc.text(label, ML + 5, Y + 4.6);
+    Y += 9;
   };
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -139,34 +140,35 @@ async function buildPDF(quote) {
   // ══════════════════════════════════════════════════════════════════════════
   sectionHead('DADOS DO CLIENTE');
 
-  // 2-column grid  (col A: ML … ML+CW/2-4   |   col B: ML+CW/2+2 … RX)
-  const COL_A = ML + 3;
-  const COL_B = ML + CW / 2 + 4;
-  const VAL_OFFSET = 22; // label width before value
+  // 2-column grid with fixed label width (aligned "on the grid")
+  // Col A: x=ML+3  |  Col B: x=ML+CW/2+3
+  // Labels fixed at 26 mm wide so values always start at same x
+  const COL_A_LBL = ML + 3;
+  const COL_A_VAL = ML + 29;          // label + 26 mm
+  const COL_B_LBL = ML + CW / 2 + 3;
+  const COL_B_VAL = ML + CW / 2 + 29; // same offset
+  const HALF_VAL_W = CW / 2 - 32;     // max value text width
 
   const clientPairs = [
-    [['Nome',    quote.client_name  || '—'], ['CPF',    quote.client_cpf   || '—']],
-    [['Telefone',quote.client_phone || '—'], ['E-mail', quote.client_email || '—']],
+    [['Nome',     quote.client_name  || '—'], ['CPF',    quote.client_cpf   || '—']],
+    [['Telefone', quote.client_phone || '—'], ['E-mail', quote.client_email || '—']],
   ];
 
   clientPairs.forEach(([left, right]) => {
-    setFont('bold', 8); setTxt(P.textSub);
-    doc.text(left[0] + ':', COL_A, Y);
-    doc.text(right[0] + ':', COL_B, Y);
-
-    setFont('normal', 9); setTxt(P.textMain);
-    doc.text(
-      doc.splitTextToSize(left[1],  CW / 2 - VAL_OFFSET - 2)[0],
-      COL_A + VAL_OFFSET, Y
-    );
-    doc.text(
-      doc.splitTextToSize(right[1], CW / 2 - VAL_OFFSET - 2)[0],
-      COL_B + VAL_OFFSET, Y
-    );
-    Y += 6.5;
+    // Labels
+    setFont('bold', 8.5); setTxt(P.textSub);
+    doc.text(left[0] + ':', COL_A_LBL, Y);
+    doc.text(right[0] + ':', COL_B_LBL, Y);
+    // Values
+    setFont('normal', 9.5); setTxt(P.textMain);
+    doc.text(doc.splitTextToSize(left[1],  HALF_VAL_W)[0], COL_A_VAL, Y);
+    doc.text(doc.splitTextToSize(right[1], HALF_VAL_W)[0], COL_B_VAL, Y);
+    Y += 7;
   });
 
-  Y += 8;
+  // Light divider after client block
+  rule(ML, Y, CW, P.divider, 0.3);
+  Y += 9;
 
   // ══════════════════════════════════════════════════════════════════════════
   // SECTION 2 — ITENS DO ORÇAMENTO  (table)
