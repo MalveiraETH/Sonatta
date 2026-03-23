@@ -354,8 +354,3 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     </Button>
   );
 }
-
-// expose BRL for footer line in buildPDF scope
-function BRL(v) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
-}
