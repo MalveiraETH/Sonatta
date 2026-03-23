@@ -5,364 +5,339 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { openWhatsApp } from '@/utils/whatsapp';
 
-const LOGO_URL = 'https://media.base44.com/images/public/694e93aa7609bf14847de917/17777c948_SONATTA_CARDS-10.png';
+const LOGO_URL =
+  'https://media.base44.com/images/public/694e93aa7609bf14847de917/17777c948_SONATTA_CARDS-10.png';
 
 // ── Palette ──────────────────────────────────────────────────────────────────
-const C = {
-  purple:     [98,  42,  126], // #622A7E
-  green:      [136, 188, 7],   // #88BC07
-  textMain:   [32,  31,  28],  // #201F1C
-  textSub:    [66,  63,  51],  // #423F33
-  white:      [255, 255, 255],
-  rowAlt:     [248, 246, 251], // very light purple tint
-  sectionBg:  [245, 240, 250], // section header background light
-  borderGray: [220, 215, 228],
+const P = {
+  purple:    [98,  42, 126],   // #622A7E
+  green:     [136, 188,  7],   // #88BC07
+  textMain:  [32,  31,  28],   // #201F1C
+  textSub:   [66,  63,  51],   // #423F33
+  white:     [255, 255, 255],
+  rowAlt:    [249, 246, 252],   // very light purple tint for zebra
+  pageBg:    [255, 255, 255],
+  divider:   [220, 214, 230],
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const fmt = (value) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+// ── Formatters ────────────────────────────────────────────────────────────────
+const BRL = (v) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 
-const fmtDate = (date) => {
-  if (!date) return '—';
-  const d = new Date(date + 'T12:00:00');
-  if (isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('pt-BR');
+const fmtDate = (raw) => {
+  if (!raw) return '—';
+  const d = new Date(String(raw).includes('T') ? raw : raw + 'T12:00:00');
+  return isNaN(d) ? '—' : d.toLocaleDateString('pt-BR');
 };
 
-const loadImageAsBase64 = (url) =>
+// ── Image loader ──────────────────────────────────────────────────────────────
+const loadB64 = (url) =>
   new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/png'));
     };
     img.onerror = () => resolve(null);
     img.src = url;
   });
 
-// ── PDF Generator ─────────────────────────────────────────────────────────────
+// ── Build PDF (pure vectors + text) ──────────────────────────────────────────
 async function buildPDF(quote) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: false });
-  const W = 210;
-  const H = 297;
-  const ML = 18; // margin left
-  const MR = 18; // margin right
-  const CW = W - ML - MR; // content width = 174
 
-  // ── Helper: set fill ─────────────────────────────────────────
-  const fill = (rgb) => doc.setFillColor(...rgb);
-  const stroke = (rgb) => doc.setDrawColor(...rgb);
-  const textColor = (rgb) => doc.setTextColor(...rgb);
-  const font = (style, size) => {
-    doc.setFont('helvetica', style);
-    doc.setFontSize(size);
+  const PAGE_W = 210;
+  const PAGE_H = 297;
+  const ML = 20;          // margin left
+  const MR = 20;          // margin right
+  const CW = PAGE_W - ML - MR;  // 170 mm content width
+
+  // ── Shorthand setters ──
+  const setFill   = (rgb) => doc.setFillColor(...rgb);
+  const setStroke = (rgb) => doc.setDrawColor(...rgb);
+  const setTxt    = (rgb) => doc.setTextColor(...rgb);
+  const setFont   = (w, sz) => { doc.setFont('helvetica', w); doc.setFontSize(sz); };
+
+  // ── Thin rule ──
+  const rule = (x, y, w, color = P.divider, h = 0.35) => {
+    setFill(color); doc.rect(x, y, w, h, 'F');
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // HEADER  (0 → 46 mm)
-  // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════
+  // HEADER  (y = 0 → 44)
+  // ══════════════════════════════════════════════════════════════════════════
 
-  // White background (default)
-  fill(C.white);
-  doc.rect(0, 0, W, 46, 'F');
+  // White page bg
+  setFill(P.pageBg); doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
-  // Top accent bar – thin green strip
-  fill(C.green);
-  doc.rect(0, 0, W, 1.2, 'F');
+  // Top accent bar – 2 mm green
+  setFill(P.green); doc.rect(0, 0, PAGE_W, 2, 'F');
 
-  // Logo area (left)
-  const logoData = await loadImageAsBase64(LOGO_URL);
-  if (logoData) {
-    doc.addImage(logoData, 'PNG', ML, 5, 46, 28, undefined, 'FAST');
+  // Left sidebar accent – thin vertical purple line
+  setFill(P.purple); doc.rect(0, 2, 1, PAGE_H - 2, 'F');
+
+  // Logo
+  const logoB64 = await loadB64(LOGO_URL);
+  if (logoB64) {
+    // natural aspect ~3.5:1; render 48 × ~14 mm
+    doc.addImage(logoB64, 'PNG', ML, 8, 46, 14, undefined, 'NONE');
   } else {
-    textColor(C.purple);
-    font('bold', 20);
+    setFont('bold', 18); setTxt(P.purple);
     doc.text('SONATTA', ML, 20);
-    font('normal', 9);
-    textColor(C.textSub);
-    doc.text('Soluções Auditivas', ML, 27);
+    setFont('normal', 8); setTxt(P.textSub);
+    doc.text('Soluções Auditivas', ML, 26);
   }
 
-  // Right block – meta info
-  const rxEnd = W - MR;
-  font('bold', 15);
-  textColor(C.purple);
-  doc.text('Proposta Comercial', rxEnd, 13, { align: 'right' });
+  // Right block ─ "Proposta Comercial"
+  const RX = PAGE_W - MR;
 
-  font('normal', 9);
-  textColor(C.textSub);
-  doc.text('Nº ' + (quote.quote_number || '—'), rxEnd, 20, { align: 'right' });
-  doc.text('Data: ' + fmtDate(quote.created_date), rxEnd, 26, { align: 'right' });
-  const validDate = new Date();
-  validDate.setDate(validDate.getDate() + (quote.validity_days || 30));
-  doc.text('Válida até: ' + validDate.toLocaleDateString('pt-BR'), rxEnd, 32, { align: 'right' });
+  setFont('bold', 16); setTxt(P.purple);
+  doc.text('Proposta Comercial', RX, 13, { align: 'right' });
 
-  // Bottom header separator – green line + thin purple line
-  fill(C.green);
-  doc.rect(ML, 42, CW, 0.8, 'F');
-  fill(C.purple);
-  doc.rect(ML, 43.2, CW, 0.3, 'F');
+  setFont('normal', 8.5); setTxt(P.textSub);
+  doc.text('Nº ' + (quote.quote_number || '—'), RX, 20, { align: 'right' });
+  doc.text('Data: ' + fmtDate(quote.created_date), RX, 26, { align: 'right' });
 
-  // ══════════════════════════════════════════════════════════════
-  // Cursor
-  // ══════════════════════════════════════════════════════════════
-  let y = 50;
+  const validUntil = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + (quote.validity_days || 30));
+    return d.toLocaleDateString('pt-BR');
+  })();
+  doc.text('Válida até: ' + validUntil, RX, 32, { align: 'right' });
 
-  // ── Section helper ─────────────────────────────────────────
-  const sectionHeader = (title) => {
-    // light purple-tinted background
-    fill(C.sectionBg);
-    doc.rect(ML, y, CW, 7, 'F');
-    // left accent bar
-    fill(C.purple);
-    doc.rect(ML, y, 2.5, 7, 'F');
-    font('bold', 10);
-    textColor(C.purple);
-    doc.text(title, ML + 5, y + 5);
-    y += 10;
+  // Underline header – double rule
+  rule(ML, 38, CW, P.green,  0.8);
+  rule(ML, 39.2, CW, P.purple, 0.3);
+
+  let Y = 47; // cursor
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Section header helper
+  // ══════════════════════════════════════════════════════════════════════════
+  const sectionHead = (label) => {
+    // background – very light purple tint
+    setFill([242, 236, 250]);
+    doc.rect(ML, Y, CW, 7.5, 'F');
+    // left accent
+    setFill(P.purple);
+    doc.rect(ML, Y, 2.5, 7.5, 'F');
+    setFont('bold', 9.5); setTxt(P.purple);
+    doc.text(label, ML + 5.5, Y + 5.3);
+    Y += 10;
   };
 
-  // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════
   // SECTION 1 — DADOS DO CLIENTE
-  // ══════════════════════════════════════════════════════════════
-  sectionHeader('DADOS DO CLIENTE');
+  // ══════════════════════════════════════════════════════════════════════════
+  sectionHead('DADOS DO CLIENTE');
 
-  const clientRows = [
-    ['Nome',    quote.client_name  || '—', 'CPF',    quote.client_cpf   || '—'],
-    ['Telefone',quote.client_phone || '—', 'E-mail', quote.client_email || '—'],
+  // 2-column grid  (col A: ML … ML+CW/2-4   |   col B: ML+CW/2+2 … RX)
+  const COL_A = ML + 3;
+  const COL_B = ML + CW / 2 + 4;
+  const VAL_OFFSET = 22; // label width before value
+
+  const clientPairs = [
+    [['Nome',    quote.client_name  || '—'], ['CPF',    quote.client_cpf   || '—']],
+    [['Telefone',quote.client_phone || '—'], ['E-mail', quote.client_email || '—']],
   ];
 
-  const col1x = ML + 2;
-  const col2x = ML + CW / 2 + 2;
-  const labelW = 18;
+  clientPairs.forEach(([left, right]) => {
+    setFont('bold', 8); setTxt(P.textSub);
+    doc.text(left[0] + ':', COL_A, Y);
+    doc.text(right[0] + ':', COL_B, Y);
 
-  clientRows.forEach((row) => {
-    // row[0] label, row[1] value  |  row[2] label, row[3] value
-    font('bold', 8.5);
-    textColor(C.textSub);
-    doc.text(row[0] + ':', col1x, y);
-    font('normal', 9);
-    textColor(C.textMain);
-    doc.text(row[1], col1x + labelW, y);
-
-    font('bold', 8.5);
-    textColor(C.textSub);
-    doc.text(row[2] + ':', col2x, y);
-    font('normal', 9);
-    textColor(C.textMain);
-    doc.text(row[3], col2x + labelW, y);
-    y += 6;
+    setFont('normal', 9); setTxt(P.textMain);
+    doc.text(
+      doc.splitTextToSize(left[1],  CW / 2 - VAL_OFFSET - 2)[0],
+      COL_A + VAL_OFFSET, Y
+    );
+    doc.text(
+      doc.splitTextToSize(right[1], CW / 2 - VAL_OFFSET - 2)[0],
+      COL_B + VAL_OFFSET, Y
+    );
+    Y += 6.5;
   });
 
-  y += 6;
+  Y += 8;
 
-  // ══════════════════════════════════════════════════════════════
-  // SECTION 2 — ITENS DO ORÇAMENTO
-  // ══════════════════════════════════════════════════════════════
-  sectionHeader('ITENS DO ORÇAMENTO');
+  // ══════════════════════════════════════════════════════════════════════════
+  // SECTION 2 — ITENS DO ORÇAMENTO  (table)
+  // ══════════════════════════════════════════════════════════════════════════
+  sectionHead('ITENS DO ORÇAMENTO');
 
-  // Table column positions
-  const tDescX    = ML;
-  const tQtyX     = ML + 114;
-  const tUnitX    = ML + 130;
-  const tTotalX   = ML + 156;
-  const tDescW    = 112;
+  // Column x-positions & widths
+  const TC = {
+    desc:  { x: ML,          w: 105 },
+    qty:   { x: ML + 107,    w: 14  },
+    unit:  { x: ML + 123,    w: 24  },
+    total: { x: ML + 149,    w: 21  },
+  };
+  const TR = PAGE_W - MR; // right edge for right-align
 
-  // Table header
-  fill(C.purple);
-  doc.rect(ML, y, CW, 7, 'F');
-  font('bold', 8.5);
-  textColor(C.white);
-  doc.text('Descrição',   tDescX + 2,  y + 5);
-  doc.text('Qtd',         tQtyX,       y + 5);
-  doc.text('Vlr. Unit.',  tUnitX,      y + 5);
-  doc.text('Total',       tTotalX + 14, y + 5, { align: 'right' });
-  y += 9;
+  // Table header row
+  const TH = 7;
+  setFill(P.purple); doc.rect(ML, Y, CW, TH, 'F');
+  setFont('bold', 8.5); setTxt(P.white);
+  doc.text('Descrição',   TC.desc.x + 2,        Y + 4.9);
+  doc.text('Qtd',         TC.qty.x  + TC.qty.w  / 2, Y + 4.9, { align: 'center' });
+  doc.text('Vlr. Unit.',  TC.unit.x + TC.unit.w - 1,  Y + 4.9, { align: 'right' });
+  doc.text('Total',       TR - 1,               Y + 4.9, { align: 'right' });
+  Y += TH + 1;
 
-  font('normal', 9);
-  let altRow = false;
+  // Rows
+  let zebra = false;
   (quote.items || []).forEach((item) => {
-    const lines = doc.splitTextToSize(item.product_name || '—', tDescW);
-    const rowH = Math.max(6.5, lines.length * 5.5);
+    const nameLines = doc.splitTextToSize(item.product_name || '—', TC.desc.w - 3);
+    const rowH = Math.max(7, nameLines.length * 5.2 + 2);
 
-    if (altRow) {
-      fill(C.rowAlt);
-      doc.rect(ML, y - 1, CW, rowH + 1, 'F');
-    }
+    if (zebra) { setFill(P.rowAlt); doc.rect(ML, Y, CW, rowH, 'F'); }
 
-    textColor(C.textMain);
-    doc.text(lines,                           tDescX + 2,        y + 3.5);
-    doc.text(String(item.quantity || 1),       tQtyX,             y + 3.5);
-    doc.text(fmt(item.unit_price),             tUnitX,            y + 3.5);
-    doc.text(fmt(item.total),                  tTotalX + 14,      y + 3.5, { align: 'right' });
+    setFont('normal', 9); setTxt(P.textMain);
+    doc.text(nameLines,              TC.desc.x + 2,               Y + 4.5);
+    doc.text(String(item.quantity || 1), TC.qty.x + TC.qty.w / 2, Y + 4.5, { align: 'center' });
+    doc.text(BRL(item.unit_price),   TC.unit.x + TC.unit.w - 1,   Y + 4.5, { align: 'right' });
+    doc.text(BRL(item.total),        TR - 1,                       Y + 4.5, { align: 'right' });
 
-    y += rowH + 1;
-    altRow = !altRow;
+    Y += rowH;
+    zebra = !zebra;
   });
 
-  // Bottom border of table
-  stroke(C.borderGray);
-  doc.setLineWidth(0.3);
-  doc.line(ML, y, ML + CW, y);
-  y += 6;
+  // Bottom table rule
+  rule(ML, Y, CW, P.divider, 0.5);
+  Y += 6;
 
-  // ══════════════════════════════════════════════════════════════
-  // SECTION 3 — RESUMO FINANCEIRO (right-aligned card)
-  // ══════════════════════════════════════════════════════════════
-  const cardW = 80;
-  const cardX = W - MR - cardW;
+  // ══════════════════════════════════════════════════════════════════════════
+  // SECTION 3 — RESUMO FINANCEIRO  (right-aligned card)
+  // ══════════════════════════════════════════════════════════════════════════
+  const CARD_W = 82;
+  const CARD_X = PAGE_W - MR - CARD_W;
+  const hasDsc  = (quote.discount || 0) > 0;
+  const CARD_H  = hasDsc ? 30 : 23;
 
-  // Card background + border
-  fill([252, 250, 255]);
-  stroke(C.borderGray);
+  // card border box
+  setFill([250, 247, 254]);
+  setStroke(P.divider);
   doc.setLineWidth(0.4);
-  doc.roundedRect(cardX, y, cardW, quote.discount > 0 ? 29 : 22, 2, 2, 'FD');
+  doc.roundedRect(CARD_X, Y, CARD_W, CARD_H, 2.5, 2.5, 'FD');
 
-  let cy = y + 7;
-  const labelX = cardX + 4;
-  const valueX = cardX + cardW - 4;
+  let CY = Y + 7;
+  const LBL_X  = CARD_X + 4;
+  const VAL_X  = CARD_X + CARD_W - 4;
 
-  const drawFinRow = (label, value, isBold = false) => {
-    if (isBold) {
-      font('bold', 9);
-    } else {
-      font('normal', 9);
-    }
-    textColor(C.textSub);
-    doc.text(label, labelX, cy);
-    textColor(isBold ? C.textMain : C.textMain);
-    doc.text(value, valueX, cy, { align: 'right' });
-    cy += 6;
+  const finRow = (label, value) => {
+    setFont('normal', 9); setTxt(P.textSub);
+    doc.text(label, LBL_X, CY);
+    setFont('normal', 9); setTxt(P.textMain);
+    doc.text(value, VAL_X, CY, { align: 'right' });
+    CY += 6.5;
   };
 
-  drawFinRow('Subtotal:', fmt(quote.subtotal));
-  if (quote.discount > 0) {
-    const pct = quote.subtotal > 0 ? ((quote.discount / quote.subtotal) * 100).toFixed(1) : 0;
-    drawFinRow('Desconto (' + pct + '%):', '- ' + fmt(quote.discount));
+  finRow('Subtotal:', BRL(quote.subtotal));
+  if (hasDsc) {
+    const pct = quote.subtotal > 0
+      ? ((quote.discount / quote.subtotal) * 100).toFixed(1) : 0;
+    setFont('normal', 9); setTxt(P.textSub);
+    doc.text('Desconto (' + pct + '%):', LBL_X, CY);
+    setFont('bold', 9); setTxt(P.green);
+    doc.text('- ' + BRL(quote.discount), VAL_X, CY, { align: 'right' });
+    CY += 6.5;
   }
 
-  // TOTAL highlight row
-  const totalRowH = 10;
-  fill(C.purple);
-  doc.roundedRect(cardX, cy - 2, cardW, totalRowH, 2, 2, 'F');
-  font('bold', 11);
-  textColor(C.white);
-  doc.text('TOTAL', labelX, cy + 5);
-  doc.text(fmt(quote.total), valueX, cy + 5, { align: 'right' });
+  // TOTAL highlight
+  setFill(P.purple);
+  doc.roundedRect(CARD_X, CY - 2, CARD_W, 11, 2, 2, 'F');
+  setFont('bold', 11.5); setTxt(P.white);
+  doc.text('TOTAL', LBL_X, CY + 5.5);
+  doc.text(BRL(quote.total), VAL_X, CY + 5.5, { align: 'right' });
 
-  y += (quote.discount > 0 ? 29 : 22) + 10;
+  Y += CARD_H + 10;
 
-  // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════
   // SECTION 4 — CONDIÇÕES COMERCIAIS
-  // ══════════════════════════════════════════════════════════════
-  sectionHeader('CONDIÇÕES COMERCIAIS');
+  // ══════════════════════════════════════════════════════════════════════════
+  sectionHead('CONDIÇÕES COMERCIAIS');
 
-  const installment18 = (quote.subtotal > 0 ? quote.subtotal : quote.total) / 18;
-  const conditions = [
-    'Parcelamento em até 18x no cartão de crédito — 18x de ' + fmt(installment18),
-    'Desconto especial para pagamento à vista (Dinheiro ou PIX): ' + fmt(quote.total),
+  const inst18 = (quote.subtotal > 0 ? quote.subtotal : quote.total) / 18;
+  const conds = [
+    'Parcelamento em até 18× no cartão de crédito — 18× de ' + BRL(inst18),
+    'Pagamento à vista (Dinheiro ou PIX) com desconto especial: ' + BRL(quote.total),
     'PIX Parcelado: condições a combinar',
     'Garantia: 2 a 4 anos conforme o fabricante',
     'Validade desta proposta: ' + (quote.validity_days || 30) + ' dias',
   ];
 
-  font('normal', 9.5);
-  textColor(C.textMain);
-  conditions.forEach((line) => {
-    // bullet
-    fill(C.green);
-    doc.circle(ML + 1.5, y - 1, 1, 'F');
-    doc.text(line, ML + 5, y);
-    y += 6.5;
+  setFont('normal', 9.5); setTxt(P.textMain);
+  conds.forEach((line) => {
+    // green circle bullet
+    setFill(P.green);
+    doc.circle(ML + 1.8, Y - 0.8, 1.1, 'F');
+    doc.text(line, ML + 5.5, Y);
+    Y += 7;
   });
 
   if (quote.notes) {
-    y += 3;
-    font('bold', 9);
-    textColor(C.purple);
-    doc.text('Observações:', ML, y);
-    y += 5;
-    font('normal', 9);
-    textColor(C.textMain);
-    const obsLines = doc.splitTextToSize(quote.notes, CW);
-    doc.text(obsLines, ML, y);
-    y += obsLines.length * 5.5 + 4;
+    Y += 4;
+    setFont('bold', 9); setTxt(P.purple);
+    doc.text('Observações:', ML, Y); Y += 5.5;
+    setFont('normal', 9); setTxt(P.textMain);
+    const obs = doc.splitTextToSize(quote.notes, CW);
+    doc.text(obs, ML, Y);
+    Y += obs.length * 5.5 + 4;
   }
 
-  // ══════════════════════════════════════════════════════════════
-  // FOOTER  — clean, at bottom
-  // ══════════════════════════════════════════════════════════════
-  const FY = H - 22;
+  // ══════════════════════════════════════════════════════════════════════════
+  // FOOTER  (pinned to bottom, clean)
+  // ══════════════════════════════════════════════════════════════════════════
+  const FY = PAGE_H - 22;
 
-  // Thin green top line
-  fill(C.green);
-  doc.rect(ML, FY, CW, 0.8, 'F');
+  rule(ML, FY, CW, P.green,  0.9);
+  rule(ML, FY + 1.3, CW, P.purple, 0.3);
 
-  // Thin purple under green
-  fill(C.purple);
-  doc.rect(ML, FY + 1, CW, 0.3, 'F');
-
-  font('normal', 7.5);
-  textColor(C.textSub);
-
-  const footerL = [
-    'Edif. Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007',
-    'Adrianópolis, Manaus – AM, 69057-035',
+  const foot = [
+    'Edif. Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007, Adrianópolis, Manaus – AM, 69057-035',
     '(92) 98464-5343  ·  atendimento@casacaracol.com.br  ·  sonatta.store',
   ];
-  let fy = FY + 6;
-  footerL.forEach((line) => {
-    doc.text(line, ML, fy);
-    fy += 4.5;
-  });
+  let FLY = FY + 6.5;
+  setFont('normal', 7.5); setTxt(P.textSub);
+  foot.forEach((l) => { doc.text(l, ML, FLY); FLY += 4.5; });
 
-  font('normal', 7.5);
-  textColor(C.purple);
-  doc.text('@sonatta.store', W - MR, FY + 6, { align: 'right' });
-  doc.text('Instagram  ·  Facebook', W - MR, FY + 10.5, { align: 'right' });
+  setFont('normal', 7.5); setTxt(P.purple);
+  doc.text('@sonatta.store  ·  Instagram  ·  Facebook  ·  LinkedIn', PAGE_W - MR, FY + 6.5, { align: 'right' });
 
   return doc;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── React Component ───────────────────────────────────────────────────────────
 export default function QuotePDFButton({ quote, onStatusChange }) {
   const [loading, setLoading] = useState(false);
 
-  const handleGenerateAndSend = async () => {
-    if (!quote.client_phone) {
-      toast.error('Cliente não possui telefone cadastrado');
-      return;
-    }
+  const handle = async () => {
+    if (!quote.client_phone) { toast.error('Cliente sem telefone cadastrado'); return; }
     setLoading(true);
     try {
-      const doc = await buildPDF(quote);
-      const filename = 'Orcamento_' + (quote.quote_number || 'Sonatta') + '.pdf';
-      doc.save(filename);
+      const doc  = await buildPDF(quote);
+      const name = 'Orcamento_' + (quote.quote_number || 'Sonatta') + '.pdf';
+      doc.save(name);
 
-      await new Promise((res) => setTimeout(res, 600));
+      await new Promise((r) => setTimeout(r, 600));
 
       const phone = quote.client_phone.replace(/\D/g, '');
-      const message =
+      const msg =
         'Olá ' + quote.client_name + '! 😊\n\n' +
-        'Segue em anexo a proposta comercial *Nº ' + quote.quote_number + '* da Sonatta Soluções Auditivas.\n\n' +
-        '📋 *Resumo:*\n' +
-        (quote.items || []).map((i) => '• ' + i.product_name).join('\n') +
-        '\n\n💰 *Total:* ' + new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(quote.total || 0) + '\n' +
-        '📅 *Validade:* ' + (quote.validity_days || 30) + ' dias\n\n' +
-        'Qualquer dúvida estamos à disposição! 🎧\n\n_Equipe Sonatta_';
+        'Segue em anexo a proposta *Nº ' + quote.quote_number + '* da Sonatta Soluções Auditivas.\n\n' +
+        '📋 *Itens:*\n' + (quote.items || []).map((i) => '• ' + i.product_name).join('\n') +
+        '\n\n💰 *Total:* ' + BRL(quote.total) +
+        '\n📅 *Validade:* ' + (quote.validity_days || 30) + ' dias\n\n' +
+        'Estamos à disposição! 🎧\n_Equipe Sonatta_';
 
-      openWhatsApp('55' + phone, message);
-
+      openWhatsApp('55' + phone, msg);
       if (onStatusChange) await onStatusChange(quote, 'enviado');
       toast.success('PDF gerado e WhatsApp aberto!');
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro ao gerar PDF');
+    } catch (e) {
+      console.error(e); toast.error('Erro ao gerar PDF');
     } finally {
       setLoading(false);
     }
@@ -370,14 +345,17 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
 
   return (
     <Button
-      size="sm"
-      variant="outline"
+      size="sm" variant="outline"
       className="border-[#622A7E] text-[#622A7E] hover:bg-[#622A7E] hover:text-white"
-      onClick={handleGenerateAndSend}
-      disabled={loading}
+      onClick={handle} disabled={loading}
       title="Gerar PDF e enviar pelo WhatsApp"
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
     </Button>
   );
+}
+
+// expose BRL for footer line in buildPDF scope
+function BRL(v) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 }
