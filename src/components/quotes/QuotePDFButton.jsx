@@ -244,58 +244,71 @@ async function buildPDF(quote) {
   Y += 7;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SECTION 3 — RESUMO FINANCEIRO  (right-aligned card)
+  // SECTION 3 — RESUMO FINANCEIRO  (dois boxes de opção)
   // ══════════════════════════════════════════════════════════════════════════
-  const hasDsc  = (quote.discount || 0) > 0;
-  const CARD_W  = 84;
-  const CARD_X  = PAGE_W - MR - CARD_W;
+  const hasDsc    = (quote.discount || 0) > 0;
+  const totalAVista = quote.total; // subtotal - desconto
+  const inst18      = (quote.subtotal > 0 ? quote.subtotal : quote.total) / 18;
 
-  // Rows: subtotal + optional discount + total highlight
-  const ROW_H   = 7;
-  const TOTAL_H = 13;
-  const CARD_H  = ROW_H + (hasDsc ? ROW_H : 0) + TOTAL_H + 6; // top/bottom padding
+  // Two side-by-side option cards
+  const OPT_W  = CW / 2 - 3;
+  const OPT_X1 = ML;
+  const OPT_X2 = ML + OPT_W + 6;
 
-  // Card background box
-  setFill([250, 247, 254]);
-  setStroke([210, 200, 225]);
+  // ── Option A: À Vista ──
+  const OPT_H = 32;
+  // header bar
+  setFill(P.green); doc.roundedRect(OPT_X1, Y, OPT_W, 8, 2, 2, 'F');
+  setFont('bold', 9); setTxt(P.white);
+  doc.text('À VISTA  (Dinheiro ou PIX)', OPT_X1 + OPT_W / 2, Y + 5.5, { align: 'center' });
+  // body
+  setFill([250, 252, 243]); setStroke([180, 210, 60]);
   doc.setLineWidth(0.35);
-  doc.roundedRect(CARD_X, Y, CARD_W, CARD_H, 2.5, 2.5, 'FD');
-
-  let CY = Y + 5.5;
-  const LBL_X = CARD_X + 5;
-  const VAL_X = CARD_X + CARD_W - 5;
-
-  // Subtotal row
-  setFont('normal', 9.5); setTxt(P.textSub);
-  doc.text('Subtotal:', LBL_X, CY);
-  setFont('normal', 9.5); setTxt(P.textMain);
-  doc.text(BRL(quote.subtotal), VAL_X, CY, { align: 'right' });
-  CY += ROW_H;
-
-  // Discount row (optional)
+  doc.roundedRect(OPT_X1, Y + 7, OPT_W, OPT_H - 7, 2, 2, 'FD');
+  // subtotal line
+  const AX = OPT_X1 + OPT_W - 5;
+  let AY = Y + 14;
+  setFont('normal', 8.5); setTxt(P.textSub);
+  doc.text('Subtotal:', OPT_X1 + 5, AY);
+  setFont('normal', 8.5); setTxt(P.textMain);
+  doc.text(BRL(quote.subtotal), AX, AY, { align: 'right' });
+  AY += 6.5;
   if (hasDsc) {
-    const pct = quote.subtotal > 0
-      ? ((quote.discount / quote.subtotal) * 100).toFixed(1) + '%' : '';
-    setFont('normal', 9.5); setTxt(P.textSub);
-    doc.text('Desconto ' + (pct ? '(' + pct + ')' : '') + ':', LBL_X, CY);
-    setFont('bold', 9.5); setTxt([80, 140, 0]);
-    doc.text('- ' + BRL(quote.discount), VAL_X, CY, { align: 'right' });
-    CY += ROW_H;
+    const pct = quote.subtotal > 0 ? ((quote.discount / quote.subtotal) * 100).toFixed(1) + '%' : '';
+    setFont('normal', 8.5); setTxt(P.textSub);
+    doc.text('Desconto ' + (pct ? '(' + pct + ')' : '') + ':', OPT_X1 + 5, AY);
+    setFont('bold', 8.5); setTxt([80, 140, 0]);
+    doc.text('- ' + BRL(quote.discount), AX, AY, { align: 'right' });
+    AY += 6.5;
   }
+  setFill([180, 210, 60]); doc.rect(OPT_X1 + 3, AY - 1, OPT_W - 6, 0.3, 'F');
+  AY += 3;
+  setFont('bold', 12); setTxt([60, 110, 0]);
+  doc.text(BRL(totalAVista), OPT_X1 + OPT_W / 2, AY, { align: 'center' });
 
-  // Thin separator before TOTAL
-  setFill([210, 200, 225]); doc.rect(CARD_X + 2, CY, CARD_W - 4, 0.35, 'F');
-  CY += 2;
+  // ── Option B: Parcelado ──
+  setFill(P.purple); doc.roundedRect(OPT_X2, Y, OPT_W, 8, 2, 2, 'F');
+  setFont('bold', 9); setTxt(P.white);
+  doc.text('PARCELADO  (Cartão de Crédito)', OPT_X2 + OPT_W / 2, Y + 5.5, { align: 'center' });
+  setFill([250, 247, 254]); setStroke([210, 200, 225]);
+  doc.setLineWidth(0.35);
+  doc.roundedRect(OPT_X2, Y + 7, OPT_W, OPT_H - 7, 2, 2, 'FD');
+  const BX = OPT_X2 + OPT_W - 5;
+  let BY = Y + 14;
+  setFont('normal', 8.5); setTxt(P.textSub);
+  doc.text('Valor total:', OPT_X2 + 5, BY);
+  setFont('normal', 8.5); setTxt(P.textMain);
+  doc.text(BRL(quote.subtotal), BX, BY, { align: 'right' });
+  BY += 6.5;
+  setFont('normal', 8.5); setTxt(P.textSub);
+  doc.text('Parcelamento em até 18×:', OPT_X2 + 5, BY);
+  BY += 6.5;
+  setFill([210, 200, 225]); doc.rect(OPT_X2 + 3, BY - 1, OPT_W - 6, 0.3, 'F');
+  BY += 3;
+  setFont('bold', 12); setTxt(P.purple);
+  doc.text(BRL(inst18) + '/mês', OPT_X2 + OPT_W / 2, BY, { align: 'center' });
 
-  // TOTAL highlight row
-  setFill(P.purple);
-  doc.roundedRect(CARD_X, CY, CARD_W, TOTAL_H, 2, 2, 'F');
-  setFont('bold', 10); setTxt(P.white);
-  doc.text('TOTAL', LBL_X, CY + 8.5);
-  setFont('bold', 13); setTxt(P.white);
-  doc.text(BRL(quote.total), VAL_X, CY + 8.5, { align: 'right' });
-
-  Y += CARD_H + 10;
+  Y += OPT_H + 10;
 
   // ══════════════════════════════════════════════════════════════════════════
   // SECTION 4 — CONDIÇÕES COMERCIAIS
