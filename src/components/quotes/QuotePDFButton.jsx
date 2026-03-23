@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { openWhatsApp } from '@/utils/whatsapp';
 
-const LOGO_URL = 'https://media.base44.com/images/public/694e93aa7609bf14847de917/17777c948_SONATTA_CARDS-10.png';
+const BG_URL = 'https://media.base44.com/images/public/694e93aa7609bf14847de917/fc6253047_TABELADEVALORESSONATTA-4.png';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -36,77 +36,59 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
   const generatePDF = async () => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const W = 210;
-    const margin = 15;
+    const H = 297;
+    const margin = 18;
     const contentW = W - margin * 2;
 
     const purple = [98, 42, 126];
     const green  = [136, 188, 7];
-    const textDark = [32, 31, 28];
-    const textMid  = [66, 63, 51];
+    const textDark = [40, 35, 50];
+    const textMid  = [80, 60, 100];
 
-    // HEADER
-    doc.setFillColor(...purple);
-    doc.rect(0, 0, W, 38, 'F');
-
-    doc.setFillColor(...green);
-    doc.rect(0, 38, W, 3, 'F');
-
-    const logoData = await loadImageAsBase64(LOGO_URL);
-    if (logoData) {
-      doc.addImage(logoData, 'PNG', margin, 4, 52, 30);
-    } else {
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(22);
-      doc.text('SONATTA', margin, 20);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text('Soluções Auditivas', margin, 27);
+    // Background image (full page)
+    const bgData = await loadImageAsBase64(BG_URL);
+    if (bgData) {
+      doc.addImage(bgData, 'PNG', 0, 0, W, H);
     }
 
-    doc.setTextColor(230, 220, 240);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    const rightX = W - margin;
-    doc.text('CNPJ: 33.457.952/0001-98', rightX, 10, { align: 'right' });
-    doc.text('Edif. Corporate Trade Center', rightX, 15, { align: 'right' });
-    doc.text('Rod. Álvaro Maia, 2357 - 10º Andar, Sala 1007', rightX, 20, { align: 'right' });
-    doc.text('Adrianópolis, Manaus - AM, 69057-035', rightX, 25, { align: 'right' });
-    doc.text('(92) 98464-5343  |  contato@sonatta.store', rightX, 30, { align: 'right' });
-    doc.text('www.sonatta.store  |  @sonatta.store', rightX, 35, { align: 'right' });
+    // Content starts below the header (logo + green circle area ~ 58mm)
+    // Content ends before the purple footer wave ~ 195mm
+    let y = 58;
 
-    // TÍTULO
-    doc.setFillColor(247, 244, 250);
-    doc.rect(0, 41, W, 18, 'F');
-
+    // ── TÍTULO ───────────────────────────────────────────────────
     doc.setTextColor(...purple);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text('PROPOSTA COMERCIAL', margin, 51);
+    doc.setFontSize(13);
+    doc.text('PROPOSTA COMERCIAL', margin, y);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(...textMid);
-    doc.text('Nº ' + (quote.quote_number || '—'), margin, 56);
+    doc.text('Nº ' + (quote.quote_number || '—'), margin, y + 5.5);
 
-    doc.setTextColor(...textMid);
-    doc.text('Data: ' + formatDate(quote.created_date), rightX, 51, { align: 'right' });
+    const rightX = W - margin;
+    doc.text('Data: ' + formatDate(quote.created_date), rightX, y, { align: 'right' });
     const validDate = new Date();
     validDate.setDate(validDate.getDate() + (quote.validity_days || 30));
-    doc.text('Válida até: ' + validDate.toLocaleDateString('pt-BR'), rightX, 56, { align: 'right' });
+    doc.text('Válida até: ' + validDate.toLocaleDateString('pt-BR'), rightX, y + 5.5, { align: 'right' });
 
-    // DADOS DO CLIENTE
-    let y = 67;
+    // Linha separadora
+    y += 10;
+    doc.setDrawColor(...green);
+    doc.setLineWidth(0.6);
+    doc.line(margin, y, margin + contentW, y);
+    y += 5;
+
+    // ── DADOS DO CLIENTE ─────────────────────────────────────────
     doc.setFillColor(...purple);
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.rect(margin, y, contentW, 7, 'F');
-    doc.text('DADOS DO CLIENTE', margin + 3, y + 5);
+    doc.setFontSize(8);
+    doc.rect(margin, y, contentW, 6, 'F');
+    doc.text('DADOS DO CLIENTE', margin + 2, y + 4.2);
+    y += 8;
 
-    y += 9;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(...textDark);
 
     const clientFields = [
@@ -122,75 +104,77 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
       doc.text(label + ':', margin + 2, y);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...textDark);
-      doc.text(value, margin + 28, y);
-      y += 5.5;
+      doc.text(value, margin + 25, y);
+      y += 5;
     });
 
-    // TABELA DE ITENS
-    y += 4;
+    y += 3;
+
+    // ── TABELA DE ITENS ──────────────────────────────────────────
     doc.setFillColor(...purple);
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.rect(margin, y, contentW, 7, 'F');
-    doc.text('ITENS DO ORÇAMENTO', margin + 3, y + 5);
-    y += 9;
-
-    doc.setFillColor(240, 235, 245);
-    doc.rect(margin, y, contentW, 6, 'F');
-    doc.setTextColor(...purple);
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-
-    const cols = { item: margin + 3, qty: margin + 105, unitPrice: margin + 132, total: margin + 163 };
-    doc.text('Descrição', cols.item, y + 4);
-    doc.text('Qtd', cols.qty, y + 4);
-    doc.text('Valor Unit.', cols.unitPrice, y + 4);
-    doc.text('Total', cols.total, y + 4);
+    doc.rect(margin, y, contentW, 6, 'F');
+    doc.text('ITENS DO ORÇAMENTO', margin + 2, y + 4.2);
     y += 8;
 
+    // Cabeçalho da tabela
+    doc.setFillColor(235, 225, 245);
+    doc.rect(margin, y, contentW, 5.5, 'F');
+    doc.setTextColor(...purple);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+
+    const cols = { item: margin + 2, qty: margin + 105, unitPrice: margin + 130, total: margin + 158 };
+    doc.text('Descrição', cols.item, y + 3.8);
+    doc.text('Qtd', cols.qty, y + 3.8);
+    doc.text('Valor Unit.', cols.unitPrice, y + 3.8);
+    doc.text('Total', cols.total, y + 3.8);
+    y += 7;
+
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     let alternate = false;
     (quote.items || []).forEach((item) => {
       if (alternate) {
-        doc.setFillColor(250, 247, 253);
-        doc.rect(margin, y - 1, contentW, 7, 'F');
+        doc.setFillColor(248, 244, 252);
+        doc.rect(margin, y - 1, contentW, 6.5, 'F');
       }
       doc.setTextColor(...textDark);
       const name = doc.splitTextToSize(item.product_name || '—', 95)[0];
-      doc.text(name, cols.item, y + 4);
-      doc.text(String(item.quantity || 1), cols.qty, y + 4);
-      doc.text(formatCurrency(item.unit_price), cols.unitPrice, y + 4);
-      doc.text(formatCurrency(item.total), cols.total, y + 4);
-      y += 7;
+      doc.text(name, cols.item, y + 3.5);
+      doc.text(String(item.quantity || 1), cols.qty, y + 3.5);
+      doc.text(formatCurrency(item.unit_price), cols.unitPrice, y + 3.5);
+      doc.text(formatCurrency(item.total), cols.total, y + 3.5);
+      y += 6.5;
       alternate = !alternate;
     });
 
     doc.setDrawColor(...green);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(0.4);
     doc.line(margin, y, margin + contentW, y);
-    y += 5;
+    y += 4;
 
-    // TOTAIS
-    const totalsX = W - margin - 75;
-    const totalsW = 75;
+    // ── TOTAIS ───────────────────────────────────────────────────
+    const totalsX = W - margin - 72;
+    const totalsW = 72;
 
     const renderTotalRow = (label, value, highlight = false) => {
       if (highlight) {
         doc.setFillColor(...purple);
-        doc.rect(totalsX, y - 1, totalsW, 8, 'F');
+        doc.rect(totalsX, y - 1, totalsW, 7.5, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
+        doc.setFontSize(9.5);
       } else {
         doc.setTextColor(...textMid);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
+        doc.setFontSize(8.5);
       }
-      doc.text(label, totalsX + 3, y + 5);
-      doc.text(value, totalsX + totalsW - 3, y + 5, { align: 'right' });
-      y += highlight ? 10 : 7;
+      doc.text(label, totalsX + 3, y + 4.5);
+      doc.text(value, totalsX + totalsW - 2, y + 4.5, { align: 'right' });
+      y += highlight ? 9 : 6.5;
     };
 
     renderTotalRow('Subtotal:', formatCurrency(quote.subtotal));
@@ -200,18 +184,19 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     }
     renderTotalRow('TOTAL:', formatCurrency(quote.total), true);
 
-    // CONDIÇÕES COMERCIAIS
-    y += 8;
+    y += 5;
+
+    // ── CONDIÇÕES COMERCIAIS ─────────────────────────────────────
     doc.setFillColor(...purple);
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.rect(margin, y, contentW, 7, 'F');
-    doc.text('CONDIÇÕES COMERCIAIS', margin + 3, y + 5);
-    y += 11;
+    doc.setFontSize(8);
+    doc.rect(margin, y, contentW, 6, 'F');
+    doc.text('CONDIÇÕES COMERCIAIS', margin + 2, y + 4.2);
+    y += 9;
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...textDark);
 
     const installment18 = quote.subtotal > 0 ? quote.subtotal / 18 : quote.total / 18;
@@ -224,36 +209,21 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     ];
 
     conditions.forEach((line) => {
-      doc.text(line, margin + 3, y);
-      y += 6;
+      doc.text(line, margin + 2, y);
+      y += 5.5;
     });
 
     if (quote.notes) {
-      y += 3;
+      y += 2;
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...textMid);
-      doc.text('Observações:', margin + 3, y);
+      doc.text('Observações:', margin + 2, y);
       y += 5;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...textDark);
-      const obsLines = doc.splitTextToSize(quote.notes, contentW - 6);
-      doc.text(obsLines, margin + 3, y);
-      y += obsLines.length * 5 + 3;
+      const obsLines = doc.splitTextToSize(quote.notes, contentW - 4);
+      doc.text(obsLines, margin + 2, y);
     }
-
-    // RODAPÉ
-    const footerY = 278;
-    doc.setFillColor(...green);
-    doc.rect(0, footerY - 2, W, 2, 'F');
-    doc.setFillColor(...purple);
-    doc.rect(0, footerY, W, 19, 'F');
-
-    doc.setTextColor(230, 220, 240);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.text('Sonatta Soluções Auditivas  |  CNPJ: 33.457.952/0001-98', W / 2, footerY + 5, { align: 'center' });
-    doc.text('(92) 98464-5343  |  contato@sonatta.store  |  www.sonatta.store', W / 2, footerY + 10, { align: 'center' });
-    doc.text('@sonatta.store (Instagram & Facebook)', W / 2, footerY + 15, { align: 'center' });
 
     return doc;
   };
