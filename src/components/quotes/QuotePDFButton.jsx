@@ -26,8 +26,16 @@ const BRL = (v) =>
 
 const fmtDate = (raw) => {
   if (!raw) return '—';
-  const d = new Date(String(raw).includes('T') ? raw : raw + 'T12:00:00');
-  return isNaN(d) ? '—' : d.toLocaleDateString('pt-BR');
+  try {
+    const s = String(raw);
+    // handle YYYY-MM-DD or ISO
+    const d = s.match(/^\d{4}-\d{2}-\d{2}$/) ? new Date(s + 'T12:00:00') : new Date(s);
+    if (isNaN(d.getTime())) return '—';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return dd + '/' + mm + '/' + yyyy;
+  } catch { return '—'; }
 };
 
 // ── Image loader ──────────────────────────────────────────────────────────────
@@ -73,46 +81,43 @@ async function buildPDF(quote) {
   // White page bg
   setFill(P.pageBg); doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
-  // Top accent bar – 2 mm green
-  setFill(P.green); doc.rect(0, 0, PAGE_W, 2, 'F');
-
-  // Left sidebar accent – thin vertical purple line
-  setFill(P.purple); doc.rect(0, 2, 1, PAGE_H - 2, 'F');
-
-  // Logo
+  // Logo (left) — fixed height 20 mm, width proportional
+  const LOGO_H = 20;
+  const LOGO_W = 52; // ~3:1 ratio, no stretch
   const logoB64 = await loadB64(LOGO_URL);
   if (logoB64) {
-    // natural aspect ~3.5:1; render 48 × ~14 mm
-    doc.addImage(logoB64, 'PNG', ML, 8, 46, 14, undefined, 'NONE');
+    doc.addImage(logoB64, 'PNG', ML, 8, LOGO_W, LOGO_H, undefined, 'NONE');
   } else {
-    setFont('bold', 18); setTxt(P.purple);
-    doc.text('SONATTA', ML, 20);
-    setFont('normal', 8); setTxt(P.textSub);
-    doc.text('Soluções Auditivas', ML, 26);
+    setFont('bold', 20); setTxt(P.purple);
+    doc.text('SONATTA', ML, 22);
+    setFont('normal', 9); setTxt(P.textSub);
+    doc.text('Soluções Auditivas', ML, 28);
   }
 
-  // Right block ─ "Proposta Comercial"
+  // Right block — meta info, right-aligned
   const RX = PAGE_W - MR;
 
-  setFont('bold', 16); setTxt(P.purple);
-  doc.text('Proposta Comercial', RX, 13, { align: 'right' });
+  setFont('bold', 14); setTxt(P.purple);
+  doc.text('PROPOSTA COMERCIAL', RX, 12, { align: 'right' });
 
-  setFont('normal', 8.5); setTxt(P.textSub);
-  doc.text('Nº ' + (quote.quote_number || '—'), RX, 20, { align: 'right' });
-  doc.text('Data: ' + fmtDate(quote.created_date), RX, 26, { align: 'right' });
+  setFont('normal', 9); setTxt(P.textSub);
+  doc.text('Nº ' + (quote.quote_number || '—'), RX, 19, { align: 'right' });
+  doc.text('Data: ' + fmtDate(quote.created_date), RX, 25, { align: 'right' });
 
   const validUntil = (() => {
     const d = new Date();
     d.setDate(d.getDate() + (quote.validity_days || 30));
-    return d.toLocaleDateString('pt-BR');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return dd + '/' + mm + '/' + d.getFullYear();
   })();
-  doc.text('Válida até: ' + validUntil, RX, 32, { align: 'right' });
+  doc.text('Válida até: ' + validUntil, RX, 31, { align: 'right' });
 
-  // Underline header – double rule
-  rule(ML, 38, CW, P.green,  0.8);
-  rule(ML, 39.2, CW, P.purple, 0.3);
+  // Accent line — thin green strip below header
+  const HEADER_BOTTOM = 36;
+  setFill(P.green); doc.rect(ML, HEADER_BOTTOM, CW, 1.0, 'F');
 
-  let Y = 47; // cursor
+  let Y = 43; // cursor
 
   // ══════════════════════════════════════════════════════════════════════════
   // Section header helper
