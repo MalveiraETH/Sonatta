@@ -314,10 +314,3 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     </Button>
   );
 }
-      disabled={loading}
-      title="Gerar PDF e enviar pelo WhatsApp"
-    >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-    </Button>
-  );
-}
