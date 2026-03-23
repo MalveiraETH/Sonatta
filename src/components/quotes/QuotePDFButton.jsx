@@ -175,90 +175,117 @@ async function buildPDF(quote) {
   // ══════════════════════════════════════════════════════════════════════════
   sectionHead('ITENS DO ORÇAMENTO');
 
-  // Column x-positions & widths
+  // Column layout
   const TC = {
-    desc:  { x: ML,          w: 105 },
-    qty:   { x: ML + 107,    w: 14  },
-    unit:  { x: ML + 123,    w: 24  },
-    total: { x: ML + 149,    w: 21  },
+    desc:  { x: ML,       w: 100 },
+    qty:   { x: ML + 102, w: 14  },
+    unit:  { x: ML + 118, w: 28  },
+    total: { x: ML + 148, w: 22  },
   };
-  const TR = PAGE_W - MR; // right edge for right-align
+  const TR = PAGE_W - MR;
+  const TH = 7.5;
 
-  // Table header row
-  const TH = 7;
-  setFill(P.purple); doc.rect(ML, Y, CW, TH, 'F');
-  setFont('bold', 8.5); setTxt(P.white);
-  doc.text('Descrição',   TC.desc.x + 2,        Y + 4.9);
-  doc.text('Qtd',         TC.qty.x  + TC.qty.w  / 2, Y + 4.9, { align: 'center' });
-  doc.text('Vlr. Unit.',  TC.unit.x + TC.unit.w - 1,  Y + 4.9, { align: 'right' });
-  doc.text('Total',       TR - 1,               Y + 4.9, { align: 'right' });
-  Y += TH + 1;
+  const drawTableHeader = (startY) => {
+    setFill(P.purple); doc.rect(ML, startY, CW, TH, 'F');
+    setFont('bold', 9); setTxt(P.white);
+    doc.text('Descrição',   TC.desc.x + 2,              startY + 5.2);
+    doc.text('Qtd',         TC.qty.x + TC.qty.w / 2,    startY + 5.2, { align: 'center' });
+    doc.text('Valor Unit.', TC.unit.x + TC.unit.w - 1,  startY + 5.2, { align: 'right' });
+    doc.text('Total',       TR - 1,                     startY + 5.2, { align: 'right' });
+    return startY + TH;
+  };
 
-  // Rows
+  Y = drawTableHeader(Y);
+
   let zebra = false;
   (quote.items || []).forEach((item) => {
     const nameLines = doc.splitTextToSize(item.product_name || '—', TC.desc.w - 3);
-    const rowH = Math.max(7, nameLines.length * 5.2 + 2);
+    const rowH = Math.max(7.5, nameLines.length * 5.5 + 3);
 
-    if (zebra) { setFill(P.rowAlt); doc.rect(ML, Y, CW, rowH, 'F'); }
+    // Page break: if row won't fit, add new page and repeat header
+    if (Y + rowH > PAGE_H - 30) {
+      doc.addPage();
+      setFill(P.pageBg); doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
+      Y = ML;
+      Y = drawTableHeader(Y);
+      zebra = false;
+    }
 
-    setFont('normal', 9); setTxt(P.textMain);
-    doc.text(nameLines,              TC.desc.x + 2,               Y + 4.5);
-    doc.text(String(item.quantity || 1), TC.qty.x + TC.qty.w / 2, Y + 4.5, { align: 'center' });
-    doc.text(BRL(item.unit_price),   TC.unit.x + TC.unit.w - 1,   Y + 4.5, { align: 'right' });
-    doc.text(BRL(item.total),        TR - 1,                       Y + 4.5, { align: 'right' });
+    // Zebra background
+    if (zebra) {
+      setFill([245, 243, 248]); // very light neutral gray
+      doc.rect(ML, Y, CW, rowH, 'F');
+    }
+
+    // Row content
+    setFont('normal', 9.5); setTxt(P.textMain);
+    doc.text(nameLines,                  TC.desc.x + 2,              Y + 5);
+    doc.text(String(item.quantity || 1), TC.qty.x + TC.qty.w / 2,   Y + 5, { align: 'center' });
+    doc.text(BRL(item.unit_price),       TC.unit.x + TC.unit.w - 1, Y + 5, { align: 'right' });
+    doc.text(BRL(item.total),            TR - 1,                     Y + 5, { align: 'right' });
+
+    // Thin bottom separator per row
+    setFill([220, 215, 230]); doc.rect(ML, Y + rowH - 0.3, CW, 0.3, 'F');
 
     Y += rowH;
     zebra = !zebra;
   });
 
-  // Bottom table rule
-  rule(ML, Y, CW, P.divider, 0.5);
-  Y += 6;
+  // Bottom rule
+  setFill(P.purple); doc.rect(ML, Y, CW, 0.5, 'F');
+  Y += 7;
 
   // ══════════════════════════════════════════════════════════════════════════
   // SECTION 3 — RESUMO FINANCEIRO  (right-aligned card)
   // ══════════════════════════════════════════════════════════════════════════
-  const CARD_W = 82;
-  const CARD_X = PAGE_W - MR - CARD_W;
   const hasDsc  = (quote.discount || 0) > 0;
-  const CARD_H  = hasDsc ? 30 : 23;
+  const CARD_W  = 84;
+  const CARD_X  = PAGE_W - MR - CARD_W;
 
-  // card border box
+  // Rows: subtotal + optional discount + total highlight
+  const ROW_H   = 7;
+  const TOTAL_H = 13;
+  const CARD_H  = ROW_H + (hasDsc ? ROW_H : 0) + TOTAL_H + 6; // top/bottom padding
+
+  // Card background box
   setFill([250, 247, 254]);
-  setStroke(P.divider);
-  doc.setLineWidth(0.4);
+  setStroke([210, 200, 225]);
+  doc.setLineWidth(0.35);
   doc.roundedRect(CARD_X, Y, CARD_W, CARD_H, 2.5, 2.5, 'FD');
 
-  let CY = Y + 7;
-  const LBL_X  = CARD_X + 4;
-  const VAL_X  = CARD_X + CARD_W - 4;
+  let CY = Y + 5.5;
+  const LBL_X = CARD_X + 5;
+  const VAL_X = CARD_X + CARD_W - 5;
 
-  const finRow = (label, value) => {
-    setFont('normal', 9); setTxt(P.textSub);
-    doc.text(label, LBL_X, CY);
-    setFont('normal', 9); setTxt(P.textMain);
-    doc.text(value, VAL_X, CY, { align: 'right' });
-    CY += 6.5;
-  };
+  // Subtotal row
+  setFont('normal', 9.5); setTxt(P.textSub);
+  doc.text('Subtotal:', LBL_X, CY);
+  setFont('normal', 9.5); setTxt(P.textMain);
+  doc.text(BRL(quote.subtotal), VAL_X, CY, { align: 'right' });
+  CY += ROW_H;
 
-  finRow('Subtotal:', BRL(quote.subtotal));
+  // Discount row (optional)
   if (hasDsc) {
     const pct = quote.subtotal > 0
-      ? ((quote.discount / quote.subtotal) * 100).toFixed(1) : 0;
-    setFont('normal', 9); setTxt(P.textSub);
-    doc.text('Desconto (' + pct + '%):', LBL_X, CY);
-    setFont('bold', 9); setTxt(P.green);
-    doc.text('- ' + BRL(quote.discount), VAL_X, CY, { align: 'right' });
-    CY += 6.5;
+      ? ((quote.discount / quote.subtotal) * 100).toFixed(1) + '%' : '';
+    setFont('normal', 9.5); setTxt(P.textSub);
+    doc.text('Desconto ' + (pct ? '(' + pct + ')' : '') + ':', LBL_X, CY);
+    setFont('bold', 9.5); setTxt([80, 140, 0]);
+    doc.text('− ' + BRL(quote.discount), VAL_X, CY, { align: 'right' });
+    CY += ROW_H;
   }
 
-  // TOTAL highlight
+  // Thin separator before TOTAL
+  setFill([210, 200, 225]); doc.rect(CARD_X + 2, CY, CARD_W - 4, 0.35, 'F');
+  CY += 2;
+
+  // TOTAL highlight row
   setFill(P.purple);
-  doc.roundedRect(CARD_X, CY - 2, CARD_W, 11, 2, 2, 'F');
-  setFont('bold', 11.5); setTxt(P.white);
-  doc.text('TOTAL', LBL_X, CY + 5.5);
-  doc.text(BRL(quote.total), VAL_X, CY + 5.5, { align: 'right' });
+  doc.roundedRect(CARD_X, CY, CARD_W, TOTAL_H, 2, 2, 'F');
+  setFont('bold', 10); setTxt(P.white);
+  doc.text('TOTAL', LBL_X, CY + 8.5);
+  setFont('bold', 13); setTxt(P.white);
+  doc.text(BRL(quote.total), VAL_X, CY + 8.5, { align: 'right' });
 
   Y += CARD_H + 10;
 
