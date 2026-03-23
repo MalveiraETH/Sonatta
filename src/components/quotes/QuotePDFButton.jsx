@@ -315,7 +315,6 @@ async function buildPDF(quote) {
   // ══════════════════════════════════════════════════════════════════════════
   sectionHead('CONDIÇÕES COMERCIAIS');
 
-  const inst18 = (quote.subtotal > 0 ? quote.subtotal : quote.total) / 18;
   const conds = [
     'Parcelamento em até 18× no cartão de crédito — a partir de ' + BRL(inst18) + '/mês',
     'Pagamento à vista (Dinheiro ou PIX): ' + BRL(quote.total),
