@@ -274,13 +274,46 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     setLoading(true);
     try {
       const doc = await generatePDF();
+      const filename = `Orcamento_${quote.quote_number || 'Sonatta'}.pdf`;
+      doc.save(filename);
+
+      await new Promise((res) => setTimeout(res, 600));
+
+      const phone = quote.client_phone.replace(/\D/g, '');
+      const message =
+        `Olá ${quote.client_name}! 😊\n\n` +
+        `Segue em anexo a proposta comercial *Nº ${quote.quote_number}* da Sonatta Soluções Auditivas.\n\n` +
+        `📋 *Resumo:*\n` +
+        (quote.items || []).map((i) => `• ${i.product_name}`).join('\n') +
+        `\n\n💰 *Total:* ${formatCurrency(quote.total)}\n` +
+        `📅 *Validade:* ${quote.validity_days || 30} dias\n\n` +
+        `Qualquer dúvida estamos à disposição! 🎧\n\n_Equipe Sonatta_`;
+
+      openWhatsApp(`55${phone}`, message);
+
+      if (onStatusChange) await onStatusChange(quote, 'enviado');
+      toast.success('PDF gerado e WhatsApp aberto!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao gerar PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Button
       size="sm"
       variant="outline"
-      className="border-[#6B3FA0] text-[#6B3FA0] hover:bg-[#6B3FA0] hover:text-white"
+      className="border-[#622A7E] text-[#622A7E] hover:bg-[#622A7E] hover:text-white"
       onClick={handleGenerateAndSend}
+      disabled={loading}
+      title="Gerar PDF e enviar pelo WhatsApp"
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+    </Button>
+  );
+}
       disabled={loading}
       title="Gerar PDF e enviar pelo WhatsApp"
     >
