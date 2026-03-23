@@ -296,26 +296,28 @@ async function buildPDF(quote) {
 
   const inst18 = (quote.subtotal > 0 ? quote.subtotal : quote.total) / 18;
   const conds = [
-    'Parcelamento em até 18× no cartão de crédito — 18× de ' + BRL(inst18),
-    'Pagamento à vista (Dinheiro ou PIX) com desconto especial: ' + BRL(quote.total),
+    'Parcelamento em até 18× no cartão de crédito — a partir de ' + BRL(inst18) + '/mês',
+    'Pagamento à vista (Dinheiro ou PIX): ' + BRL(quote.total),
     'PIX Parcelado: condições a combinar',
-    'Garantia: 2 a 4 anos conforme o fabricante',
+    'Garantia: 2 a 4 anos conforme fabricante',
     'Validade desta proposta: ' + (quote.validity_days || 30) + ' dias',
   ];
 
+  const LINE_H = 6.8; // ~1.4× line height
   setFont('normal', 9.5); setTxt(P.textMain);
   conds.forEach((line) => {
-    // green circle bullet
+    // Small square bullet in green
     setFill(P.green);
-    doc.circle(ML + 1.8, Y - 0.8, 1.1, 'F');
-    doc.text(line, ML + 5.5, Y);
-    Y += 7;
+    doc.rect(ML + 1, Y - 2.2, 1.8, 1.8, 'F');
+    const wrapped = doc.splitTextToSize(line, CW - 8);
+    doc.text(wrapped, ML + 6, Y);
+    Y += wrapped.length * LINE_H;
   });
 
   if (quote.notes) {
-    Y += 4;
-    setFont('bold', 9); setTxt(P.purple);
-    doc.text('Observações:', ML, Y); Y += 5.5;
+    Y += 5;
+    setFont('bold', 9.5); setTxt(P.purple);
+    doc.text('Observações:', ML, Y); Y += 6;
     setFont('normal', 9); setTxt(P.textMain);
     const obs = doc.splitTextToSize(quote.notes, CW);
     doc.text(obs, ML, Y);
@@ -325,21 +327,20 @@ async function buildPDF(quote) {
   // ══════════════════════════════════════════════════════════════════════════
   // FOOTER  (pinned to bottom, clean)
   // ══════════════════════════════════════════════════════════════════════════
-  const FY = PAGE_H - 22;
+  const FY = PAGE_H - 20;
 
-  rule(ML, FY, CW, P.green,  0.9);
-  rule(ML, FY + 1.3, CW, P.purple, 0.3);
+  // Single thin accent line (green)
+  setFill(P.green); doc.rect(ML, FY, CW, 0.8, 'F');
 
-  const foot = [
-    'Edif. Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007, Adrianópolis, Manaus – AM, 69057-035',
-    '(92) 98464-5343  ·  atendimento@casacaracol.com.br  ·  sonatta.store',
-  ];
-  let FLY = FY + 6.5;
-  setFont('normal', 7.5); setTxt(P.textSub);
-  foot.forEach((l) => { doc.text(l, ML, FLY); FLY += 4.5; });
+  // Footer: address left | social right
+  const FL = FY + 6;
+  setFont('normal', 8); setTxt(P.textSub);
+  doc.text('Edif. Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007, Manaus – AM', ML, FL);
+  doc.text('(92) 98464-5343  ·  atendimento@casacaracol.com.br', ML, FL + 5);
 
-  setFont('normal', 7.5); setTxt(P.purple);
-  doc.text('@sonatta.store  ·  Instagram  ·  Facebook  ·  LinkedIn', PAGE_W - MR, FY + 6.5, { align: 'right' });
+  setFont('normal', 8); setTxt(P.purple);
+  doc.text('sonatta.store  ·  @sonatta.store', PAGE_W - MR, FL, { align: 'right' });
+  doc.text('Instagram  ·  Facebook  ·  LinkedIn', PAGE_W - MR, FL + 5, { align: 'right' });
 
   return doc;
 }
