@@ -140,6 +140,7 @@ async function buildPDF(quote) {
   // ══════════════════════════════════════════════════════════════════════════
   sectionHead('DADOS DO CLIENTE');
 
+  Y += 3; // extra breathing room below section title
   // 2-column grid with fixed label width (aligned "on the grid")
   // Col A: x=ML+3  |  Col B: x=ML+CW/2+3
   // Labels fixed at 26 mm wide so values always start at same x
@@ -271,7 +272,7 @@ async function buildPDF(quote) {
     setFont('normal', 9.5); setTxt(P.textSub);
     doc.text('Desconto ' + (pct ? '(' + pct + ')' : '') + ':', LBL_X, CY);
     setFont('bold', 9.5); setTxt([80, 140, 0]);
-    doc.text('− ' + BRL(quote.discount), VAL_X, CY, { align: 'right' });
+    doc.text('- ' + BRL(quote.discount), VAL_X, CY, { align: 'right' });
     CY += ROW_H;
   }
 
@@ -303,6 +304,7 @@ async function buildPDF(quote) {
     'Validade desta proposta: ' + (quote.validity_days || 30) + ' dias',
   ];
 
+  Y += 3; // extra breathing room below section title
   const LINE_H = 6.8; // ~1.4× line height
   setFont('normal', 9.5); setTxt(P.textMain);
   conds.forEach((line) => {
