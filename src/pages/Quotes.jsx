@@ -38,6 +38,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logDeletion, logWhatsApp } from '@/components/utils/auditLogger';
 import { openWhatsApp } from '@/utils/whatsapp';
+import QuotePDFButton from '@/components/quotes/QuotePDFButton';
 
 export default function Quotes() {
   const [loading, setLoading] = useState(true);
@@ -344,25 +345,9 @@ Equipe Sonatta Soluções Auditivas
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
+                  <QuotePDFButton quote={quote} onStatusChange={handleStatusChange} />
                   <Button
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white flex-1"
-                    size="sm"
-                    onClick={async () => {
-                      if (!quote.client_phone) {
-                        toast.error('Cliente não possui telefone cadastrado');
-                        return;
-                      }
-                      const result = await getWhatsAppLink(quote);
-                      if (result) {
-                        await handleStatusChange(quote, 'enviado');
-                        await logWhatsApp('Orçamento', `Enviado para ${quote.client_name} - ${quote.quote_number}`, quote.id);
-                        openWhatsApp(`55${result.phone}`, result.message);
-                      }
-                    }}
-                  >
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    WhatsApp
-                  </Button>
                   {quote.status !== 'convertido' && (
                     <Button
                       onClick={() => handleConvertToSale(quote)}
