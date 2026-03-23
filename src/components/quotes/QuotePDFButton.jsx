@@ -39,21 +39,18 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     const margin = 15;
     const contentW = W - margin * 2;
 
-    // Colors
-    const purple = [98, 42, 126];   // #622A7E
-    const green  = [136, 188, 7];   // #88BC07
-    const textDark = [32, 31, 28];  // #201F1C
-    const textMid  = [66, 63, 51];  // #423F33
+    const purple = [98, 42, 126];
+    const green  = [136, 188, 7];
+    const textDark = [32, 31, 28];
+    const textMid  = [66, 63, 51];
 
-    // ── HEADER ──────────────────────────────────────────────────
+    // HEADER
     doc.setFillColor(...purple);
     doc.rect(0, 0, W, 38, 'F');
 
-    // Faixa verde fina
     doc.setFillColor(...green);
     doc.rect(0, 38, W, 3, 'F');
 
-    // Logo
     const logoData = await loadImageAsBase64(LOGO_URL);
     if (logoData) {
       doc.addImage(logoData, 'PNG', margin, 4, 52, 30);
@@ -67,7 +64,6 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
       doc.text('Soluções Auditivas', margin, 27);
     }
 
-    // Info da empresa no header (direita)
     doc.setTextColor(230, 220, 240);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
@@ -79,7 +75,7 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     doc.text('(92) 98464-5343  |  contato@sonatta.store', rightX, 30, { align: 'right' });
     doc.text('www.sonatta.store  |  @sonatta.store', rightX, 35, { align: 'right' });
 
-    // ── TÍTULO ORÇAMENTO ─────────────────────────────────────────
+    // TÍTULO
     doc.setFillColor(247, 244, 250);
     doc.rect(0, 41, W, 18, 'F');
 
@@ -91,15 +87,15 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(...textMid);
-    doc.text(`Nº ${quote.quote_number || '—'}`, margin, 56);
+    doc.text('Nº ' + (quote.quote_number || '—'), margin, 56);
 
     doc.setTextColor(...textMid);
-    doc.text(`Data: ${formatDate(quote.created_date)}`, rightX, 51, { align: 'right' });
+    doc.text('Data: ' + formatDate(quote.created_date), rightX, 51, { align: 'right' });
     const validDate = new Date();
     validDate.setDate(validDate.getDate() + (quote.validity_days || 30));
-    doc.text(`Válida até: ${validDate.toLocaleDateString('pt-BR')}`, rightX, 56, { align: 'right' });
+    doc.text('Válida até: ' + validDate.toLocaleDateString('pt-BR'), rightX, 56, { align: 'right' });
 
-    // ── DADOS DO CLIENTE ─────────────────────────────────────────
+    // DADOS DO CLIENTE
     let y = 67;
     doc.setFillColor(...purple);
     doc.setTextColor(255, 255, 255);
@@ -123,14 +119,14 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     clientFields.forEach(([label, value]) => {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...textMid);
-      doc.text(`${label}:`, margin + 2, y);
+      doc.text(label + ':', margin + 2, y);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...textDark);
       doc.text(value, margin + 28, y);
       y += 5.5;
     });
 
-    // ── TABELA DE ITENS ──────────────────────────────────────────
+    // TABELA DE ITENS
     y += 4;
     doc.setFillColor(...purple);
     doc.setTextColor(255, 255, 255);
@@ -140,7 +136,6 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     doc.text('ITENS DO ORÇAMENTO', margin + 3, y + 5);
     y += 9;
 
-    // Cabeçalho da tabela
     doc.setFillColor(240, 235, 245);
     doc.rect(margin, y, contentW, 6, 'F');
     doc.setTextColor(...purple);
@@ -154,7 +149,6 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     doc.text('Total', cols.total, y + 4);
     y += 8;
 
-    // Linhas dos itens
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     let alternate = false;
@@ -173,13 +167,12 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
       alternate = !alternate;
     });
 
-    // Linha divisória
     doc.setDrawColor(...green);
     doc.setLineWidth(0.5);
     doc.line(margin, y, margin + contentW, y);
     y += 5;
 
-    // ── TOTAIS ───────────────────────────────────────────────────
+    // TOTAIS
     const totalsX = W - margin - 75;
     const totalsW = 75;
 
@@ -203,11 +196,11 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     renderTotalRow('Subtotal:', formatCurrency(quote.subtotal));
     if (quote.discount > 0) {
       const pct = quote.subtotal > 0 ? ((quote.discount / quote.subtotal) * 100).toFixed(1) : 0;
-      renderTotalRow(`Desconto (${pct}%):`, `- ${formatCurrency(quote.discount)}`);
+      renderTotalRow('Desconto (' + pct + '%):', '- ' + formatCurrency(quote.discount));
     }
     renderTotalRow('TOTAL:', formatCurrency(quote.total), true);
 
-    // ── CONDIÇÕES COMERCIAIS ─────────────────────────────────────
+    // CONDIÇÕES COMERCIAIS
     y += 8;
     doc.setFillColor(...purple);
     doc.setTextColor(255, 255, 255);
@@ -223,11 +216,11 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
 
     const installment18 = quote.subtotal > 0 ? quote.subtotal / 18 : quote.total / 18;
     const conditions = [
-      `• Parcelamento em até 18x no cartão de crédito (18x de ${formatCurrency(installment18)})`,
-      `• Desconto especial para pagamento à vista (Dinheiro ou PIX): ${formatCurrency(quote.total)}`,
-      `• PIX Parcelado: condições a combinar`,
-      `• Garantia: 2 a 4 anos conforme fabricante`,
-      `• Validade desta proposta: ${quote.validity_days || 30} dias`,
+      '• Parcelamento em até 18x no cartão de crédito (18x de ' + formatCurrency(installment18) + ')',
+      '• Desconto especial para pagamento à vista (Dinheiro ou PIX): ' + formatCurrency(quote.total),
+      '• PIX Parcelado: condições a combinar',
+      '• Garantia: 2 a 4 anos conforme fabricante',
+      '• Validade desta proposta: ' + (quote.validity_days || 30) + ' dias',
     ];
 
     conditions.forEach((line) => {
@@ -248,7 +241,7 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
       y += obsLines.length * 5 + 3;
     }
 
-    // ── RODAPÉ ───────────────────────────────────────────────────
+    // RODAPÉ
     const footerY = 278;
     doc.setFillColor(...green);
     doc.rect(0, footerY - 2, W, 2, 'F');
@@ -274,22 +267,22 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     setLoading(true);
     try {
       const doc = await generatePDF();
-      const filename = `Orcamento_${quote.quote_number || 'Sonatta'}.pdf`;
+      const filename = 'Orcamento_' + (quote.quote_number || 'Sonatta') + '.pdf';
       doc.save(filename);
 
       await new Promise((res) => setTimeout(res, 600));
 
       const phone = quote.client_phone.replace(/\D/g, '');
       const message =
-        `Olá ${quote.client_name}! 😊\n\n` +
-        `Segue em anexo a proposta comercial *Nº ${quote.quote_number}* da Sonatta Soluções Auditivas.\n\n` +
-        `📋 *Resumo:*\n` +
-        (quote.items || []).map((i) => `• ${i.product_name}`).join('\n') +
-        `\n\n💰 *Total:* ${formatCurrency(quote.total)}\n` +
-        `📅 *Validade:* ${quote.validity_days || 30} dias\n\n` +
-        `Qualquer dúvida estamos à disposição! 🎧\n\n_Equipe Sonatta_`;
+        'Olá ' + quote.client_name + '! 😊\n\n' +
+        'Segue em anexo a proposta comercial *Nº ' + quote.quote_number + '* da Sonatta Soluções Auditivas.\n\n' +
+        '📋 *Resumo:*\n' +
+        (quote.items || []).map((i) => '• ' + i.product_name).join('\n') +
+        '\n\n💰 *Total:* ' + formatCurrency(quote.total) + '\n' +
+        '📅 *Validade:* ' + (quote.validity_days || 30) + ' dias\n\n' +
+        'Qualquer dúvida estamos à disposição! 🎧\n\n_Equipe Sonatta_';
 
-      openWhatsApp(`55${phone}`, message);
+      openWhatsApp('55' + phone, message);
 
       if (onStatusChange) await onStatusChange(quote, 'enviado');
       toast.success('PDF gerado e WhatsApp aberto!');
