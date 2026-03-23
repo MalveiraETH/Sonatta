@@ -346,6 +346,20 @@ async function buildPDF(quote) {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
+  // ASSINATURA
+  // ══════════════════════════════════════════════════════════════════════════
+  const SIG_Y = PAGE_H - 44;
+  const SIG_X = ML + CW / 2 - 30; // centralizado
+  const SIG_W = 60;
+
+  // Linha de assinatura
+  setFill(P.textSub); doc.rect(SIG_X, SIG_Y, SIG_W, 0.4, 'F');
+  setFont('bold', 9.5); setTxt(P.textMain);
+  doc.text('Fabio Malveira', SIG_X + SIG_W / 2, SIG_Y + 5.5, { align: 'center' });
+  setFont('normal', 8.5); setTxt(P.textSub);
+  doc.text('Comercial Sonatta', SIG_X + SIG_W / 2, SIG_Y + 11, { align: 'center' });
+
+  // ══════════════════════════════════════════════════════════════════════════
   // FOOTER  (pinned to bottom, clean)
   // ══════════════════════════════════════════════════════════════════════════
   const FY = PAGE_H - 20;
