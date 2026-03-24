@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
-import { openWhatsApp } from '@/utils/whatsapp';
+
 import { base44 } from '@/api/base44Client';
 
 const DEFAULT_CFG = {
@@ -283,21 +283,7 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
       const doc = await buildPDF(quote, cfg);
       const name = 'Orcamento_' + (quote.quote_number || 'Sonatta') + '.pdf';
       doc.save(name);
-
-      await new Promise((r) => setTimeout(r, 600));
-
-      const phone = quote.client_phone.replace(/\D/g, '');
-      const msg =
-        'Olá ' + quote.client_name + '! 😊\n\n' +
-        'Segue em anexo a proposta *Nº ' + quote.quote_number + '* da Sonatta Soluções Auditivas.\n\n' +
-        '📋 *Itens:*\n' + (quote.items || []).map((i) => '• ' + i.product_name).join('\n') +
-        '\n\n💰 *Total:* ' + BRL(quote.total) +
-        '\n📅 *Validade:* ' + (quote.validity_days || 30) + ' dias\n\n' +
-        'Estamos à disposição! 🎧\n_Equipe Sonatta_';
-
-      openWhatsApp('55' + phone, msg);
-      if (onStatusChange) await onStatusChange(quote, 'enviado');
-      toast.success('PDF gerado e WhatsApp aberto!');
+      toast.success('PDF gerado com sucesso!');
     } catch (e) {
       console.error(e); toast.error('Erro ao gerar PDF');
     } finally {
