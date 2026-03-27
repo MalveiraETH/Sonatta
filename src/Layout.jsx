@@ -33,6 +33,7 @@ export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [startY, setStartY] = useState(0);
+  const [pullDistance, setPullDistance] = useState(0);
 
   useEffect(() => {
     loadUser();
@@ -48,20 +49,31 @@ export default function Layout({ children, currentPageName }) {
       const currentY = e.touches[0].clientY;
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       
-      if (scrollTop === 0 && currentY > startY + 50 && !isRefreshing) {
-        setIsRefreshing(true);
-        window.location.reload();
+      if (scrollTop === 0 && currentY > startY && !isRefreshing) {
+        const distance = Math.min(currentY - startY, 120);
+        setPullDistance(distance);
+        if (distance >= 120) {
+          setIsRefreshing(true);
+          setPullDistance(0);
+          setTimeout(() => window.location.reload(), 300);
+        }
       }
+    };
+
+    const handleTouchEnd = () => {
+      if (!isRefreshing) setPullDistance(0);
     };
 
     if (window.innerWidth < 768) {
       document.addEventListener('touchstart', handleTouchStart);
       document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
     }
 
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [startY, isRefreshing]);
 
@@ -102,6 +114,30 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-slate-50">
       <AppVersionMonitor />
+
+      {/* Pull to refresh indicator */}
+      {(pullDistance > 10 || isRefreshing) && (
+        <div
+          className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center bg-[#6B3FA0] transition-all duration-200 lg:hidden"
+          style={{ height: isRefreshing ? 56 : Math.max(pullDistance * 0.5, 0) }}
+        >
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-5 h-5 border-2 border-white/40 border-t-white rounded-full ${
+                isRefreshing || pullDistance >= 120 ? 'animate-spin' : ''
+              }`}
+              style={!isRefreshing ? { transform: `rotate(${(pullDistance / 120) * 360}deg)` } : {}}
+            />
+            {isRefreshing ? (
+              <span className="text-white text-xs font-medium">Atualizando...</span>
+            ) : pullDistance >= 100 ? (
+              <span className="text-white text-xs font-medium">Solte para atualizar</span>
+            ) : (
+              <span className="text-white text-xs font-medium">Puxe para atualizar</span>
+            )}
+          </div>
+        </div>
+      )}
       <style>{`
         :root {
           --primary: #6B3FA0;
