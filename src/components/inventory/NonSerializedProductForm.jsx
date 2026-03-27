@@ -47,12 +47,14 @@ const emptyForm = () => ({
   markup_category: '',
 });
 
+const BRL = (v) =>
+  Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
 export default function NonSerializedProductForm({ open, onOpenChange, product, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(emptyForm());
   const [billingCfg, setBillingCfg] = useState(null);
 
-  // Load billing config
   useEffect(() => {
     const loadBilling = async () => {
       try {
@@ -91,19 +93,50 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
     }
   }, [product, open]);
 
-  const fixedCost = billingCfg?.fixed_monthly_cost ?? billingCfg?.fixedMonthlyCost ?? 0;
+  const fixedCost = Number(billingCfg?.fixed_monthly_cost ?? billingCfg?.fixedMonthlyCost ?? 0);
   const cardFee = billingCfg?.card_fee ?? billingCfg?.cardFee ?? 0;
   const taxPercent = billingCfg?.tax_percent ?? billingCfg?.taxPercent ?? 0;
   const referralPercent = billingCfg?.referral_percent ?? billingCfg?.referralPercent ?? 0;
 
-  const getMarkupValue = (cat) => {
+  const getMarkupPct = (cat) => {
     if (!billingCfg || !cat) return null;
-    const key = `markup_${cat}`;
-    const altKey = `markup${cat}`;
-    return billingCfg[key] ?? billingCfg[altKey] ?? null;
+    return billingCfg[`markup_${cat}`] ?? billingCfg[`markup${cat}`] ?? null;
   };
 
-  const f = (val) => Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Derived calculations
+  const productCost = Number(formData.product_cost || 0);
+  const icms = Number(formData.icms || 0);
+  const ipi = Number(formData.ipi || 0);
+  const totalCost = productCost + icms + ipi + fixedCost;
+
+  const markupPct = getMarkupPct(formData.markup_category);
+  const markupValue = markupPct !== null ? totalCost * (Number(markupPct) / 100) : 0;
+  const suggestedSalePrice = totalCost + markupValue;
+
+  const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
+
+  const handleMarkupCategoryChange = (cat) => {
+    const pct = getMarkupPct(cat);
+    const newMarkupValue = pct !== null ? totalCost * (Number(pct) / 100) : 0;
+    setFormData((prev) => ({
+      ...prev,
+      markup_category: cat,
+      cost_price: totalCost,
+      sale_price: parseFloat((totalCost + newMarkupValue).toFixed(2)),
+    }));
+  };
+
+  useEffect(() => {
+    const tc = Number(formData.product_cost || 0) + Number(formData.icms || 0) + Number(formData.ipi || 0) + fixedCost;
+    const pct = getMarkupPct(formData.markup_category);
+    const mv = pct !== null ? tc * (Number(pct) / 100) : 0;
+    setFormData((prev) => ({
+      ...prev,
+      cost_price: parseFloat(tc.toFixed(2)),
+      sale_price: parseFloat((tc + mv).toFixed(2)),
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.product_cost, formData.icms, formData.ipi, billingCfg]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,7 +144,6 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
       toast.error('Preencha os campos obrigatórios');
       return;
     }
-
     setLoading(true);
     try {
       const dataToSave = {
@@ -125,7 +157,6 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
         min_stock: Number(formData.min_stock),
         status: Number(formData.quantity) <= Number(formData.min_stock) ? 'baixo_estoque' : 'disponivel'
       };
-
       if (product) {
         await base44.entities.Product.update(product.id, dataToSave);
         toast.success('Produto atualizado!');
@@ -169,14 +200,14 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
           {/* Nome */}
           <div className="space-y-2">
             <Label>Nome do Produto *</Label>
-            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome do produto" />
+            <Input value={formData.name} onChange={(e) => setField('name', e.target.value)} placeholder="Nome do produto" />
           </div>
 
           {/* Categoria + Marca */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Categoria do Produto *</Label>
-              <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+              <Select value={formData.category} onValueChange={(v) => setField('category', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="bateria">Bateria</SelectItem>
@@ -193,7 +224,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
             </div>
             <div className="space-y-2">
               <Label>Marca</Label>
-              <Input value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} placeholder="Marca" />
+              <Input value={formData.brand} onChange={(e) => setField('brand', e.target.value)} placeholder="Marca" />
             </div>
           </div>
 
@@ -201,11 +232,11 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Modelo/Referência</Label>
-              <Input value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} placeholder="Modelo ou referência" />
+              <Input value={formData.model} onChange={(e) => setField('model', e.target.value)} placeholder="Modelo ou referência" />
             </div>
             <div className="space-y-2">
               <Label>Quantidade Inicial *</Label>
-              <Input type="number" min="0" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} placeholder="0" />
+              <Input type="number" min="0" value={formData.quantity} onChange={(e) => setField('quantity', e.target.value)} placeholder="0" />
             </div>
           </div>
 
@@ -213,71 +244,93 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>NF de Entrada</Label>
-              <Input value={formData.nota_fiscal_entrada} onChange={(e) => setFormData({ ...formData, nota_fiscal_entrada: e.target.value })} placeholder="Número da NF" />
+              <Input value={formData.nota_fiscal_entrada} onChange={(e) => setField('nota_fiscal_entrada', e.target.value)} placeholder="Número da NF" />
             </div>
             <div className="space-y-2">
               <Label>Data de Entrada</Label>
-              <Input type="date" value={formData.entry_date} onChange={(e) => setFormData({ ...formData, entry_date: e.target.value })} />
+              <Input type="date" value={formData.entry_date} onChange={(e) => setField('entry_date', e.target.value)} />
             </div>
           </div>
 
-          {/* Composição de Custo */}
+          {/* ── Composição de Custo ── */}
           <div className="pt-2 border-t">
-            <p className="text-sm font-semibold text-slate-600 mb-3">Composição de Custo</p>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Composição de Custo</p>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Custo do Produto (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={formData.product_cost} onChange={(e) => setFormData({ ...formData, product_cost: e.target.value })} />
+                <Input type="number" min="0" step="0.01" value={formData.product_cost} onChange={(e) => setField('product_cost', e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>ICMS (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={formData.icms} onChange={(e) => setFormData({ ...formData, icms: e.target.value })} />
+                <Input type="number" min="0" step="0.01" value={formData.icms} onChange={(e) => setField('icms', e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>IPI (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={formData.ipi} onChange={(e) => setFormData({ ...formData, ipi: e.target.value })} />
+                <Input type="number" min="0" step="0.01" value={formData.ipi} onChange={(e) => setField('ipi', e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="space-y-2">
-                <Label>Custo Total (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={formData.cost_price} onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })} />
+                <Label>Custo Operacional (R$)</Label>
+                <Input value={billingCfg ? BRL(fixedCost) : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <p className="text-xs text-slate-400">Custo Fixo Mensal — configurado em Configurações</p>
               </div>
               <div className="space-y-2">
-                <Label>Custo Operacional (R$)</Label>
-                <Input
-                  value={billingCfg ? `R$ ${f(fixedCost)}` : 'Carregando...'}
-                  readOnly
-                  className="bg-slate-100 text-slate-500 cursor-not-allowed"
-                />
-                <p className="text-xs text-slate-400">Custo Fixo Mensal — configurado em Configurações</p>
+                <Label>Custo Total (R$)</Label>
+                <Input value={BRL(totalCost)} readOnly className="bg-slate-100 font-semibold text-slate-700 cursor-not-allowed" />
+                <p className="text-xs text-slate-400">Custo do Produto + ICMS + IPI + Custo Operacional</p>
               </div>
             </div>
           </div>
 
-          {/* Taxas e Categoria de Markup */}
-          <div className="pt-2 border-t">
-            <p className="text-sm font-semibold text-slate-600 mb-3">Taxas e Categoria de Markup</p>
+          {/* ── Markup ── */}
+          <div className="pt-2 border-t bg-purple-50 rounded-lg p-3">
+            <p className="text-sm font-semibold text-purple-800 mb-3">Markup e Precificação</p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Categoria de Markup</Label>
-                <Select value={formData.markup_category} onValueChange={(v) => setFormData({ ...formData, markup_category: v })}>
+                <Select value={formData.markup_category} onValueChange={handleMarkupCategoryChange}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {MARKUP_CATEGORIES.map((mc) => (
                       <SelectItem key={mc.value} value={mc.value}>
-                        {mc.label}{getMarkupValue(mc.value) !== null ? ` — ${getMarkupValue(mc.value)}%` : ''}
+                        {mc.label}{getMarkupPct(mc.value) !== null ? ` — ${getMarkupPct(mc.value)}%` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Taxa de Cartão de Crédito</Label>
-                <Input value={billingCfg ? `${cardFee}%` : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <Label>Taxa da Categoria (%)</Label>
+                <Input
+                  value={markupPct !== null ? `${markupPct}%` : '—'}
+                  readOnly
+                  className="bg-slate-100 text-slate-500 cursor-not-allowed"
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
+              <div className="space-y-2">
+                <Label>Valor do Markup (R$)</Label>
+                <Input value={BRL(markupValue)} readOnly className="bg-slate-100 text-purple-700 font-semibold cursor-not-allowed" />
+                <p className="text-xs text-slate-400">Custo Total × {markupPct ?? 0}%</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Preço de Venda Unit. (R$) *</Label>
+                <Input value={BRL(suggestedSalePrice)} readOnly className="bg-green-50 text-green-700 font-bold cursor-not-allowed" />
+                <p className="text-xs text-slate-400">Custo Total + Markup</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Taxas (referência) ── */}
+          <div className="pt-2 border-t">
+            <p className="text-sm font-semibold text-slate-700 mb-3">Taxas (referência)</p>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Taxa de Cartão de Crédito</Label>
+                <Input value={billingCfg ? `${cardFee}%` : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+              </div>
               <div className="space-y-2">
                 <Label>Percentual de Imposto</Label>
                 <Input value={billingCfg ? `${taxPercent}%` : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
@@ -289,16 +342,12 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
             </div>
           </div>
 
-          {/* Preço de Venda + Estoque Mínimo */}
+          {/* Estoque Mínimo */}
           <div className="pt-2 border-t">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Preço de Venda Unit. (R$) *</Label>
-                <Input type="number" min="0" step="0.01" value={formData.sale_price} onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })} />
-              </div>
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label>Estoque Mínimo</Label>
-                <Input type="number" min="0" value={formData.min_stock} onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })} placeholder="10" />
+                <Input type="number" min="0" value={formData.min_stock} onChange={(e) => setField('min_stock', e.target.value)} placeholder="10" />
               </div>
             </div>
           </div>
