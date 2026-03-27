@@ -117,6 +117,9 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
   const markupValue = markupPct !== null ? totalCost * (Number(markupPct) / 100) : 0;
   const suggestedSalePrice = totalCost + markupValue;
 
+  const totalDiscounts = suggestedSalePrice * ((Number(cardFee) + Number(taxPercent) + Number(referralPercent)) / 100);
+  const netResult = suggestedSalePrice - totalDiscounts;
+
   const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
   const handleMarkupCategoryChange = (cat) => {
@@ -329,7 +332,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
             </div>
           </div>
 
-          {/* ── Taxas (somente leitura) ── */}
+          {/* ── Taxas (referência) ── */}
           <div className="pt-2 border-t">
             <p className="text-sm font-semibold text-slate-700 mb-3">Taxas (referência)</p>
             <div className="grid grid-cols-3 gap-4">
@@ -345,6 +348,23 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
                 <Label>Percentual de Indicação</Label>
                 <Input value={billingCfg ? `${referralPercent}%` : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
               </div>
+            </div>
+            <div className="mt-3">
+              <div className="space-y-2">
+                <Label>Total de descontos (R$)</Label>
+                <Input value={BRL(totalDiscounts)} readOnly className="bg-red-50 text-red-700 font-semibold cursor-not-allowed" />
+                <p className="text-xs text-slate-400">Preço de Venda × ({cardFee}% + {taxPercent}% + {referralPercent}%)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Resultado ── */}
+          <div className="pt-2 border-t bg-green-50 rounded-lg p-3">
+            <p className="text-sm font-semibold text-green-800 mb-3">Resultado</p>
+            <div className="space-y-2">
+              <Label>Valor Líquido (R$)</Label>
+              <Input value={BRL(netResult)} readOnly className="bg-white text-green-700 font-bold text-lg cursor-not-allowed border-green-300" />
+              <p className="text-xs text-slate-400">Preço de Venda − Total de Descontos</p>
             </div>
           </div>
 
