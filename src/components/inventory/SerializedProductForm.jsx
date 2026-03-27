@@ -97,14 +97,14 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
     }
   }, [product, open]);
 
-  const fixedCost = Number(billingCfg?.fixed_monthly_cost ?? billingCfg?.fixedMonthlyCost ?? 0);
-  const cardFee = billingCfg?.card_fee ?? billingCfg?.cardFee ?? 0;
-  const taxPercent = billingCfg?.tax_percent ?? billingCfg?.taxPercent ?? 0;
-  const referralPercent = billingCfg?.referral_percent ?? billingCfg?.referralPercent ?? 0;
+  const fixedCost = Number(billingCfg?.fixed_cost ?? 0);
+  const cardFee = billingCfg?.credit_card_fee ?? 0;
+  const taxPercent = billingCfg?.tax_percentage ?? 0;
+  const referralPercent = billingCfg?.referral_percentage ?? 0;
 
   const getMarkupPct = (cat) => {
     if (!billingCfg || !cat) return null;
-    return billingCfg[`markup_${cat}`] ?? billingCfg[`markup${cat}`] ?? null;
+    return billingCfg[`markup_category_${cat}`] ?? null;
   };
 
   // Derived calculations
