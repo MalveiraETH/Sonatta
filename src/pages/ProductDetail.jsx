@@ -116,6 +116,14 @@ export default function ProductDetail() {
     molde: 'Molde'
   };
 
+  const markupLabels = {
+    '90': 'Categoria 90%',
+    '70': 'Categoria 70%',
+    '50': 'Categoria 50%',
+    '30': 'Categoria 30%',
+    '10': 'Categoria 10%',
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -261,9 +269,27 @@ export default function ProductDetail() {
               </>
             )}
             <div>
-              <p className="text-sm text-slate-500">Preço de Custo</p>
+              <p className="text-sm text-slate-500">Custo do Produto (sem impostos)</p>
+              <p className="font-medium">{formatCurrency(product.product_cost)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">ICMS (R$)</p>
+              <p className="font-medium">{formatCurrency(product.icms)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">IPI (R$)</p>
+              <p className="font-medium">{formatCurrency(product.ipi)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">Custo Total</p>
               <p className="font-medium">{formatCurrency(product.cost_price)}</p>
             </div>
+            {product.markup_category && (
+              <div>
+                <p className="text-sm text-slate-500">Categoria de Markup</p>
+                <p className="font-medium">{markupLabels[product.markup_category] || product.markup_category}</p>
+              </div>
+            )}
             {product.nota_fiscal_entrada && (
               <div>
                 <p className="text-sm text-slate-500">Nota Fiscal de Entrada</p>
