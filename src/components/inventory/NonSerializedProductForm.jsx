@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 const MARKUP_CATEGORIES = [
@@ -54,6 +55,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(emptyForm());
   const [billingCfg, setBillingCfg] = useState(null);
+  const [includeFixedCost, setIncludeFixedCost] = useState(true);
 
   useEffect(() => {
     const loadBilling = async () => {
@@ -88,8 +90,10 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
         entry_date: product.entry_date || new Date().toISOString().split('T')[0],
         markup_category: product.markup_category || '',
       });
+      setIncludeFixedCost(product.include_fixed_cost !== false);
     } else {
       setFormData(emptyForm());
+      setIncludeFixedCost(true);
     }
   }, [product, open]);
 
@@ -107,14 +111,15 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
   const productCost = Number(formData.product_cost || 0);
   const icms = Number(formData.icms || 0);
   const ipi = Number(formData.ipi || 0);
-  const totalCost = productCost + icms + ipi + fixedCost;
+  const effectiveFixedCost = includeFixedCost ? fixedCost : 0;
+  const totalCost = productCost + icms + ipi + effectiveFixedCost;
 
   const markupPct = getMarkupPct(formData.markup_category);
   const markupValue = markupPct !== null ? totalCost * (Number(markupPct) / 100) : 0;
   const suggestedSalePrice = totalCost + markupValue;
 
   const totalDiscounts = suggestedSalePrice * ((Number(cardFee) + Number(taxPercent) + Number(referralPercent)) / 100);
-  const netResult = suggestedSalePrice - totalDiscounts;
+  const netResult = suggestedSalePrice - totalDiscounts - totalCost;
 
   const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -130,7 +135,8 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
   };
 
   useEffect(() => {
-    const tc = Number(formData.product_cost || 0) + Number(formData.icms || 0) + Number(formData.ipi || 0) + fixedCost;
+    const eff = includeFixedCost ? fixedCost : 0;
+    const tc = Number(formData.product_cost || 0) + Number(formData.icms || 0) + Number(formData.ipi || 0) + eff;
     const pct = getMarkupPct(formData.markup_category);
     const mv = pct !== null ? tc * (Number(pct) / 100) : 0;
     setFormData((prev) => ({
@@ -139,7 +145,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
       sale_price: parseFloat((tc + mv).toFixed(2)),
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.product_cost, formData.icms, formData.ipi, billingCfg]);
+  }, [formData.product_cost, formData.icms, formData.ipi, billingCfg, includeFixedCost]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -151,6 +157,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
     try {
       const dataToSave = {
         ...formData,
+        include_fixed_cost: includeFixedCost,
         quantity: Number(formData.quantity),
         icms: Number(formData.icms),
         ipi: Number(formData.ipi),
@@ -274,14 +281,20 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div className="space-y-2">
-                <Label>Custo Operacional (R$)</Label>
-                <Input value={billingCfg ? BRL(fixedCost) : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <div className="flex items-center justify-between">
+                  <Label>Custo Operacional (R$)</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">{includeFixedCost ? 'Incluído' : 'Excluído'}</span>
+                    <Switch checked={includeFixedCost} onCheckedChange={setIncludeFixedCost} />
+                  </div>
+                </div>
+                <Input value={billingCfg ? BRL(fixedCost) : 'Carregando...'} readOnly className={includeFixedCost ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-300 cursor-not-allowed line-through'} />
                 <p className="text-xs text-slate-400">Custo Fixo Mensal — configurado em Configurações</p>
               </div>
               <div className="space-y-2">
                 <Label>Custo Total (R$)</Label>
                 <Input value={BRL(totalCost)} readOnly className="bg-slate-100 font-semibold text-slate-700 cursor-not-allowed" />
-                <p className="text-xs text-slate-400">Custo do Produto + ICMS + IPI + Custo Operacional</p>
+                <p className="text-xs text-slate-400">Custo do Produto + ICMS + IPI{includeFixedCost ? ' + Custo Operacional' : ''}</p>
               </div>
             </div>
           </div>
@@ -358,7 +371,7 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
             <div className="space-y-2">
               <Label>Valor Líquido (R$)</Label>
               <Input value={BRL(netResult)} readOnly className="bg-white text-green-700 font-bold text-lg cursor-not-allowed border-green-300" />
-              <p className="text-xs text-slate-400">Preço de Venda − Total de Descontos</p>
+              <p className="text-xs text-slate-400">Preço de Venda − Total de Descontos − Custo Total</p>
             </div>
           </div>
 
