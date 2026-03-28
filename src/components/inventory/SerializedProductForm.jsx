@@ -150,7 +150,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
       sale_price: parseFloat((tc + mv).toFixed(2)),
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.product_cost, formData.icms, formData.ipi, billingCfg, includeFixedCost]);
+  }, [formData.product_cost, formData.icms, formData.ipi, formData.markup_category, billingCfg, includeFixedCost]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -291,7 +291,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
                   <Label>Custo Operacional (R$)</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500">{includeFixedCost ? 'Incluído' : 'Excluído'}</span>
-                    <Switch checked={includeFixedCost} onCheckedChange={setIncludeFixedCost} />
+                    <Switch checked={includeFixedCost} onCheckedChange={setIncludeFixedCost} className="data-[state=checked]:bg-[#6B3FA0]" />
                   </div>
                 </div>
                 <Input value={billingCfg ? BRL(fixedCost) : 'Carregando...'} readOnly className={includeFixedCost ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-300 cursor-not-allowed line-through'} />
