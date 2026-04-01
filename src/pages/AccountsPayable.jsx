@@ -506,6 +506,7 @@ export default function AccountsPayable() {
               <TableHead>Status</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Fornecedor</TableHead>
+              <TableHead>NF</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Dt. Pagamento</TableHead>
               <TableHead className="text-right">Valor</TableHead>
@@ -515,7 +516,7 @@ export default function AccountsPayable() {
           <TableBody>
             {filteredExpenses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                <TableCell colSpan={8} className="text-center py-12 text-slate-500">
                   Nenhuma despesa encontrada
                 </TableCell>
               </TableRow>
@@ -533,6 +534,7 @@ export default function AccountsPayable() {
                     </TableCell>
                     <TableCell className="font-medium">{exp.category_name}</TableCell>
                     <TableCell>{exp.counterparty_name || '-'}</TableCell>
+                    <TableCell className="text-slate-500 text-sm">{exp.invoice_number || '-'}</TableCell>
                     <TableCell>{exp.due_date ? formatLocalDate(exp.due_date) : '-'}</TableCell>
                     <TableCell>{exp.payment_date ? formatLocalDate(exp.payment_date) : '-'}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(exp.amount)}</TableCell>
