@@ -106,9 +106,10 @@ export default function Reports() {
   const toExcelNum = (value) => Number((value || 0).toFixed(2));
   const toExcelDate = (dateValue) => {
     if (!dateValue) return '';
-    const d = new Date(dateValue.includes('T') ? dateValue : `${dateValue}T00:00:00`);
+    const str = typeof dateValue === 'string' ? dateValue : String(dateValue);
+    const d = new Date(str.includes('T') ? str : `${str}T00:00:00`);
     if (isNaN(d.getTime())) return '';
-    return d.toISOString().split('T')[0];
+    return d; // Retorna Date object para o XLSX reconhecer como data nativa
   };
 
   const getTotalPayments = (sale) => {
