@@ -14,6 +14,8 @@ export const formatLocalDate = (dateString, formatStr = 'dd/MM/yyyy') => {
   const dateWithTime = dateString.includes('T') ? dateString : `${dateString}T00:00:00`;
   const date = new Date(dateWithTime);
   
+  if (isNaN(date.getTime())) return '-';
+  
   return format(date, formatStr, { locale: ptBR });
 };
 
