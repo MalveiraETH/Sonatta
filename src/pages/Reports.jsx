@@ -666,6 +666,8 @@ export default function Reports() {
                     ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
                   ) || [];
                   cashPayments.forEach(p => {
+                    const feeRate = p.fee_rate || 0;
+                    const netAVista = feeRate > 0 ? (p.amount || 0) * (1 - feeRate / 100) : (p.amount || 0);
                     data.push({
                       'Tipo': 'Pagamento à Vista',
                       'Venda': sale.sale_number,
@@ -675,7 +677,8 @@ export default function Reports() {
                                 p.method === 'dinheiro' ? 'Dinheiro' :
                                 p.method === 'cartao_debito' ? 'Cartão Débito' :
                                 p.method === 'transferencia' ? 'Transferência' : 'Boleto',
-                      'Valor': toExcelNum(p.amount)
+                      'Valor Bruto': toExcelNum(p.amount),
+                      'Valor Líquido': toExcelNum(netAVista)
                     });
                   });
                 });
@@ -688,13 +691,17 @@ export default function Reports() {
                 });
 
                 installmentsPaidThisMonth.forEach(i => {
+                  const feeRateInst = i.fee_rate || 0;
+                  const isCardInst = i.payment_method === 'cartao_credito';
+                  const netInst = isCardInst && feeRateInst > 0 ? (i.paid_amount || 0) * (1 - feeRateInst / 100) : (i.paid_amount || 0);
                   data.push({
                     'Tipo': 'Parcela Recebida',
                     'Venda': i.sale_number,
                     'Cliente': i.client_name,
                     'Data': toExcelDate(i.last_payment_date),
                     'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
-                    'Valor': toExcelNum(i.paid_amount)
+                    'Valor Bruto': toExcelNum(i.paid_amount),
+                    'Valor Líquido': toExcelNum(netInst)
                   });
                 });
 
@@ -714,7 +721,8 @@ export default function Reports() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Método</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="text-right">Valor Bruto</TableHead>
+                      <TableHead className="text-right">Valor Líquido</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -766,10 +774,13 @@ export default function Reports() {
                               <TableCell className="text-right font-semibold text-emerald-600">
                                 {formatCurrency(p.amount)}
                               </TableCell>
-                            </TableRow>
-                          );
-                        });
-                      });
+                              <TableCell className="text-right font-semibold text-emerald-600">
+                                {formatCurrency((() => { const fr = p.fee_rate || 0; return fr > 0 ? (p.amount || 0) * (1 - fr / 100) : (p.amount || 0); })())}
+                              </TableCell>
+                              </TableRow>
+                              );
+                              });
+                              });
 
                       // 2. Parcelas pagas no período
                       const installmentsPaidThisMonth = installments.filter(i => {
@@ -796,9 +807,12 @@ export default function Reports() {
                             <TableCell className="text-right font-semibold text-blue-600">
                               {formatCurrency(i.paid_amount)}
                             </TableCell>
-                          </TableRow>
-                        );
-                      });
+                            <TableCell className="text-right font-semibold text-blue-600">
+                              {formatCurrency((() => { const fr = i.fee_rate || 0; const isCard = i.payment_method === 'cartao_credito'; return isCard && fr > 0 ? (i.paid_amount || 0) * (1 - fr / 100) : (i.paid_amount || 0); })())}
+                            </TableCell>
+                            </TableRow>
+                            );
+                            });
 
                       return rows.length > 0 ? rows : (
                         <TableRow>
