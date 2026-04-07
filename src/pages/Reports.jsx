@@ -102,6 +102,15 @@ export default function Reports() {
     }).format(value || 0);
   };
 
+  // Para exportação Excel: número puro e data ISO
+  const toExcelNum = (value) => Number((value || 0).toFixed(2));
+  const toExcelDate = (dateValue) => {
+    if (!dateValue) return '';
+    const d = new Date(dateValue.includes('T') ? dateValue : `${dateValue}T00:00:00`);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().split('T')[0];
+  };
+
   const getTotalPayments = (sale) => {
     return sale.payment_details?.reduce((sum, p) => sum + (p.amount || 0), 0) || sale.total || 0;
   };
@@ -165,7 +174,6 @@ export default function Reports() {
   const exportStockReport = async () => {
     const data = products.map(p => {
       const exitMovement = stockMovements.find(m => m.product_id === p.id);
-      
       return {
         'Nome': p.name,
         'Categoria': p.category,
@@ -173,12 +181,12 @@ export default function Reports() {
         'Modelo': p.model || '',
         'Serial': p.serial_number || '',
         'Status': p.status,
-        'Custo do Produto': formatCurrency(p.cost_price),
-        'Venda': formatCurrency(p.sale_price),
+        'Custo do Produto': toExcelNum(p.cost_price),
+        'Venda': toExcelNum(p.sale_price),
         'NF de Entrada': p.nota_fiscal_entrada || '',
-        'Data Entrada': safeFormat(p.entry_date),
+        'Data Entrada': toExcelDate(p.entry_date),
         'NF de Saída': exitMovement?.nota_fiscal || '',
-        'Data de Saída': exitMovement?.sale_date ? format(new Date(exitMovement.sale_date), 'dd/MM/yyyy') : ''
+        'Data de Saída': toExcelDate(exitMovement?.sale_date)
       };
     });
     exportToExcel(data, 'relatorio_estoque');
@@ -191,7 +199,7 @@ export default function Reports() {
       'Telefone': c.phone,
       'Email': c.email || '',
       'Status': c.status,
-      'Data Cadastro': safeFormat(c.created_date)
+      'Data Cadastro': toExcelDate(c.created_date)
     }));
     exportToExcel(data, 'relatorio_clientes');
   };
@@ -238,16 +246,16 @@ export default function Reports() {
             'CPF/CNPJ Responsável': client?.payer_document || '',
             'Prof. Indicação': profIndicacao?.full_name || '',
             'Prof. Responsável': profResponsavel?.full_name || '',
-            'Valor Bruto': formatCurrency(pd.amount),
+            'Valor Bruto': toExcelNum(pd.amount),
             'Bandeira': pd.card_brand || '',
             'Taxa Cartão (%)': feeRate || '',
-            'Valor Líquido': formatCurrency(netAmount),
+            'Valor Líquido': toExcelNum(netAmount),
             'Método': paymentMethodLabels[pd.method] || pd.method,
             'Parcelas': pd.installments > 1 ? pd.installments : '',
             'Status': status,
-            'Data Pagamento': dataPagamento,
+            'Data Pagamento': isPixAVista ? toExcelDate(s.sale_date || s.created_date) : (s.status === 'pago' ? toExcelDate(s.updated_date) : ''),
             'NF': s.nota_fiscal || '',
-            'Data': safeFormat(s.sale_date || s.created_date)
+            'Data': toExcelDate(s.sale_date || s.created_date)
           });
         });
       } else {
@@ -270,16 +278,16 @@ export default function Reports() {
           'CPF/CNPJ Responsável': client?.payer_document || '',
           'Prof. Indicação': profIndicacao?.full_name || '',
           'Prof. Responsável': profResponsavel?.full_name || '',
-          'Valor Bruto': formatCurrency(s.total),
+          'Valor Bruto': toExcelNum(s.total),
           'Bandeira': '',
           'Taxa Cartão (%)': '',
-          'Valor Líquido': formatCurrency(s.total),
+          'Valor Líquido': toExcelNum(s.total),
           'Método': paymentMethodLabels[s.payment_method] || s.payment_method || '',
           'Parcelas': s.installments > 1 ? s.installments : '',
           'Status': status,
-          'Data Pagamento': dataPagamento,
+          'Data Pagamento': isPixAVista ? toExcelDate(s.sale_date || s.created_date) : (s.status === 'pago' ? toExcelDate(s.updated_date) : ''),
           'NF': s.nota_fiscal || '',
-          'Data': safeFormat(s.sale_date || s.created_date)
+          'Data': toExcelDate(s.sale_date || s.created_date)
         });
       }
     });
@@ -317,9 +325,9 @@ export default function Reports() {
           'Profissional': prof.full_name,
           'Especialidade': prof.specialty || '-',
           'Paciente': sale.client_name,
-          'Data Venda': safeFormat(sale.sale_date || sale.created_date),
-          'Valor Total': formatCurrency(getTotalPayments(sale)),
-          'Repasse 10%': formatCurrency(getTotalPayments(sale) * 0.10)
+          'Data Venda': toExcelDate(sale.sale_date || sale.created_date),
+          'Valor Total': toExcelNum(getTotalPayments(sale)),
+          'Repasse 10%': toExcelNum(getTotalPayments(sale) * 0.10)
         });
       }
     });
@@ -540,8 +548,8 @@ export default function Reports() {
                 const data = filteredForExport.map(t => ({
                   'Número': t.test_number,
                   'Cliente': t.client_name,
-                  'Data Início': safeFormat(t.start_date),
-                  'Data Final': safeFormat(t.end_date),
+                  'Data Início': toExcelDate(t.start_date),
+                  'Data Final': toExcelDate(t.end_date),
                   'Profissional': t.professional_name || '',
                   'Indicação': t.referral_professional_name || '',
                   'Aparelhos': t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
@@ -661,12 +669,12 @@ export default function Reports() {
                       'Tipo': 'Pagamento à Vista',
                       'Venda': sale.sale_number,
                       'Cliente': sale.client_name,
-                      'Data': safeFormat(sale.sale_date || sale.created_date),
+                      'Data': toExcelDate(sale.sale_date || sale.created_date),
                       'Método': p.method === 'pix' ? 'PIX' :
                                 p.method === 'dinheiro' ? 'Dinheiro' :
                                 p.method === 'cartao_debito' ? 'Cartão Débito' :
                                 p.method === 'transferencia' ? 'Transferência' : 'Boleto',
-                      'Valor': formatCurrency(p.amount)
+                      'Valor': toExcelNum(p.amount)
                     });
                   });
                 });
@@ -683,9 +691,9 @@ export default function Reports() {
                     'Tipo': 'Parcela Recebida',
                     'Venda': i.sale_number,
                     'Cliente': i.client_name,
-                    'Data': safeFormat(i.last_payment_date),
+                    'Data': toExcelDate(i.last_payment_date),
                     'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
-                     'Valor': formatCurrency(i.paid_amount)
+                    'Valor': toExcelNum(i.paid_amount)
                   });
                 });
 
@@ -1283,13 +1291,13 @@ export default function Reports() {
                      'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
                      'Bandeira': i.card_brand || '',
                      'Parcela': i.installment_number,
-                     'Vencimento': safeFormat(i.due_date),
-                     'Data Pagamento': safeFormat(i.last_payment_date),
-                     'Valor Bruto': formatCurrency(i.original_amount),
+                     'Vencimento': toExcelDate(i.due_date),
+                     'Data Pagamento': toExcelDate(i.last_payment_date),
+                     'Valor Bruto': toExcelNum(i.original_amount),
                      'Taxa Cartão (%)': feeRate || '',
-                     'Valor Líquido': formatCurrency(netAmount),
-                     'Valor Pago': formatCurrency(i.paid_amount),
-                     'Saldo': formatCurrency(i.remaining_amount),
+                     'Valor Líquido': toExcelNum(netAmount),
+                     'Valor Pago': toExcelNum(i.paid_amount),
+                     'Saldo': toExcelNum(i.remaining_amount),
                      'Status': i.payment_status === 'pago' ? 'Pago' : i.payment_status === 'atrasado' ? 'Atrasado' : 'Pendente'
                    };
                   });
@@ -1514,14 +1522,14 @@ export default function Reports() {
                     return true;
                   })
                   .map(e => ({
-                    'Categoria': e.category_name,
-                    'Fornecedor': e.counterparty_name || '',
-                    'Vencimento': safeFormat(e.due_date),
-                    'Data Pagamento': safeFormat(e.payment_date),
-                    'Valor': formatCurrency(e.amount),
-                    'Método': e.payment_method,
-                    'Parcela': e.installment_number ? `${e.installment_number}/${e.installments}` : '-',
-                    'Status': e.status === 'pago' ? 'Pago' : 'A Pagar'
+                   'Categoria': e.category_name,
+                   'Fornecedor': e.counterparty_name || '',
+                   'Vencimento': toExcelDate(e.due_date),
+                   'Data Pagamento': toExcelDate(e.payment_date),
+                   'Valor': toExcelNum(e.amount),
+                   'Método': e.payment_method,
+                   'Parcela': e.installment_number ? `${e.installment_number}/${e.installments}` : '-',
+                   'Status': e.status === 'pago' ? 'Pago' : 'A Pagar'
                   }));
                 exportToExcel(data, 'relatorio_contas_pagar');
               }} variant="outline">
