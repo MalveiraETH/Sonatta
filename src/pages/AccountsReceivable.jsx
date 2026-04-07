@@ -39,7 +39,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Filter, MoreVertical, Eye, DollarSign, AlertCircle, Clock, CheckCircle2, Search, X, CreditCard, Wallet, Pencil } from 'lucide-react';
+import { Filter, MoreVertical, Eye, DollarSign, AlertCircle, Clock, CheckCircle2, Search, X, CreditCard, Wallet, Pencil, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -61,6 +61,12 @@ export default function AccountsReceivable() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState({});
+  const [liquidateOpen, setLiquidateOpen] = useState(false);
+  const [liquidateSaleId, setLiquidateSaleId] = useState(null);
+  const [liquidateClientName, setLiquidateClientName] = useState('');
+  const [liquidateDate, setLiquidateDate] = useState('');
+  const [liquidateExtraFee, setLiquidateExtraFee] = useState('0');
+  const [liquidating, setLiquidating] = useState(false);
 
   useEffect(() => {
     loadInstallments();
@@ -251,6 +257,36 @@ export default function AccountsReceivable() {
       last_payment_date: inst.last_payment_date || '',
     });
     setEditOpen(true);
+  };
+
+  const handleLiquidate = async () => {
+    if (!liquidateDate) {
+      toast.error('Informe a data do pagamento');
+      return;
+    }
+    setLiquidating(true);
+    try {
+      const res = await base44.functions.invoke('liquidateInstallments', {
+        saleId: liquidateSaleId,
+        paymentDate: liquidateDate,
+        extraFee: Number(liquidateExtraFee) || 0
+      });
+      toast.success(`${res.data.count} parcelas liquidadas com sucesso!`);
+      setLiquidateOpen(false);
+      loadInstallments();
+    } catch (error) {
+      toast.error('Erro ao liquidar parcelas');
+    } finally {
+      setLiquidating(false);
+    }
+  };
+
+  const openLiquidate = (inst) => {
+    setLiquidateSaleId(inst.sale_id);
+    setLiquidateClientName(inst.client_name);
+    setLiquidateDate(new Date().toISOString().split('T')[0]);
+    setLiquidateExtraFee('0');
+    setLiquidateOpen(true);
   };
 
   const clearFilters = () => {
@@ -588,6 +624,12 @@ export default function AccountsReceivable() {
                               Receber Pagamento
                             </DropdownMenuItem>
                           )}
+                          {inst.payment_status !== 'pago' && inst.sale_id && (
+                            <DropdownMenuItem onClick={() => openLiquidate(inst)} className="text-purple-700 focus:text-purple-700">
+                              <Zap className="h-4 w-4 mr-2" />
+                              Liquidar Venda
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -649,6 +691,12 @@ export default function AccountsReceivable() {
                           }}>
                             <DollarSign className="h-4 w-4 mr-2" />
                             Receber
+                          </DropdownMenuItem>
+                        )}
+                        {inst.payment_status !== 'pago' && inst.sale_id && (
+                          <DropdownMenuItem onClick={() => openLiquidate(inst)} className="text-purple-700 focus:text-purple-700">
+                            <Zap className="h-4 w-4 mr-2" />
+                            Liquidar Venda
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -782,6 +830,50 @@ export default function AccountsReceivable() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentOpen(false)}>Cancelar</Button>
             <Button onClick={handlePayment} className="bg-emerald-600 hover:bg-emerald-700">Confirmar Recebimento</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Liquidação Antecipada */}
+      <Dialog open={liquidateOpen} onOpenChange={setLiquidateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-purple-600" />
+              Liquidar Venda Antecipadamente
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-purple-50 border border-purple-200 rounded p-3 text-sm text-purple-800">
+              <strong>Cliente:</strong> {liquidateClientName}<br />
+              Todas as parcelas pendentes desta venda serão marcadas como <strong>pagas</strong>.
+            </div>
+            <div>
+              <Label>Data do Pagamento *</Label>
+              <Input
+                type="date"
+                value={liquidateDate}
+                onChange={(e) => setLiquidateDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Taxa Extra de Antecipação (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={liquidateExtraFee}
+                onChange={(e) => setLiquidateExtraFee(e.target.value)}
+                placeholder="0,00"
+              />
+              <p className="text-xs text-slate-500 mt-1">Será distribuída proporcionalmente entre as parcelas pendentes.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLiquidateOpen(false)} disabled={liquidating}>Cancelar</Button>
+            <Button onClick={handleLiquidate} disabled={liquidating} className="bg-purple-700 hover:bg-purple-800">
+              {liquidating ? 'Liquidando...' : 'Confirmar Liquidação'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
