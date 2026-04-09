@@ -118,8 +118,9 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
   const markupValue = markupPct !== null ? totalCost * (Number(markupPct) / 100) : 0;
   const suggestedSalePrice = totalCost + markupValue;
 
-  const totalDiscounts = suggestedSalePrice * ((Number(cardFee) + Number(taxPercent) + Number(referralPercent)) / 100);
-  const netResult = suggestedSalePrice - totalDiscounts - totalCost;
+  const finalPrice = Number(formData.sale_price || 0);
+  const totalDiscounts = finalPrice * ((Number(cardFee) + Number(taxPercent) + Number(referralPercent)) / 100);
+  const netResult = finalPrice - totalDiscounts - totalCost;
 
   const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -130,22 +131,19 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
       ...prev,
       markup_category: cat,
       cost_price: totalCost,
-      sale_price: parseFloat((totalCost + newMarkupValue).toFixed(2)),
+      sale_price: parseFloat((totalCost + newMarkupValue).toFixed(2)), // reseta ao trocar categoria
     }));
   };
 
   useEffect(() => {
     const eff = includeFixedCost ? fixedCost : 0;
     const tc = Number(formData.product_cost || 0) + Number(formData.icms || 0) + Number(formData.ipi || 0) + eff;
-    const pct = getMarkupPct(formData.markup_category);
-    const mv = pct !== null ? tc * (Number(pct) / 100) : 0;
     setFormData((prev) => ({
       ...prev,
       cost_price: parseFloat(tc.toFixed(2)),
-      sale_price: parseFloat((tc + mv).toFixed(2)),
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.product_cost, formData.icms, formData.ipi, formData.markup_category, billingCfg, includeFixedCost]);
+  }, [formData.product_cost, formData.icms, formData.ipi, billingCfg, includeFixedCost]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -332,46 +330,45 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
                 <p className="text-xs text-slate-400">Custo Total × {markupPct ?? 0}%</p>
               </div>
               <div className="space-y-2">
-                <Label>Preço de Venda Unit. (R$) *</Label>
-                <Input value={BRL(suggestedSalePrice)} readOnly className="bg-green-50 text-green-700 font-bold cursor-not-allowed" />
-                <p className="text-xs text-slate-400">Custo Total + Markup</p>
+                <Label>Preço Calculado Unit. (R$)</Label>
+                <Input value={BRL(suggestedSalePrice)} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <p className="text-xs text-slate-400">Custo Total + Markup (referência)</p>
               </div>
+            </div>
+          </div>
+
+          {/* ── Preço Final ── */}
+          <div className="pt-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-blue-800 font-semibold text-sm">Preço Final de Venda Unit. (R$) *</Label>
+                <button
+                  type="button"
+                  onClick={() => setField('sale_price', parseFloat(suggestedSalePrice.toFixed(2)))}
+                  className="text-xs text-blue-600 underline hover:text-blue-800"
+                >
+                  Usar preço calculado
+                </button>
+              </div>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.sale_price}
+                onChange={(e) => setField('sale_price', e.target.value)}
+                className="bg-white border-blue-300 text-blue-900 font-bold text-base focus:ring-blue-400"
+              />
+              <p className="text-xs text-slate-500">Este é o valor salvo no produto. Edite livremente para capturar margem extra ou aplicar desconto.</p>
             </div>
           </div>
 
           {/* ── Taxas (referência) ── */}
-          <div className="pt-2 border-t">
-            <p className="text-sm font-semibold text-slate-700 mb-3">Taxas (referência)</p>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Taxa de Cartão de Crédito</Label>
-                <Input value={billingCfg ? `${cardFee}%` : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
-              </div>
-              <div className="space-y-2">
-                <Label>Percentual de Imposto</Label>
-                <Input value={billingCfg ? `${taxPercent}%` : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
-              </div>
-              <div className="space-y-2">
-                <Label>Percentual de Indicação</Label>
-                <Input value={billingCfg ? `${referralPercent}%` : 'Carregando...'} readOnly className="bg-slate-100 text-slate-500 cursor-not-allowed" />
-              </div>
-            </div>
-            <div className="mt-3">
-              <div className="space-y-2">
-                <Label>Total de descontos (R$)</Label>
-                <Input value={BRL(totalDiscounts)} readOnly className="bg-red-50 text-red-700 font-semibold cursor-not-allowed" />
-                <p className="text-xs text-slate-400">Preço de Venda × ({cardFee}% + {taxPercent}% + {referralPercent}%)</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Resultado ── */}
           <div className="pt-2 border-t bg-green-50 rounded-lg p-3">
-            <p className="text-sm font-semibold text-green-800 mb-3">Resultado</p>
+            <p className="text-sm font-semibold text-green-800 mb-3">Resultado (baseado no Preço Final)</p>
             <div className="space-y-2">
               <Label>Valor Líquido (R$)</Label>
               <Input value={BRL(netResult)} readOnly className="bg-white text-green-700 font-bold text-lg cursor-not-allowed border-green-300" />
-              <p className="text-xs text-slate-400">Preço de Venda − Total de Descontos − Custo Total</p>
+              <p className="text-xs text-slate-400">Preço Final − Total de Descontos − Custo Total</p>
             </div>
           </div>
 
