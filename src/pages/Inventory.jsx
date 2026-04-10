@@ -640,6 +640,7 @@ export default function Inventory() {
                   <TableHead>Categoria</TableHead>
                   <TableHead>Marca/Modelo</TableHead>
                   <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Preço de Venda</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
@@ -657,6 +658,7 @@ export default function Inventory() {
                       <TableCell>{categoryLabels[product.category]}</TableCell>
                       <TableCell className="text-sm">{product.brand} {product.model}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(product.cost_price)}</TableCell>
+                      <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</TableCell>
                       <TableCell>
                         <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
                           product.status === 'disponivel' ? 'bg-emerald-100 text-emerald-700' :
@@ -753,7 +755,10 @@ export default function Inventory() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="text-xl font-bold text-slate-900">{formatCurrency(product.cost_price)}</div>
+                    <div className="flex gap-4 text-sm">
+                      <span className="text-slate-500">Custo: <span className="font-semibold text-slate-800">{formatCurrency(product.cost_price)}</span></span>
+                      <span className="text-slate-500">Venda: <span className="font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</span></span>
+                    </div>
                   </div>
                 </Card>
               ))
@@ -843,6 +848,7 @@ export default function Inventory() {
                   <TableHead className="text-center">Quantidade</TableHead>
                   <TableHead className="text-center">Mínimo</TableHead>
                   <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Preço de Venda</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
@@ -860,6 +866,7 @@ export default function Inventory() {
                       <TableCell className="text-center font-semibold">{product.quantity || 0}</TableCell>
                       <TableCell className="text-center text-sm text-slate-600">{product.min_stock || 5}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(product.cost_price)}</TableCell>
+                      <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</TableCell>
                       <TableCell>
                         <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
                           product.quantity > (product.min_stock || 5) ? 'bg-emerald-100 text-emerald-700' :
@@ -949,7 +956,10 @@ export default function Inventory() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="text-xl font-bold text-slate-900">{formatCurrency(product.cost_price)}</div>
+                    <div className="flex gap-4 text-sm">
+                      <span className="text-slate-500">Custo: <span className="font-semibold text-slate-800">{formatCurrency(product.cost_price)}</span></span>
+                      <span className="text-slate-500">Venda: <span className="font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</span></span>
+                    </div>
                   </div>
                 </Card>
               ))
