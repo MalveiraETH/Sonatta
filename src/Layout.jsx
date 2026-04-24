@@ -16,8 +16,7 @@ import {
   ChevronDown,
   Bell,
   Ear,
-  DollarSign,
-  Kanban
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -89,7 +88,6 @@ export default function Layout({ children, currentPageName }) {
 
   const menuItems = [
     { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
-    { name: 'CRM', page: 'CRM', icon: Kanban },
     { name: 'Clientes', page: 'Clients', icon: Users },
     { name: 'Agendamentos', page: 'Appointments', icon: Calendar },
     { name: 'Teste', page: 'Tests', icon: Ear },

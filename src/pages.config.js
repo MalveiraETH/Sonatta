@@ -47,7 +47,6 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import CRM from './pages/CRM';
 import AccountsPayable from './pages/AccountsPayable';
 import AccountsReceivable from './pages/AccountsReceivable';
 import Appointments from './pages/Appointments';
@@ -69,7 +68,6 @@ import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "CRM": CRM,
     "AccountsPayable": AccountsPayable,
     "AccountsReceivable": AccountsReceivable,
     "Appointments": Appointments,
