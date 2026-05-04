@@ -29,28 +29,25 @@ const DEFAULT = {
   payment_label_card: 'PARCELADO  (Cartão de Crédito)',
   payment_installments: 18,
   payment_installments_label: 'Parcelamento em até {n}×',
-  warranty_factory_title: 'Garantia de Fábrica',
-  warranty_factory: '<p>Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).</p>',
-  warranty_adaptation_title: 'Garantia de Adaptação',
-  warranty_adaptation: '<p>Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.</p>',
-  vip_intro: '<p>Todas as revisões abaixo são <strong>TOTALMENTE GRATUITAS</strong> para clientes Sonatta:</p>',
-  vip_review_1: '1ª Revisão — 3 meses após a compra',
-  vip_review_2: '2ª Revisão — 9 meses após a compra',
-  vip_review_3: 'Revisões Subsequentes — A cada 12 meses (anualmente)',
-  vip_extra: '<p>Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.</p>',
+  warranty_text: '<h3><strong>Garantia de Fábrica</strong></h3><p>Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).</p><p><br></p><h3><strong>Garantia de Adaptação</strong></h3><p>Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.</p>',
+  vip_text: '<p>Todas as revisões abaixo são <strong>TOTALMENTE GRATUITAS</strong> para clientes Sonatta:</p><p><br></p><ul><li>1ª Revisão — 3 meses após a compra</li><li>2ª Revisão — 9 meses após a compra</li><li>Revisões Subsequentes — A cada 12 meses (anualmente)</li></ul><p><br></p><p>Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.</p>',
   signer_name: 'Fabio Malveira',
   signer_role: 'Comercial Sonatta',
 };
 
-// Toolbar simples: negrito, itálico, listas, espaçamento
+const FONT_SIZES = ['8px', '9px', '10px', '11px', '12px', '14px', '16px', '18px', '20px', '24px'];
+const LINE_HEIGHTS = ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'];
+
 const QUILL_MODULES = {
   toolbar: [
     ['bold', 'italic', 'underline'],
-    [{ list: 'bullet' }],
+    [{ size: FONT_SIZES }],
+    [{ lineheight: LINE_HEIGHTS }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
     ['clean'],
   ],
 };
-const QUILL_FORMATS = ['bold', 'italic', 'underline', 'list', 'bullet'];
+const QUILL_FORMATS = ['bold', 'italic', 'underline', 'size', 'lineheight', 'list', 'bullet', 'header'];
 
 function Section({ title, subtitle, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -85,7 +82,7 @@ function Field({ label, hint, id, children }) {
 function RichField({ label, hint, value, onChange }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-slate-700">{label}</Label>
+      {label && <Label className="text-sm font-medium text-slate-700">{label}</Label>}
       {hint && <p className="text-xs text-slate-400">{hint}</p>}
       <div className="border border-slate-200 rounded-md overflow-hidden quill-compact">
         <ReactQuill
@@ -269,52 +266,23 @@ export default function QuotePDFSettings() {
         </Section>
 
         {/* ── GARANTIA ── */}
-        <Section title="Prazos de Garantia" subtitle="Títulos e textos com formatação rica">
-          <div className="pt-4 space-y-4">
-            <Field label="Título — Garantia de Fábrica" id="warranty_factory_title">
-              <Input id="warranty_factory_title" value={config.warranty_factory_title} onChange={(e) => set('warranty_factory_title', e.target.value)} />
-            </Field>
+        <Section title="Prazos de Garantia" subtitle="Use o editor para formatar títulos, negrito, tamanho e espaçamento">
+          <div className="pt-4">
             <RichField
-              label="Texto — Garantia de Fábrica"
-              hint="Use negrito, itálico ou listas para formatar o texto"
-              value={config.warranty_factory}
-              onChange={(v) => set('warranty_factory', v)}
-            />
-            <Field label="Título — Garantia de Adaptação" id="warranty_adaptation_title">
-              <Input id="warranty_adaptation_title" value={config.warranty_adaptation_title} onChange={(e) => set('warranty_adaptation_title', e.target.value)} />
-            </Field>
-            <RichField
-              label="Texto — Garantia de Adaptação"
-              hint="Use negrito, itálico ou listas para formatar o texto"
-              value={config.warranty_adaptation}
-              onChange={(v) => set('warranty_adaptation', v)}
+              hint='Inclua os subtítulos "Garantia de Fábrica" e "Garantia de Adaptação" diretamente no texto'
+              value={config.warranty_text}
+              onChange={(v) => set('warranty_text', v)}
             />
           </div>
         </Section>
 
         {/* ── VIP ── */}
-        <Section title="Acompanhamento VIP Vitalício" subtitle="Textos com formatação rica">
-          <div className="pt-4 space-y-4">
+        <Section title="Acompanhamento VIP Vitalício" subtitle="Use o editor para formatar títulos, listas e espaçamento">
+          <div className="pt-4">
             <RichField
-              label="Texto introdutório"
-              value={config.vip_intro}
-              onChange={(v) => set('vip_intro', v)}
-            />
-            <div className="grid grid-cols-1 gap-3">
-              <Field label="Item 1ª Revisão" id="vip_review_1">
-                <Input id="vip_review_1" value={config.vip_review_1} onChange={(e) => set('vip_review_1', e.target.value)} />
-              </Field>
-              <Field label="Item 2ª Revisão" id="vip_review_2">
-                <Input id="vip_review_2" value={config.vip_review_2} onChange={(e) => set('vip_review_2', e.target.value)} />
-              </Field>
-              <Field label="Item Revisões Subsequentes" id="vip_review_3">
-                <Input id="vip_review_3" value={config.vip_review_3} onChange={(e) => set('vip_review_3', e.target.value)} />
-              </Field>
-            </div>
-            <RichField
-              label="Texto complementar (consultas extras)"
-              value={config.vip_extra}
-              onChange={(v) => set('vip_extra', v)}
+              hint='Inclua itens de revisão como lista e textos complementares diretamente no editor'
+              value={config.vip_text}
+              onChange={(v) => set('vip_text', v)}
             />
           </div>
         </Section>

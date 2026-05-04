@@ -28,16 +28,8 @@ const DEFAULT_CFG = {
   payment_installments: 18,
   payment_installments_label: 'Parcelamento em até {n}×',
   // garantia
-  warranty_factory_title: 'Garantia de Fábrica',
-  warranty_factory: 'Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).',
-  warranty_adaptation_title: 'Garantia de Adaptação',
-  warranty_adaptation: 'Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.',
-  // VIP
-  vip_intro: 'Todas as revisões abaixo são TOTALMENTE GRATUITAS para clientes Sonatta:',
-  vip_review_1: '1ª Revisão — 3 meses após a compra',
-  vip_review_2: '2ª Revisão — 9 meses após a compra',
-  vip_review_3: 'Revisões Subsequentes — A cada 12 meses (anualmente)',
-  vip_extra: 'Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.',
+  warranty_text: '<h3><strong>Garantia de Fábrica</strong></h3><p>Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).</p><p><br></p><h3><strong>Garantia de Adaptação</strong></h3><p>Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.</p>',
+  vip_text: '<p>Todas as revisões abaixo são <strong>TOTALMENTE GRATUITAS</strong> para clientes Sonatta:</p><p><br></p><ul><li>1ª Revisão — 3 meses após a compra</li><li>2ª Revisão — 9 meses após a compra</li><li>Revisões Subsequentes — A cada 12 meses (anualmente)</li></ul><p><br></p><p>Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.</p>',
 };
 
 // ── Palette ──────────────────────────────────────────────────────────────────
@@ -52,38 +44,58 @@ const P = {
 };
 
 // ── Converte HTML do Quill em segmentos para o jsPDF ──────────────────────────
-// Retorna array de { text, bold, italic, newline }
+// Retorna array de { text, bold, italic, size, lineheight, newline, bullet, header }
 function parseHtmlToSegments(html) {
   if (!html) return [{ text: '', bold: false, italic: false }];
   const div = document.createElement('div');
   div.innerHTML = html;
   const segments = [];
 
-  function walk(node, bold, italic) {
+  function getSizePx(el) {
+    const s = el.style && el.style.fontSize;
+    if (s) return parseFloat(s);
+    return null;
+  }
+
+  function getLineHeight(el) {
+    const s = el.style && el.style.lineHeight;
+    if (s) return parseFloat(s);
+    return null;
+  }
+
+  function walk(node, ctx) {
     if (node.nodeType === Node.TEXT_NODE) {
       const t = node.textContent;
-      if (t) segments.push({ text: t, bold, italic });
+      if (t) segments.push({ ...ctx, text: t });
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const tag = node.tagName.toLowerCase();
-      const isBold   = bold   || tag === 'strong' || tag === 'b';
-      const isItalic = italic || tag === 'em'     || tag === 'i';
-      if (tag === 'br') { segments.push({ newline: true }); return; }
-      if (tag === 'li') { segments.push({ text: '• ', bold: false, italic: false }); }
-      node.childNodes.forEach((c) => walk(c, isBold, isItalic));
-      if (tag === 'p' || tag === 'div' || tag === 'li') {
-        segments.push({ newline: true });
+      const next = { ...ctx };
+      if (tag === 'strong' || tag === 'b') next.bold = true;
+      if (tag === 'em' || tag === 'i') next.italic = true;
+      if (tag === 'u') next.underline = true;
+      const sz = getSizePx(node);
+      if (sz) next.size = sz * 0.75; // px → pt approx
+      const lh = getLineHeight(node);
+      if (lh) next.lineheight = lh;
+      if (tag === 'h1') { next.bold = true; next.size = 14; }
+      if (tag === 'h2') { next.bold = true; next.size = 12; }
+      if (tag === 'h3') { next.bold = true; next.size = 10.5; }
+      if (tag === 'br') { segments.push({ newline: true, lineheight: ctx.lineheight }); return; }
+      if (tag === 'li') { segments.push({ ...next, text: '• ', bullet: true }); }
+      node.childNodes.forEach((c) => walk(c, next));
+      if (['p','div','li','h1','h2','h3'].includes(tag)) {
+        segments.push({ newline: true, lineheight: next.lineheight });
       }
     }
   }
 
-  div.childNodes.forEach((c) => walk(c, false, false));
-  // Remove trailing newline
+  div.childNodes.forEach((c) => walk(c, { bold: false, italic: false, underline: false, size: null, lineheight: null }));
   while (segments.length && segments[segments.length - 1].newline) segments.pop();
   return segments.length ? segments : [{ text: '', bold: false, italic: false }];
 }
 
 // Renderiza segmentos no PDF. Retorna Y final.
-function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
+function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, defaultLineH) {
   const segments = parseHtmlToSegments(html);
   let curX = x;
   let curY = startY;
@@ -96,21 +108,23 @@ function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
   segments.forEach((seg) => {
     if (seg.newline) {
       curX = x;
-      curY += lineH;
+      const lh = seg.lineheight ? defaultLineH * seg.lineheight : defaultLineH;
+      curY += lh;
       return;
     }
+    const sz = seg.size || baseSz;
     setS(seg.bold, seg.italic);
     doc.setTextColor(...baseColor);
-    doc.setFontSize(baseSz);
+    doc.setFontSize(sz);
 
-    // Word-wrap dentro do segmento
     const words = seg.text.split(/(\s+)/);
     words.forEach((word) => {
       if (!word) return;
       const ww = doc.getTextWidth(word);
       if (curX + ww > x + maxW && curX > x) {
         curX = x;
-        curY += lineH;
+        const lh = seg.lineheight ? defaultLineH * seg.lineheight : defaultLineH;
+        curY += lh;
       }
       doc.text(word, curX, curY);
       curX += ww;
@@ -346,46 +360,14 @@ async function buildPDF(quote, cfg) {
   updateY(PARA_GAP);
   sectionHead('PRAZOS DE GARANTIA');
 
-  setFont('bold', 7); setTxt(P.purple);
-  doc.text(cfg.warranty_factory_title || 'Garantia de Fábrica', ML + 2, Y); updateY(LH + 0.5);
-  const gfEndY = drawHtmlText(doc, cfg.warranty_factory || DEFAULT_CFG.warranty_factory, ML + 2, Y, CW - 4, 8, P.textMain, LH);
-  Y = gfEndY + PARA_GAP;
-
-  setFont('bold', 7); setTxt(P.purple);
-  doc.text(cfg.warranty_adaptation_title || 'Garantia de Adaptação', ML + 2, Y); updateY(LH + 0.5);
-  const gaEndY = drawHtmlText(doc, cfg.warranty_adaptation || DEFAULT_CFG.warranty_adaptation, ML + 2, Y, CW - 4, 8, P.textMain, LH);
-  Y = gaEndY + SEC_GAP;
+  const gwEndY = drawHtmlText(doc, cfg.warranty_text || DEFAULT_CFG.warranty_text, ML + 2, Y, CW - 4, 8, P.textMain, LH);
+  Y = gwEndY + SEC_GAP;
 
   // ── SECTION 5 — VIP ──
   sectionHead('ACOMPANHAMENTO VIP VITALÍCIO');
 
-  const vipIntroEndY = drawHtmlText(doc, cfg.vip_intro || DEFAULT_CFG.vip_intro, ML + 2, Y, CW - 4, 8, P.textMain, LH);
-  Y = vipIntroEndY + PARA_GAP;
-
-  const revisoes = [
-    cfg.vip_review_1 || DEFAULT_CFG.vip_review_1,
-    cfg.vip_review_2 || DEFAULT_CFG.vip_review_2,
-    cfg.vip_review_3 || DEFAULT_CFG.vip_review_3,
-  ];
-  revisoes.forEach((line) => {
-    // Separa label (antes do —) e desc (após o —)
-    const parts = line.split('—').map(s => s.trim());
-    const label = parts[0] || line;
-    const desc  = parts[1] || '';
-    setFill(P.green); doc.rect(ML + BX_PAD, Y - 1.6, 1.4, 1.4, 'F');
-    setFont('bold', 8); setTxt(P.textMain);
-    if (desc) {
-      doc.text(label + ': ', ML + TX_OFF, Y);
-      const lw = doc.getTextWidth(label + ': ');
-      setFont('normal', 8); doc.text(desc, ML + TX_OFF + lw, Y);
-    } else {
-      doc.text(label, ML + TX_OFF, Y);
-    }
-    updateY(LH + 1);
-  });
-  updateY(1);
-  const vipExtraEndY = drawHtmlText(doc, cfg.vip_extra || DEFAULT_CFG.vip_extra, ML + 2, Y, CW - 4, 7, P.textSub, LH);
-  Y = vipExtraEndY + SEC_GAP;
+  const vipEndY = drawHtmlText(doc, cfg.vip_text || DEFAULT_CFG.vip_text, ML + 2, Y, CW - 4, 8, P.textMain, LH);
+  Y = vipEndY + SEC_GAP;
 
   // ── ASSINATURA ──
   if (Y > MAX_Y - 14) Y = MAX_Y - 14;
