@@ -250,32 +250,7 @@ async function buildPDF(quote, cfg) {
 
   Y += OPT_H + SEC_GAP;
 
-  // ── SECTION 4 — CONDIÇÕES COMERCIAIS ──
-  sectionHead('CONDIÇÕES COMERCIAIS');
-  const conds = (cfg.conditions || '')
-    .split('\n').map((l) => l.trim().replace('{validity_days}', validDays)).filter(Boolean);
-
-  const half = Math.ceil(conds.length / 2);
-  const leftConds  = conds.slice(0, half);
-  const rightConds = conds.slice(half);
-  const condColW   = CW/2 - 8;
-  let lY = Y, rY = Y;
-
-  setFont('normal', 8); setTxt(P.textMain);
-  leftConds.forEach((line) => {
-    const wrapped = doc.splitTextToSize(line, condColW);
-    setFill(P.green); doc.rect(ML + BULLET_X, lY - 1.8, 1.6, 1.6, 'F');
-    doc.text(wrapped, ML + TEXT_X, lY);
-    lY += wrapped.length * LH + 2;
-  });
-  rightConds.forEach((line) => {
-    const wrapped = doc.splitTextToSize(line, condColW);
-    setFill(P.green); doc.rect(ML + CW/2 + BULLET_X, rY - 1.8, 1.6, 1.6, 'F');
-    doc.text(wrapped, ML + CW/2 + TEXT_X, rY);
-    rY += wrapped.length * LH + 2;
-  });
-  Y = Math.max(lY, rY) + PARA_GAP;
-
+  // ── Observações ──
   if (quote.notes) {
     setFont('bold', 8); setTxt(P.purple); doc.text('Observações:', ML, Y); Y += LH + 1;
     setFont('normal', 8); setTxt(P.textMain);
@@ -283,7 +258,7 @@ async function buildPDF(quote, cfg) {
     doc.text(obs, ML, Y); Y += obs.length * LH + PARA_GAP;
   }
 
-  // ── SECTION 5 — GARANTIA + VIP lado a lado ──
+  // ── SECTION 4 — GARANTIA + VIP lado a lado ──
   Y += 2;
   const COL1X = ML, COL2X = ML + CW/2 + 3, COLW = CW/2 - 5;
 
