@@ -198,8 +198,17 @@ async function buildPDF(quote, cfg) {
   const totalAVista = quote.total;
   const inst18 = (quote.subtotal > 0 ? quote.subtotal : quote.total) / 18;
   const OPT_W = CW/2 - 3, OPT_X1 = ML, OPT_X2 = ML + OPT_W + 6;
-  const OPT_BODY_H = hasDsc ? 22 : 18;
   const OPT_HEAD_H = 7;
+  // Calcula altura do corpo dinamicamente para evitar sobreposição
+  const INNER_PAD = 4;   // padding top interno
+  const ROW_H = LH + 2;  // altura de cada linha de dado
+  const DIV_GAP = 3;     // espaço entre linha divisória e valor final
+  const VAL_H = 7;       // altura do valor final em negrito
+  const BOTTOM_PAD = 3;  // padding bottom interno
+  const rowsA = hasDsc ? 2 : 1;
+  const OPT_BODY_H_A = INNER_PAD + rowsA * ROW_H + DIV_GAP + VAL_H + BOTTOM_PAD;
+  const OPT_BODY_H_B = INNER_PAD + 2 * ROW_H + DIV_GAP + VAL_H + BOTTOM_PAD;
+  const OPT_BODY_H = Math.max(OPT_BODY_H_A, OPT_BODY_H_B);
   const OPT_H = OPT_HEAD_H + OPT_BODY_H;
 
   // Opção A — À Vista
@@ -208,17 +217,19 @@ async function buildPDF(quote, cfg) {
   doc.text('À VISTA  (Dinheiro ou PIX)', OPT_X1 + OPT_W/2, Y + 4.9, { align: 'center' });
   setFill([250,252,243]); setStroke([180,210,60]); doc.setLineWidth(0.3);
   doc.roundedRect(OPT_X1, Y + OPT_HEAD_H, OPT_W, OPT_BODY_H, 1.5, 1.5, 'FD');
-  const AX = OPT_X1 + OPT_W - 4; let AY = Y + OPT_HEAD_H + 5;
+  const AX = OPT_X1 + OPT_W - 4; let AY = Y + OPT_HEAD_H + INNER_PAD;
   setFont('normal', 8); setTxt(P.textSub); doc.text('Subtotal:', OPT_X1 + 4, AY);
   setFont('normal', 8); setTxt(P.textMain); doc.text(BRL(quote.subtotal), AX, AY, { align: 'right' });
-  AY += LH + 1;
+  AY += ROW_H;
   if (hasDsc) {
     const pct = quote.subtotal > 0 ? ((quote.discount/quote.subtotal)*100).toFixed(1)+'%' : '';
     setFont('normal', 8); setTxt(P.textSub); doc.text('Desconto '+(pct?'('+pct+')':'')+':',OPT_X1+4,AY);
     setFont('bold', 8); setTxt([80,140,0]); doc.text('- '+BRL(quote.discount),AX,AY,{align:'right'});
-    AY += LH + 1;
+    AY += ROW_H;
   }
-  setFill([180,210,60]); doc.rect(OPT_X1+3, AY, OPT_W-6, 0.25, 'F'); AY += 3;
+  AY += 1;
+  setFill([180,210,60]); doc.rect(OPT_X1+3, AY, OPT_W-6, 0.3, 'F');
+  AY += DIV_GAP + 3;
   setFont('bold', 12); setTxt([60,110,0]); doc.text(BRL(totalAVista), OPT_X1+OPT_W/2, AY, { align: 'center' });
 
   // Opção B — Parcelado
@@ -227,13 +238,14 @@ async function buildPDF(quote, cfg) {
   doc.text('PARCELADO  (Cartão de Crédito)', OPT_X2+OPT_W/2, Y+4.9, { align: 'center' });
   setFill([250,247,254]); setStroke([210,200,225]); doc.setLineWidth(0.3);
   doc.roundedRect(OPT_X2, Y + OPT_HEAD_H, OPT_W, OPT_BODY_H, 1.5, 1.5, 'FD');
-  const BX = OPT_X2+OPT_W-4; let BY = Y + OPT_HEAD_H + 5;
+  const BX = OPT_X2+OPT_W-4; let BY = Y + OPT_HEAD_H + INNER_PAD;
   setFont('normal', 8); setTxt(P.textSub); doc.text('Valor total:', OPT_X2+4, BY);
   setFont('normal', 8); setTxt(P.textMain); doc.text(BRL(quote.subtotal), BX, BY, { align: 'right' });
-  BY += LH + 1;
+  BY += ROW_H;
   setFont('normal', 8); setTxt(P.textSub); doc.text('Parcelamento em até 18×:', OPT_X2+4, BY);
-  BY += LH + 1;
-  setFill([210,200,225]); doc.rect(OPT_X2+3, BY, OPT_W-6, 0.25, 'F'); BY += 3;
+  BY += ROW_H + 1;
+  setFill([210,200,225]); doc.rect(OPT_X2+3, BY, OPT_W-6, 0.3, 'F');
+  BY += DIV_GAP + 3;
   setFont('bold', 12); setTxt(P.purple); doc.text(BRL(inst18)+'/mês', OPT_X2+OPT_W/2, BY, { align: 'center' });
 
   Y += OPT_H + SEC_GAP;
