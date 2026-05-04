@@ -34,6 +34,7 @@ const DEFAULT = {
   signer_name: 'Fabio Malveira',
   signer_role: 'Comercial Sonatta',
   section_content_gap: 3,
+  line_height_content: 4.5,
 };
 
 const QUILL_MODULES = {
@@ -264,8 +265,8 @@ export default function QuotePDFSettings() {
 
         {/* ── LAYOUT ── */}
         <Section title="Espaçamento" subtitle="Distância entre o título da seção e o conteúdo" defaultOpen={false}>
-          <div className="pt-4">
-            <Field label="Espaço entre título e texto (mm)" id="section_content_gap" hint="Distância em milímetros entre o cabeçalho colorido da seção e o primeiro parágrafo do conteúdo">
+          <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Espaço entre título e texto (mm)" id="section_content_gap" hint="Distância entre o cabeçalho colorido da seção e o primeiro parágrafo">
               <Input
                 id="section_content_gap"
                 type="number"
@@ -274,6 +275,18 @@ export default function QuotePDFSettings() {
                 step={0.5}
                 value={config.section_content_gap ?? 3}
                 onChange={(e) => set('section_content_gap', Number(e.target.value))}
+                className="w-32"
+              />
+            </Field>
+            <Field label="Altura da linha do conteúdo (mm)" id="line_height_content" hint="Espaçamento entre linhas nos textos das seções (padrão: 4.5). Reduza para evitar linhas em branco grandes">
+              <Input
+                id="line_height_content"
+                type="number"
+                min={2}
+                max={10}
+                step={0.5}
+                value={config.line_height_content ?? 4.5}
+                onChange={(e) => set('line_height_content', Number(e.target.value))}
                 className="w-32"
               />
             </Field>
