@@ -302,7 +302,7 @@ async function buildPDF(quote, cfg) {
   const extraLines = doc.splitTextToSize(cfg.vip_extra || DEFAULT_CFG.vip_extra, COLW2 - 6);
   doc.text(extraLines, COL2X+2, VY); VY += extraLines.length * 4;
 
-  Y = Math.max(GY, VY) + 5;
+  Y = Math.max(GY, VY) + 6;
 
   // ── ASSINATURA inline (right-aligned) ──
   const SIG_W = 55, SIG_X = PAGE_W - MR - SIG_W;
@@ -313,9 +313,10 @@ async function buildPDF(quote, cfg) {
   Y += 4.5;
   setFont('normal', 7.5); setTxt(P.textSub);
   doc.text(cfg.signer_role || 'Comercial Sonatta', SIG_X + SIG_W/2, Y, { align: 'center' });
+  Y += 8;
 
-  // ── FOOTER ──
-  const FY = PAGE_H - 16;
+  // ── FOOTER (dinâmico — logo após o conteúdo, mas nunca acima de PAGE_H-18) ──
+  const FY = Math.max(Y + 4, PAGE_H - 18);
   setFill(P.green); doc.rect(ML, FY, CW, 0.7, 'F');
   const FL = FY + 5;
   setFont('normal', 7); setTxt(P.textSub);
