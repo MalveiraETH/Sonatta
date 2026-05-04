@@ -51,6 +51,75 @@ const P = {
   divider:  [220, 214, 230],
 };
 
+// ── Converte HTML do Quill em segmentos para o jsPDF ──────────────────────────
+// Retorna array de { text, bold, italic, newline }
+function parseHtmlToSegments(html) {
+  if (!html) return [{ text: '', bold: false, italic: false }];
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const segments = [];
+
+  function walk(node, bold, italic) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const t = node.textContent;
+      if (t) segments.push({ text: t, bold, italic });
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const tag = node.tagName.toLowerCase();
+      const isBold   = bold   || tag === 'strong' || tag === 'b';
+      const isItalic = italic || tag === 'em'     || tag === 'i';
+      if (tag === 'br') { segments.push({ newline: true }); return; }
+      if (tag === 'li') { segments.push({ text: '• ', bold: false, italic: false }); }
+      node.childNodes.forEach((c) => walk(c, isBold, isItalic));
+      if (tag === 'p' || tag === 'div' || tag === 'li') {
+        segments.push({ newline: true });
+      }
+    }
+  }
+
+  div.childNodes.forEach((c) => walk(c, false, false));
+  // Remove trailing newline
+  while (segments.length && segments[segments.length - 1].newline) segments.pop();
+  return segments.length ? segments : [{ text: '', bold: false, italic: false }];
+}
+
+// Renderiza segmentos no PDF. Retorna Y final.
+function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
+  const segments = parseHtmlToSegments(html);
+  let curX = x;
+  let curY = startY;
+
+  const setS = (bold, italic) => {
+    const w = bold ? (italic ? 'bolditalic' : 'bold') : (italic ? 'italic' : 'normal');
+    doc.setFont('helvetica', w);
+  };
+
+  segments.forEach((seg) => {
+    if (seg.newline) {
+      curX = x;
+      curY += lineH;
+      return;
+    }
+    setS(seg.bold, seg.italic);
+    doc.setTextColor(...baseColor);
+    doc.setFontSize(baseSz);
+
+    // Word-wrap dentro do segmento
+    const words = seg.text.split(/(\s+)/);
+    words.forEach((word) => {
+      if (!word) return;
+      const ww = doc.getTextWidth(word);
+      if (curX + ww > x + maxW && curX > x) {
+        curX = x;
+        curY += lineH;
+      }
+      doc.text(word, curX, curY);
+      curX += ww;
+    });
+  });
+
+  return curY;
+}
+
 const BRL = (v) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
 
@@ -279,22 +348,19 @@ async function buildPDF(quote, cfg) {
 
   setFont('bold', 7); setTxt(P.purple);
   doc.text(cfg.warranty_factory_title || 'Garantia de Fábrica', ML + 2, Y); updateY(LH + 0.5);
-  setFont('normal', 8); setTxt(P.textMain);
-  const gfLines = doc.splitTextToSize(cfg.warranty_factory || DEFAULT_CFG.warranty_factory, CW - 4);
-  doc.text(gfLines, ML + 2, Y); updateY(gfLines.length * LH + PARA_GAP);
+  const gfEndY = drawHtmlText(doc, cfg.warranty_factory || DEFAULT_CFG.warranty_factory, ML + 2, Y, CW - 4, 8, P.textMain, LH);
+  Y = gfEndY + PARA_GAP;
 
   setFont('bold', 7); setTxt(P.purple);
   doc.text(cfg.warranty_adaptation_title || 'Garantia de Adaptação', ML + 2, Y); updateY(LH + 0.5);
-  setFont('normal', 8); setTxt(P.textMain);
-  const gaLines = doc.splitTextToSize(cfg.warranty_adaptation || DEFAULT_CFG.warranty_adaptation, CW - 4);
-  doc.text(gaLines, ML + 2, Y); updateY(gaLines.length * LH + SEC_GAP);
+  const gaEndY = drawHtmlText(doc, cfg.warranty_adaptation || DEFAULT_CFG.warranty_adaptation, ML + 2, Y, CW - 4, 8, P.textMain, LH);
+  Y = gaEndY + SEC_GAP;
 
   // ── SECTION 5 — VIP ──
   sectionHead('ACOMPANHAMENTO VIP VITALÍCIO');
 
-  setFont('normal', 8); setTxt(P.textMain);
-  const vipLines = doc.splitTextToSize(cfg.vip_intro || DEFAULT_CFG.vip_intro, CW - 4);
-  doc.text(vipLines, ML + 2, Y); updateY(vipLines.length * LH + PARA_GAP);
+  const vipIntroEndY = drawHtmlText(doc, cfg.vip_intro || DEFAULT_CFG.vip_intro, ML + 2, Y, CW - 4, 8, P.textMain, LH);
+  Y = vipIntroEndY + PARA_GAP;
 
   const revisoes = [
     cfg.vip_review_1 || DEFAULT_CFG.vip_review_1,
@@ -318,9 +384,8 @@ async function buildPDF(quote, cfg) {
     updateY(LH + 1);
   });
   updateY(1);
-  setFont('normal', 7); setTxt(P.textSub);
-  const extraLines = doc.splitTextToSize(cfg.vip_extra || DEFAULT_CFG.vip_extra, CW - 4);
-  doc.text(extraLines, ML + 2, Y); updateY(extraLines.length * LH + SEC_GAP);
+  const vipExtraEndY = drawHtmlText(doc, cfg.vip_extra || DEFAULT_CFG.vip_extra, ML + 2, Y, CW - 4, 7, P.textSub, LH);
+  Y = vipExtraEndY + SEC_GAP;
 
   // ── ASSINATURA ──
   if (Y > MAX_Y - 14) Y = MAX_Y - 14;
