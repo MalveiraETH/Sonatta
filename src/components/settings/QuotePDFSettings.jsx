@@ -33,6 +33,7 @@ const DEFAULT = {
   vip_text: '<p>Todas as revisões abaixo são <strong>TOTALMENTE GRATUITAS</strong> para clientes Sonatta:</p><p><br></p><ul><li>1ª Revisão — 3 meses após a compra</li><li>2ª Revisão — 9 meses após a compra</li><li>Revisões Subsequentes — A cada 12 meses (anualmente)</li></ul><p><br></p><p>Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.</p>',
   signer_name: 'Fabio Malveira',
   signer_role: 'Comercial Sonatta',
+  section_content_gap: 3,
 };
 
 const QUILL_MODULES = {
@@ -258,6 +259,24 @@ export default function QuotePDFSettings() {
                 <Input id="payment_installments_label" value={config.payment_installments_label} onChange={(e) => set('payment_installments_label', e.target.value)} />
               </Field>
             </div>
+          </div>
+        </Section>
+
+        {/* ── LAYOUT ── */}
+        <Section title="Espaçamento" subtitle="Distância entre o título da seção e o conteúdo" defaultOpen={false}>
+          <div className="pt-4">
+            <Field label="Espaço entre título e texto (mm)" id="section_content_gap" hint="Distância em milímetros entre o cabeçalho colorido da seção e o primeiro parágrafo do conteúdo">
+              <Input
+                id="section_content_gap"
+                type="number"
+                min={0}
+                max={20}
+                step={0.5}
+                value={config.section_content_gap ?? 3}
+                onChange={(e) => set('section_content_gap', Number(e.target.value))}
+                className="w-32"
+              />
+            </Field>
           </div>
         </Section>
 

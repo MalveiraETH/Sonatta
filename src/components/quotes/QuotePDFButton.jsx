@@ -27,6 +27,7 @@ const DEFAULT_CFG = {
   payment_label_card: 'PARCELADO  (Cartão de Crédito)',
   payment_installments: 18,
   payment_installments_label: 'Parcelamento em até {n}×',
+  section_content_gap: 3,
   // garantia
   warranty_text: '<h3><strong>Garantia de Fábrica</strong></h3><p>Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).</p><p><br></p><h3><strong>Garantia de Adaptação</strong></h3><p>Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.</p>',
   vip_text: '<p>Todas as revisões abaixo são <strong>TOTALMENTE GRATUITAS</strong> para clientes Sonatta:</p><p><br></p><ul><li>1ª Revisão — 3 meses após a compra</li><li>2ª Revisão — 9 meses após a compra</li><li>Revisões Subsequentes — A cada 12 meses (anualmente)</li></ul><p><br></p><p>Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.</p>',
@@ -208,12 +209,13 @@ async function buildPDF(quote, cfg) {
   Y = 32;
 
   // ── Helper: cabeçalho de seção ──
+  const secGap = cfg.section_content_gap ?? 3;
   const sectionHead = (label) => {
     setFill([246, 241, 251]); doc.rect(ML, Y, CW, SH, 'F');
     setFill(P.purple); doc.rect(ML, Y, 2.5, SH, 'F');
     setFont('bold', 8.5); setTxt(P.purple);
     doc.text(label, ML + 5, Y + 3.6);
-    updateY(SH + HEAD_PAD);
+    updateY(SH + secGap);
   };
 
   // ── SECTION 1 — CLIENTE ──
