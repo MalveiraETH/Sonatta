@@ -253,40 +253,33 @@ async function buildPDF(quote, cfg) {
   }
 
   // SECTION 5 — GARANTIA
-  Y += 4;
-  if (Y > PAGE_H - 80) { doc.addPage(); setFill(P.pageBg); doc.rect(0,0,PAGE_W,PAGE_H,'F'); Y = ML + 10; }
+  Y += 3;
   sectionHead('PRAZOS DE GARANTIA');
-  Y += 1;
 
-  // Garantia de Fábrica
-  setFont('bold', 9.5); setTxt(P.purple); doc.text('Garantia de Fábrica', ML+3, Y); Y += 6;
-  setFont('normal', 9); setTxt(P.textMain);
-  const gf = doc.splitTextToSize(
-    'Cobre defeitos de fabricação conforme padrão do fabricante para o modelo adquirido (reparos ou substituição de componentes com falhas eletrônicas ou mecânicas de origem fabril, mediante uso conforme normas técnicas).',
-    CW - 6
-  );
-  doc.text(gf, ML+3, Y); Y += gf.length * 5.5 + 5;
+  // Garantia de Fábrica — inline
+  setFont('bold', 8.5); setTxt(P.purple); doc.text('Garantia de Fábrica: ', ML+3, Y);
+  const gfLbl = doc.getTextWidth('Garantia de Fábrica: ');
+  setFont('normal', 8.5); setTxt(P.textMain);
+  const gfRest = doc.splitTextToSize('Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).', CW - 6 - gfLbl);
+  doc.text(gfRest[0], ML+3+gfLbl, Y);
+  if (gfRest.length > 1) { Y += 5; doc.text(gfRest.slice(1), ML+3, Y); Y += (gfRest.length-1)*5; }
+  Y += 6;
 
-  // Garantia de Adaptação
-  setFont('bold', 9.5); setTxt(P.purple); doc.text('Garantia de Adaptação e Acompanhamento', ML+3, Y); Y += 6;
-  setFont('normal', 9); setTxt(P.textMain);
-  const ga = doc.splitTextToSize(
-    'A Sonatta oferece acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando que o ganho auditivo esteja em conformidade com as necessidades clínicas do paciente.',
-    CW - 6
-  );
-  doc.text(ga, ML+3, Y); Y += ga.length * 5.5 + 8;
+  // Garantia de Adaptação — inline
+  setFont('bold', 8.5); setTxt(P.purple); doc.text('Garantia de Adaptação: ', ML+3, Y);
+  const gaLbl = doc.getTextWidth('Garantia de Adaptação: ');
+  setFont('normal', 8.5); setTxt(P.textMain);
+  const gaRest = doc.splitTextToSize('Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.', CW - 6 - gaLbl);
+  doc.text(gaRest[0], ML+3+gaLbl, Y);
+  if (gaRest.length > 1) { Y += 5; doc.text(gaRest.slice(1), ML+3, Y); Y += (gaRest.length-1)*5; }
+  Y += 8;
 
   // SECTION 6 — CRONOGRAMA VIP
-  if (Y > PAGE_H - 80) { doc.addPage(); setFill(P.pageBg); doc.rect(0,0,PAGE_W,PAGE_H,'F'); Y = ML + 10; }
   sectionHead('ACOMPANHAMENTO VIP VITALÍCIO');
-  Y += 1;
 
-  setFont('normal', 9); setTxt(P.textMain);
-  const vip = doc.splitTextToSize(
-    'Todas as revisões abaixo são TOTALMENTE GRATUITAS para clientes Sonatta, garantindo que a tecnologia esteja sempre calibrada para o seu estilo de vida:',
-    CW - 6
-  );
-  doc.text(vip, ML+3, Y); Y += vip.length * 5.5 + 4;
+  setFont('normal', 8.5); setTxt(P.textMain);
+  const vip = doc.splitTextToSize('Todas as revisões abaixo são TOTALMENTE GRATUITAS para clientes Sonatta:', CW - 6);
+  doc.text(vip, ML+3, Y); Y += vip.length * 5 + 3;
 
   const revisoes = [
     { label: '1ª Revisão', desc: '3 meses após a compra' },
@@ -295,19 +288,16 @@ async function buildPDF(quote, cfg) {
   ];
   revisoes.forEach(({ label, desc }) => {
     setFill(P.green); doc.rect(ML+3, Y-2.2, 1.8, 1.8, 'F');
-    setFont('bold', 9); setTxt(P.textMain); doc.text(label + ': ', ML+8, Y);
+    setFont('bold', 8.5); setTxt(P.textMain); doc.text(label + ': ', ML+8, Y);
     const lw = doc.getTextWidth(label + ': ');
-    setFont('normal', 9); doc.text(desc, ML+8+lw, Y);
-    Y += 6.5;
+    setFont('normal', 8.5); doc.text(desc, ML+8+lw, Y);
+    Y += 6;
   });
 
-  Y += 3;
-  setFont('normal', 8.5); setTxt(P.textSub);
-  const extra = doc.splitTextToSize(
-    'Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.',
-    CW - 6
-  );
-  doc.text(extra, ML+3, Y); Y += extra.length * 5.5 + 4;
+  Y += 2;
+  setFont('normal', 8); setTxt(P.textSub);
+  const extra = doc.splitTextToSize('Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.', CW - 6);
+  doc.text(extra, ML+3, Y); Y += extra.length * 5 + 3;
 
   // ASSINATURA
   const SIG_Y = PAGE_H - 44, SIG_X = ML + CW/2 - 30, SIG_W = 60;

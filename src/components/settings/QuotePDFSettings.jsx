@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+
 import { toast } from 'sonner';
 import { Save, Loader2 } from 'lucide-react';
 
@@ -166,16 +166,39 @@ export default function QuotePDFSettings() {
         )}
       </section>
 
-      {/* Condições comerciais */}
-      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+      {/* Condições Comerciais — info only */}
+      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
         <h3 className="font-semibold text-[#6B3FA0] text-base border-b border-slate-100 pb-2">Condições Comerciais</h3>
-        <p className="text-xs text-slate-500">Uma condição por linha. Use <code className="bg-slate-100 px-1 rounded">{'{validity_days}'}</code> para inserir os dias de validade.</p>
-        <Textarea
-          rows={7}
-          value={config.conditions}
-          onChange={(e) => set('conditions', e.target.value)}
-          className="font-mono text-sm"
-        />
+        <p className="text-xs text-slate-500">As condições comerciais abaixo são fixas no PDF do orçamento.</p>
+        <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+          <li>Parcelamento em até 18× no cartão de crédito</li>
+          <li>Pagamento à vista (Dinheiro ou PIX) com desconto incluso na proposta</li>
+          <li>PIX Parcelado: condições a combinar</li>
+          <li>Garantia: 2 a 4 anos conforme fabricante</li>
+          <li>Validade desta proposta: {config.validity_days} dias</li>
+        </ul>
+      </section>
+
+      {/* Garantia */}
+      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+        <h3 className="font-semibold text-[#6B3FA0] text-base border-b border-slate-100 pb-2">Prazos de Garantia</h3>
+        <p className="text-xs text-slate-500">Seção exibida no PDF do orçamento — texto fixo.</p>
+        <div className="space-y-2 text-sm text-slate-700">
+          <div><span className="font-semibold text-[#6B3FA0]">Garantia de Fábrica:</span> Cobre defeitos de fabricação conforme padrão do fabricante para o modelo adquirido.</div>
+          <div><span className="font-semibold text-[#6B3FA0]">Garantia de Adaptação:</span> Acompanhamento técnico inicial para ajustes finos e suporte à adaptação do usuário.</div>
+        </div>
+      </section>
+
+      {/* Acompanhamento VIP */}
+      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+        <h3 className="font-semibold text-[#6B3FA0] text-base border-b border-slate-100 pb-2">Acompanhamento VIP Vitalício</h3>
+        <p className="text-xs text-slate-500">Seção exibida no PDF do orçamento — texto fixo.</p>
+        <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+          <li><span className="font-semibold">1ª Revisão:</span> 3 meses após a compra</li>
+          <li><span className="font-semibold">2ª Revisão:</span> 9 meses após a compra</li>
+          <li><span className="font-semibold">Revisões Subsequentes:</span> A cada 12 meses (anualmente)</li>
+        </ul>
+        <p className="text-xs text-slate-500">Todas as revisões são TOTALMENTE GRATUITAS. Consultas extras fora do cronograma também são cobertas pelo atendimento Sonatta.</p>
       </section>
 
       {/* Assinatura */}
