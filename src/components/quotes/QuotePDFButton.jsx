@@ -44,58 +44,58 @@ const P = {
 };
 
 // ── Converte HTML do Quill em segmentos para o jsPDF ──────────────────────────
-// Retorna array de { text, bold, italic, size, lineheight, newline, bullet, header }
+// Retorna array de { text, bold, italic, size?, lineheight?, newline? }
 function parseHtmlToSegments(html) {
   if (!html) return [{ text: '', bold: false, italic: false }];
   const div = document.createElement('div');
   div.innerHTML = html;
   const segments = [];
 
-  function getSizePx(el) {
-    const s = el.style && el.style.fontSize;
-    if (s) return parseFloat(s);
-    return null;
-  }
-
+  // Extrai lineheight do style inline
   function getLineHeight(el) {
-    const s = el.style && el.style.lineHeight;
-    if (s) return parseFloat(s);
+    const lh = el.style && el.style.lineHeight;
+    if (lh) return parseFloat(lh);
     return null;
   }
 
-  function walk(node, ctx) {
+  // Extrai font-size do style inline (em px)
+  function getFontSize(el) {
+    const fs = el.style && el.style.fontSize;
+    if (fs) return parseFloat(fs);
+    // Quill class: ql-size-14px
+    const cls = el.className || '';
+    const m = cls.match(/ql-size-([\d.]+)px/);
+    if (m) return parseFloat(m[1]);
+    return null;
+  }
+
+  function walk(node, bold, italic, size, lineheight) {
     if (node.nodeType === Node.TEXT_NODE) {
       const t = node.textContent;
-      if (t) segments.push({ ...ctx, text: t });
+      if (t) segments.push({ text: t, bold, italic, size, lineheight });
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const tag = node.tagName.toLowerCase();
-      const next = { ...ctx };
-      if (tag === 'strong' || tag === 'b') next.bold = true;
-      if (tag === 'em' || tag === 'i') next.italic = true;
-      if (tag === 'u') next.underline = true;
-      const sz = getSizePx(node);
-      if (sz) next.size = sz * 0.75; // px → pt approx
-      const lh = getLineHeight(node);
-      if (lh) next.lineheight = lh;
-      if (tag === 'h1') { next.bold = true; next.size = 14; }
-      if (tag === 'h2') { next.bold = true; next.size = 12; }
-      if (tag === 'h3') { next.bold = true; next.size = 10.5; }
-      if (tag === 'br') { segments.push({ newline: true, lineheight: ctx.lineheight }); return; }
-      if (tag === 'li') { segments.push({ ...next, text: '• ', bullet: true }); }
-      node.childNodes.forEach((c) => walk(c, next));
-      if (['p','div','li','h1','h2','h3'].includes(tag)) {
-        segments.push({ newline: true, lineheight: next.lineheight });
+      const isBold   = bold   || tag === 'strong' || tag === 'b' || tag === 'h1' || tag === 'h2' || tag === 'h3';
+      const isItalic = italic || tag === 'em'     || tag === 'i';
+      const sz = getFontSize(node) || (tag === 'h1' ? 14 : tag === 'h2' ? 12 : tag === 'h3' ? 10 : size);
+      const lh = getLineHeight(node) || lineheight;
+
+      if (tag === 'br') { segments.push({ newline: true }); return; }
+      if (tag === 'li') { segments.push({ text: '• ', bold: false, italic: false, size, lineheight }); }
+      node.childNodes.forEach((c) => walk(c, isBold, isItalic, sz, lh));
+      if (tag === 'p' || tag === 'div' || tag === 'li' || tag === 'h1' || tag === 'h2' || tag === 'h3') {
+        segments.push({ newline: true });
       }
     }
   }
 
-  div.childNodes.forEach((c) => walk(c, { bold: false, italic: false, underline: false, size: null, lineheight: null }));
+  div.childNodes.forEach((c) => walk(c, false, false, null, null));
   while (segments.length && segments[segments.length - 1].newline) segments.pop();
   return segments.length ? segments : [{ text: '', bold: false, italic: false }];
 }
 
 // Renderiza segmentos no PDF. Retorna Y final.
-function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, defaultLineH) {
+function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
   const segments = parseHtmlToSegments(html);
   let curX = x;
   let curY = startY;
@@ -108,22 +108,22 @@ function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, defaultLine
   segments.forEach((seg) => {
     if (seg.newline) {
       curX = x;
-      const lh = seg.lineheight ? defaultLineH * seg.lineheight : defaultLineH;
-      curY += lh;
+      curY += lineH;
       return;
     }
     const sz = seg.size || baseSz;
+    const lh = seg.lineheight ? sz * seg.lineheight * 0.35 : lineH;
     setS(seg.bold, seg.italic);
     doc.setTextColor(...baseColor);
     doc.setFontSize(sz);
 
+    // Word-wrap dentro do segmento
     const words = seg.text.split(/(\s+)/);
     words.forEach((word) => {
       if (!word) return;
       const ww = doc.getTextWidth(word);
       if (curX + ww > x + maxW && curX > x) {
         curX = x;
-        const lh = seg.lineheight ? defaultLineH * seg.lineheight : defaultLineH;
         curY += lh;
       }
       doc.text(word, curX, curY);
@@ -359,13 +359,11 @@ async function buildPDF(quote, cfg) {
   // ── SECTION 4 — GARANTIA ──
   updateY(PARA_GAP);
   sectionHead('PRAZOS DE GARANTIA');
-
-  const gwEndY = drawHtmlText(doc, cfg.warranty_text || DEFAULT_CFG.warranty_text, ML + 2, Y, CW - 4, 8, P.textMain, LH);
-  Y = gwEndY + SEC_GAP;
+  const wEndY = drawHtmlText(doc, cfg.warranty_text || DEFAULT_CFG.warranty_text, ML + 2, Y, CW - 4, 8, P.textMain, LH);
+  Y = wEndY + SEC_GAP;
 
   // ── SECTION 5 — VIP ──
   sectionHead('ACOMPANHAMENTO VIP VITALÍCIO');
-
   const vipEndY = drawHtmlText(doc, cfg.vip_text || DEFAULT_CFG.vip_text, ML + 2, Y, CW - 4, 8, P.textMain, LH);
   Y = vipEndY + SEC_GAP;
 
