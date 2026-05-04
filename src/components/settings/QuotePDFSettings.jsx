@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Save, Loader2 } from 'lucide-react';
 
@@ -33,6 +33,10 @@ const DEFAULT = {
     'Garantia: 2 a 4 anos conforme fabricante',
     'Validade desta proposta: {validity_days} dias',
   ].join('\n'),
+  warranty_factory: 'Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).',
+  warranty_adaptation: 'Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.',
+  vip_intro: 'Todas as revisões abaixo são TOTALMENTE GRATUITAS para clientes Sonatta:',
+  vip_extra: 'Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.',
   // Logo
   logo_url: 'https://media.base44.com/images/public/694e93aa7609bf14847de917/073de81ba_SONATTA_CARDS-10.png',
 };
@@ -180,25 +184,26 @@ export default function QuotePDFSettings() {
       </section>
 
       {/* Garantia */}
-      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
         <h3 className="font-semibold text-[#6B3FA0] text-base border-b border-slate-100 pb-2">Prazos de Garantia</h3>
-        <p className="text-xs text-slate-500">Seção exibida no PDF do orçamento — texto fixo.</p>
-        <div className="space-y-2 text-sm text-slate-700">
-          <div><span className="font-semibold text-[#6B3FA0]">Garantia de Fábrica:</span> Cobre defeitos de fabricação conforme padrão do fabricante para o modelo adquirido.</div>
-          <div><span className="font-semibold text-[#6B3FA0]">Garantia de Adaptação:</span> Acompanhamento técnico inicial para ajustes finos e suporte à adaptação do usuário.</div>
-        </div>
+        <Field label="Garantia de Fábrica" id="warranty_factory">
+          <Textarea id="warranty_factory" rows={3} value={config.warranty_factory} onChange={(e) => set('warranty_factory', e.target.value)} className="text-sm" />
+        </Field>
+        <Field label="Garantia de Adaptação" id="warranty_adaptation">
+          <Textarea id="warranty_adaptation" rows={3} value={config.warranty_adaptation} onChange={(e) => set('warranty_adaptation', e.target.value)} className="text-sm" />
+        </Field>
       </section>
 
       {/* Acompanhamento VIP */}
-      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
         <h3 className="font-semibold text-[#6B3FA0] text-base border-b border-slate-100 pb-2">Acompanhamento VIP Vitalício</h3>
-        <p className="text-xs text-slate-500">Seção exibida no PDF do orçamento — texto fixo.</p>
-        <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
-          <li><span className="font-semibold">1ª Revisão:</span> 3 meses após a compra</li>
-          <li><span className="font-semibold">2ª Revisão:</span> 9 meses após a compra</li>
-          <li><span className="font-semibold">Revisões Subsequentes:</span> A cada 12 meses (anualmente)</li>
-        </ul>
-        <p className="text-xs text-slate-500">Todas as revisões são TOTALMENTE GRATUITAS. Consultas extras fora do cronograma também são cobertas pelo atendimento Sonatta.</p>
+        <p className="text-xs text-slate-500">As datas das revisões (3, 9 e 12 meses) são fixas. Edite apenas os textos introdutório e de rodapé.</p>
+        <Field label="Texto introdutório" id="vip_intro">
+          <Textarea id="vip_intro" rows={2} value={config.vip_intro} onChange={(e) => set('vip_intro', e.target.value)} className="text-sm" />
+        </Field>
+        <Field label="Texto complementar (consultas extras)" id="vip_extra">
+          <Textarea id="vip_extra" rows={2} value={config.vip_extra} onChange={(e) => set('vip_extra', e.target.value)} className="text-sm" />
+        </Field>
       </section>
 
       {/* Assinatura */}
