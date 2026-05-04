@@ -35,19 +35,15 @@ const DEFAULT = {
   signer_role: 'Comercial Sonatta',
 };
 
-const FONT_SIZES = ['8px', '9px', '10px', '11px', '12px', '14px', '16px', '18px', '20px', '24px'];
-const LINE_HEIGHTS = ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'];
-
 const QUILL_MODULES = {
   toolbar: [
     ['bold', 'italic', 'underline'],
-    [{ size: FONT_SIZES }],
-    [{ lineheight: LINE_HEIGHTS }],
+    [{ header: [1, 2, 3, false] }],
     [{ list: 'ordered' }, { list: 'bullet' }],
     ['clean'],
   ],
 };
-const QUILL_FORMATS = ['bold', 'italic', 'underline', 'size', 'lineheight', 'list', 'bullet', 'header'];
+const QUILL_FORMATS = ['bold', 'italic', 'underline', 'header', 'list', 'bullet'];
 
 function Section({ title, subtitle, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);

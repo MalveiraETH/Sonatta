@@ -51,45 +51,26 @@ function parseHtmlToSegments(html) {
   div.innerHTML = html;
   const segments = [];
 
-  // Extrai lineheight do style inline
-  function getLineHeight(el) {
-    const lh = el.style && el.style.lineHeight;
-    if (lh) return parseFloat(lh);
-    return null;
-  }
-
-  // Extrai font-size do style inline (em px)
-  function getFontSize(el) {
-    const fs = el.style && el.style.fontSize;
-    if (fs) return parseFloat(fs);
-    // Quill class: ql-size-14px
-    const cls = el.className || '';
-    const m = cls.match(/ql-size-([\d.]+)px/);
-    if (m) return parseFloat(m[1]);
-    return null;
-  }
-
-  function walk(node, bold, italic, size, lineheight) {
+  function walk(node, bold, italic, size) {
     if (node.nodeType === Node.TEXT_NODE) {
       const t = node.textContent;
-      if (t) segments.push({ text: t, bold, italic, size, lineheight });
+      if (t) segments.push({ text: t, bold, italic, size });
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const tag = node.tagName.toLowerCase();
       const isBold   = bold   || tag === 'strong' || tag === 'b' || tag === 'h1' || tag === 'h2' || tag === 'h3';
       const isItalic = italic || tag === 'em'     || tag === 'i';
-      const sz = getFontSize(node) || (tag === 'h1' ? 14 : tag === 'h2' ? 12 : tag === 'h3' ? 10 : size);
-      const lh = getLineHeight(node) || lineheight;
+      const sz = tag === 'h1' ? 13 : tag === 'h2' ? 11 : tag === 'h3' ? 10 : size;
 
       if (tag === 'br') { segments.push({ newline: true }); return; }
-      if (tag === 'li') { segments.push({ text: '• ', bold: false, italic: false, size, lineheight }); }
-      node.childNodes.forEach((c) => walk(c, isBold, isItalic, sz, lh));
-      if (tag === 'p' || tag === 'div' || tag === 'li' || tag === 'h1' || tag === 'h2' || tag === 'h3') {
+      if (tag === 'li') { segments.push({ text: '• ', bold: false, italic: false, size }); }
+      node.childNodes.forEach((c) => walk(c, isBold, isItalic, sz));
+      if (['p','div','li','h1','h2','h3'].includes(tag)) {
         segments.push({ newline: true });
       }
     }
   }
 
-  div.childNodes.forEach((c) => walk(c, false, false, null, null));
+  div.childNodes.forEach((c) => walk(c, false, false, null));
   while (segments.length && segments[segments.length - 1].newline) segments.pop();
   return segments.length ? segments : [{ text: '', bold: false, italic: false }];
 }
@@ -112,7 +93,6 @@ function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
       return;
     }
     const sz = seg.size || baseSz;
-    const lh = seg.lineheight ? sz * seg.lineheight * 0.35 : lineH;
     setS(seg.bold, seg.italic);
     doc.setTextColor(...baseColor);
     doc.setFontSize(sz);
@@ -124,7 +104,7 @@ function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
       const ww = doc.getTextWidth(word);
       if (curX + ww > x + maxW && curX > x) {
         curX = x;
-        curY += lh;
+        curY += lineH;
       }
       doc.text(word, curX, curY);
       curX += ww;
