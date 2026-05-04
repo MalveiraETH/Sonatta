@@ -258,64 +258,51 @@ async function buildPDF(quote, cfg) {
     doc.text(obs, ML, Y); Y += obs.length * LH + PARA_GAP;
   }
 
-  // ── SECTION 4 — GARANTIA + VIP lado a lado ──
+  // ── SECTION 4 — GARANTIA (full-width) ──
   Y += 2;
-  const COL1X = ML, COL2X = ML + CW/2 + 3, COLW = CW/2 - 5;
+  sectionHead('PRAZOS DE GARANTIA');
 
-  // Cabeçalhos lado a lado
-  setFill([246,241,251]); doc.rect(COL1X, Y, COLW, SH, 'F');
-  setFill(P.purple); doc.rect(COL1X, Y, 2.5, SH, 'F');
-  setFont('bold', 8.5); setTxt(P.purple); doc.text('PRAZOS DE GARANTIA', COL1X+5, Y+4.2);
-
-  setFill([246,241,251]); doc.rect(COL2X, Y, COLW, SH, 'F');
-  setFill(P.purple); doc.rect(COL2X, Y, 2.5, SH, 'F');
-  setFont('bold', 8.5); setTxt(P.purple); doc.text('ACOMPANHAMENTO VIP VITALÍCIO', COL2X+5, Y+4.2);
-  Y += SH + HEAD_PAD;
-
-  // Coluna esquerda — Garantia
-  let GY = Y;
   setFont('bold', 8); setTxt(P.purple);
-  doc.text('Garantia de Fábrica:', COL1X+2, GY);
-  GY += LH + 1;
-  setFont('normal', 7.5); setTxt(P.textMain);
-  const gfLines = doc.splitTextToSize(cfg.warranty_factory || DEFAULT_CFG.warranty_factory, COLW - 4);
-  doc.text(gfLines, COL1X+2, GY);
-  GY += gfLines.length * LH_SM + PARA_GAP;
-  setFont('bold', 8); setTxt(P.purple);
-  doc.text('Garantia de Adaptação:', COL1X+2, GY);
-  GY += LH + 1;
-  setFont('normal', 7.5); setTxt(P.textMain);
-  const gaLines = doc.splitTextToSize(cfg.warranty_adaptation || DEFAULT_CFG.warranty_adaptation, COLW - 4);
-  doc.text(gaLines, COL1X+2, GY);
-  GY += gaLines.length * LH_SM;
+  doc.text('Garantia de Fábrica:', ML + 2, Y);
+  Y += LH + 1;
+  setFont('normal', 8); setTxt(P.textMain);
+  const gfLines = doc.splitTextToSize(cfg.warranty_factory || DEFAULT_CFG.warranty_factory, CW - 4);
+  doc.text(gfLines, ML + 2, Y);
+  Y += gfLines.length * LH + PARA_GAP;
 
-  // Coluna direita — VIP
-  let VY = Y;
-  setFont('normal', 7.5); setTxt(P.textMain);
-  const vipLines = doc.splitTextToSize(cfg.vip_intro || DEFAULT_CFG.vip_intro, COLW - 4);
-  doc.text(vipLines, COL2X+2, VY);
-  VY += vipLines.length * LH_SM + PARA_GAP;
+  setFont('bold', 8); setTxt(P.purple);
+  doc.text('Garantia de Adaptação:', ML + 2, Y);
+  Y += LH + 1;
+  setFont('normal', 8); setTxt(P.textMain);
+  const gaLines = doc.splitTextToSize(cfg.warranty_adaptation || DEFAULT_CFG.warranty_adaptation, CW - 4);
+  doc.text(gaLines, ML + 2, Y);
+  Y += gaLines.length * LH + SEC_GAP;
+
+  // ── SECTION 5 — VIP (full-width) ──
+  sectionHead('ACOMPANHAMENTO VIP VITALÍCIO');
+
+  setFont('normal', 8); setTxt(P.textMain);
+  const vipLines = doc.splitTextToSize(cfg.vip_intro || DEFAULT_CFG.vip_intro, CW - 4);
+  doc.text(vipLines, ML + 2, Y);
+  Y += vipLines.length * LH + PARA_GAP;
 
   const revisoes = [
     { label: '1ª Revisão', desc: '3 meses após a compra' },
     { label: '2ª Revisão', desc: '9 meses após a compra' },
     { label: 'Revisões Subsequentes', desc: 'A cada 12 meses (anualmente)' },
   ];
-  setFont('normal', 7.5); setTxt(P.textMain);
   revisoes.forEach(({ label, desc }) => {
-    setFill(P.green); doc.rect(COL2X+2, VY-1.8, 1.5, 1.5, 'F');
-    setFont('bold', 7.5); doc.text(label + ': ', COL2X + TEXT_X, VY);
+    setFill(P.green); doc.rect(ML + BULLET_X, Y - 1.8, 1.6, 1.6, 'F');
+    setFont('bold', 8); setTxt(P.textMain); doc.text(label + ': ', ML + TEXT_X, Y);
     const lw = doc.getTextWidth(label + ': ');
-    setFont('normal', 7.5); doc.text(desc, COL2X + TEXT_X + lw, VY);
-    VY += LH + 1;
+    setFont('normal', 8); doc.text(desc, ML + TEXT_X + lw, Y);
+    Y += LH + 1.5;
   });
-  VY += 2;
-  setFont('normal', 7); setTxt(P.textSub);
-  const extraLines = doc.splitTextToSize(cfg.vip_extra || DEFAULT_CFG.vip_extra, COLW - 4);
-  doc.text(extraLines, COL2X+2, VY);
-  VY += extraLines.length * LH_SM;
-
-  Y = Math.max(GY, VY) + SEC_GAP + 2;
+  Y += 1;
+  setFont('normal', 8); setTxt(P.textSub);
+  const extraLines = doc.splitTextToSize(cfg.vip_extra || DEFAULT_CFG.vip_extra, CW - 4);
+  doc.text(extraLines, ML + 2, Y);
+  Y += extraLines.length * LH + SEC_GAP + 2;
 
   // ── ASSINATURA (alinhada à direita) ──
   const SIG_W = 58, SIG_X = PAGE_W - MR - SIG_W;
