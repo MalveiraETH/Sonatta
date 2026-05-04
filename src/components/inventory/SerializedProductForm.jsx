@@ -36,6 +36,7 @@ const emptyForm = () => ({
   brand: '',
   model: '',
   serial_number: '',
+  reference: '',
   quantity: 1,
   icms: 0,
   ipi: 0,
@@ -86,6 +87,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         brand: product.brand || '',
         model: product.model || '',
         serial_number: product.serial_number || '',
+        reference: product.reference || '',
         quantity: 1,
         icms: product.icms || 0,
         ipi: product.ipi || 0,
@@ -133,19 +135,23 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
 
   const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
-  // Reference products matching the selected markup category
-  const matchingRefProducts = referenceProducts.filter(
-    (rp) => rp.category === formData.markup_category
-  );
+  // Find reference product by reference code typed in the form
+  const matchedRefProduct = formData.reference
+    ? referenceProducts.find(
+        (rp) => rp.reference.trim().toLowerCase() === formData.reference.trim().toLowerCase()
+      )
+    : null;
 
   const calcRefFinalPrice = (rp) => {
-    if (!billingCfg) return null;
+    if (!billingCfg || !rp) return null;
     const inclFixed = rp.include_fixed_cost !== false;
     const fcost = inclFixed ? (billingCfg.fixed_cost || 0) : 0;
     const tc = (rp.cost || 0) + fcost;
     const markupPctRef = billingCfg[`markup_category_${rp.category}`] || 0;
     return tc + tc * (markupPctRef / 100);
   };
+
+  const refFinalPrice = calcRefFinalPrice(matchedRefProduct);
 
   const handleMarkupCategoryChange = (cat) => {
     const pct = getMarkupPct(cat);
@@ -186,6 +192,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         product_cost: Number(formData.product_cost),
         cost_price: Number(formData.cost_price),
         sale_price: Number(formData.sale_price),
+        reference: formData.reference || '',
       };
       if (product) {
         await base44.entities.Product.update(product.id, dataToSave);
@@ -225,10 +232,26 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          {/* Nome */}
-          <div className="space-y-2">
-            <Label>Nome do Produto *</Label>
-            <Input value={formData.name} onChange={(e) => setField('name', e.target.value)} placeholder="Nome do produto" />
+          {/* Nome + Referência */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nome do Produto *</Label>
+              <Input value={formData.name} onChange={(e) => setField('name', e.target.value)} placeholder="Nome do produto" />
+            </div>
+            <div className="space-y-2">
+              <Label>Referência</Label>
+              <Input
+                value={formData.reference}
+                onChange={(e) => setField('reference', e.target.value)}
+                placeholder="Ex: REF-001"
+              />
+              {formData.reference && !matchedRefProduct && (
+                <p className="text-xs text-amber-600">Referência não encontrada em Produtos de Referência</p>
+              )}
+              {matchedRefProduct && (
+                <p className="text-xs text-green-600 font-medium">✓ {matchedRefProduct.name}</p>
+              )}
+            </div>
           </div>
 
           {/* Categoria produto + Marca */}
@@ -362,40 +385,38 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
             </div>
           </div>
 
-          {/* ── Produtos de Referência (comparação) ── */}
-          {formData.markup_category && matchingRefProducts.length > 0 && (
-            <div className="pt-2 border-t bg-amber-50 rounded-lg p-3">
+          {/* ── Produto de Referência (comparação por código) ── */}
+          {matchedRefProduct && refFinalPrice !== null && (
+            <div className="border-t bg-amber-50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-3">
                 <BookOpen className="h-4 w-4 text-amber-700" />
-                <p className="text-sm font-semibold text-amber-800">
-                  Produtos de Referência — Categoria {formData.markup_category}
-                </p>
+                <p className="text-sm font-semibold text-amber-800">Produto de Referência Encontrado</p>
               </div>
-              <div className="space-y-2">
-                {matchingRefProducts.map((rp) => {
-                  const finalRef = calcRefFinalPrice(rp);
-                  return (
-                    <div key={rp.id} className="flex items-center justify-between bg-white border border-amber-200 rounded-md px-3 py-2">
-                      <div>
-                        <span className="text-xs text-slate-500 font-medium">{rp.reference} — </span>
-                        <span className="text-sm font-semibold text-slate-800">{rp.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-500">Valor Final:</span>
-                        <span className="text-sm font-bold text-amber-700">{finalRef !== null ? BRL(finalRef) : '—'}</span>
-                        <button
-                          type="button"
-                          onClick={() => setField('sale_price', parseFloat((finalRef || 0).toFixed(2)))}
-                          className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded"
-                        >
-                          Usar
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-between bg-white border border-amber-200 rounded-md px-3 py-2">
+                <div>
+                  <span className="text-xs text-slate-500 font-medium">{matchedRefProduct.reference} — </span>
+                  <span className="text-sm font-semibold text-slate-800">{matchedRefProduct.name}</span>
+                  <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Cat. {matchedRefProduct.category}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-xs text-slate-500">Valor Final (Referência)</p>
+                    <p className="text-base font-bold text-amber-700">{BRL(refFinalPrice)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-500">Preço Calculado (Form)</p>
+                    <p className="text-base font-bold text-purple-700">{BRL(suggestedSalePrice)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setField('sale_price', parseFloat(refFinalPrice.toFixed(2)))}
+                    className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-2 py-1.5 rounded whitespace-nowrap"
+                  >
+                    Usar Ref.
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-slate-500 mt-2">Clique em "Usar" para preencher o Preço Final com o valor do produto de referência.</p>
+              <p className="text-xs text-slate-500 mt-2">Clique em "Usar Ref." para aplicar o valor da tabela de referência como Preço Final.</p>
             </div>
           )}
 
