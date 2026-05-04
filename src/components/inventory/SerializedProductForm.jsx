@@ -60,6 +60,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
   const [billingCfg, setBillingCfg] = useState(null);
   const [includeFixedCost, setIncludeFixedCost] = useState(true);
   const [referenceProducts, setReferenceProducts] = useState([]);
+  const [serialDuplicate, setSerialDuplicate] = useState(null);
 
   useEffect(() => {
     const loadBilling = async () => {
@@ -135,6 +136,18 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
 
   const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
+  // Verificação em tempo real de número de série duplicado
+  useEffect(() => {
+    if (!formData.serial_number) { setSerialDuplicate(null); return; }
+    const timer = setTimeout(async () => {
+      const existing = await base44.entities.Product.filter({ serial_number: formData.serial_number, stock_type: 'serializado' });
+      const dup = existing.find((p) => !product || p.id !== product.id);
+      setSerialDuplicate(dup || null);
+    }, 400);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.serial_number]);
+
   // Find reference product by reference code typed in the form
   const matchedRefProduct = formData.reference
     ? referenceProducts.find(
@@ -183,6 +196,14 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
     }
     setLoading(true);
     try {
+      // Verificar duplicidade de número de série
+      const existing = await base44.entities.Product.filter({ serial_number: formData.serial_number, stock_type: 'serializado' });
+      const duplicate = existing.find((p) => !product || p.id !== product.id);
+      if (duplicate) {
+        toast.error(`Número de série "${formData.serial_number}" já está cadastrado para o produto "${duplicate.name}". Cada aparelho deve ter um número de série único.`, { duration: 6000 });
+        setLoading(false);
+        return;
+      }
       const dataToSave = {
         ...formData,
         include_fixed_cost: includeFixedCost,
@@ -292,7 +313,17 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
             </div>
             <div className="space-y-2">
               <Label>Nº de Série *</Label>
-              <Input value={formData.serial_number} onChange={(e) => setField('serial_number', e.target.value)} placeholder="Número de série único" />
+              <Input
+                value={formData.serial_number}
+                onChange={(e) => setField('serial_number', e.target.value)}
+                placeholder="Número de série único"
+                className={serialDuplicate ? 'border-red-400 focus-visible:ring-red-400' : ''}
+              />
+              {serialDuplicate && (
+                <p className="text-xs text-red-600 font-medium">
+                  ⚠️ Nº de série já cadastrado em "{serialDuplicate.name}"
+                </p>
+              )}
             </div>
           </div>
 
