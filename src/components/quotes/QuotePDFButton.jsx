@@ -350,16 +350,14 @@ async function buildPDF(quote, cfg) {
   const vipEndY = drawHtmlText(doc, cfg.vip_text || DEFAULT_CFG.vip_text, ML + 2, Y, CW - 4, 8, P.textMain, LH);
   Y = vipEndY + SEC_GAP;
 
-  // ── ASSINATURA ──
-  if (Y > MAX_Y - 14) Y = MAX_Y - 14;
+  // ── ASSINATURA — fixada logo acima do rodapé ──
   const SIG_W = 55, SIG_X = PAGE_W - MR - SIG_W;
-  setFill(P.textSub); doc.rect(SIG_X, Y, SIG_W, 0.3, 'F');
-  updateY(LH);
+  const SIG_Y = PAGE_H - FOOTER_H - 14;
+  setFill(P.textSub); doc.rect(SIG_X, SIG_Y, SIG_W, 0.3, 'F');
   setFont('bold', 8.5); setTxt(P.textMain);
-  doc.text(cfg.signer_name || 'Fabio Malveira', SIG_X + SIG_W/2, Y, { align: 'center' });
-  updateY(LH);
+  doc.text(cfg.signer_name || 'Fabio Malveira', SIG_X + SIG_W/2, SIG_Y + LH, { align: 'center' });
   setFont('normal', 7); setTxt(P.textSub);
-  doc.text(cfg.signer_role || 'Comercial Sonatta', SIG_X + SIG_W/2, Y, { align: 'center' });
+  doc.text(cfg.signer_role || 'Comercial Sonatta', SIG_X + SIG_W/2, SIG_Y + LH * 2, { align: 'center' });
 
   // ── FOOTER ──
   const FY = PAGE_H - 16;
