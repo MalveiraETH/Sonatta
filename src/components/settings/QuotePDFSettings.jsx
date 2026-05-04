@@ -170,19 +170,6 @@ export default function QuotePDFSettings() {
         )}
       </section>
 
-      {/* Condições Comerciais — info only */}
-      <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
-        <h3 className="font-semibold text-[#6B3FA0] text-base border-b border-slate-100 pb-2">Condições Comerciais</h3>
-        <p className="text-xs text-slate-500">As condições comerciais abaixo são fixas no PDF do orçamento.</p>
-        <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
-          <li>Parcelamento em até 18× no cartão de crédito</li>
-          <li>Pagamento à vista (Dinheiro ou PIX) com desconto incluso na proposta</li>
-          <li>PIX Parcelado: condições a combinar</li>
-          <li>Garantia: 2 a 4 anos conforme fabricante</li>
-          <li>Validade desta proposta: {config.validity_days} dias</li>
-        </ul>
-      </section>
-
       {/* Garantia */}
       <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
         <h3 className="font-semibold text-[#6B3FA0] text-base border-b border-slate-100 pb-2">Prazos de Garantia</h3>
