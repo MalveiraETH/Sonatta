@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BookOpen } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
@@ -58,13 +58,18 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
   const [formData, setFormData] = useState(emptyForm());
   const [billingCfg, setBillingCfg] = useState(null);
   const [includeFixedCost, setIncludeFixedCost] = useState(true);
+  const [referenceProducts, setReferenceProducts] = useState([]);
 
   useEffect(() => {
     const loadBilling = async () => {
       try {
-        const all = await base44.entities.AppSettings.list();
-        const rec = all.find((r) => r.setting_key === 'billing_config');
+        const [allSettings, refProds] = await Promise.all([
+          base44.entities.AppSettings.list(),
+          base44.entities.ReferenceProduct.list()
+        ]);
+        const rec = allSettings.find((r) => r.setting_key === 'billing_config');
         if (rec?.setting_value) setBillingCfg(rec.setting_value);
+        setReferenceProducts(refProds);
       } catch (e) {
         console.warn('Billing config not loaded', e.message);
       }
@@ -127,6 +132,20 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
   const netResult = finalPrice - totalDiscounts - totalCost;
 
   const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
+
+  // Reference products matching the selected markup category
+  const matchingRefProducts = referenceProducts.filter(
+    (rp) => rp.category === formData.markup_category
+  );
+
+  const calcRefFinalPrice = (rp) => {
+    if (!billingCfg) return null;
+    const inclFixed = rp.include_fixed_cost !== false;
+    const fcost = inclFixed ? (billingCfg.fixed_cost || 0) : 0;
+    const tc = (rp.cost || 0) + fcost;
+    const markupPctRef = billingCfg[`markup_category_${rp.category}`] || 0;
+    return tc + tc * (markupPctRef / 100);
+  };
 
   const handleMarkupCategoryChange = (cat) => {
     const pct = getMarkupPct(cat);
@@ -342,6 +361,43 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
               </div>
             </div>
           </div>
+
+          {/* ── Produtos de Referência (comparação) ── */}
+          {formData.markup_category && matchingRefProducts.length > 0 && (
+            <div className="pt-2 border-t bg-amber-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="h-4 w-4 text-amber-700" />
+                <p className="text-sm font-semibold text-amber-800">
+                  Produtos de Referência — Categoria {formData.markup_category}
+                </p>
+              </div>
+              <div className="space-y-2">
+                {matchingRefProducts.map((rp) => {
+                  const finalRef = calcRefFinalPrice(rp);
+                  return (
+                    <div key={rp.id} className="flex items-center justify-between bg-white border border-amber-200 rounded-md px-3 py-2">
+                      <div>
+                        <span className="text-xs text-slate-500 font-medium">{rp.reference} — </span>
+                        <span className="text-sm font-semibold text-slate-800">{rp.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-500">Valor Final:</span>
+                        <span className="text-sm font-bold text-amber-700">{finalRef !== null ? BRL(finalRef) : '—'}</span>
+                        <button
+                          type="button"
+                          onClick={() => setField('sale_price', parseFloat((finalRef || 0).toFixed(2)))}
+                          className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded"
+                        >
+                          Usar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Clique em "Usar" para preencher o Preço Final com o valor do produto de referência.</p>
+            </div>
+          )}
 
           {/* ── Preço Final ── */}
           <div className="pt-2">
