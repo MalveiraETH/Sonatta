@@ -84,11 +84,19 @@ async function buildPDF(quote, cfg) {
   const PAGE_W = 210, PAGE_H = 297, ML = 15, MR = 15;
   const CW = PAGE_W - ML - MR;
 
+  // ── Espaçamentos padronizados ──
+  const LH      = 5.0;  // line-height padrão para texto 8pt
+  const LH_SM   = 4.5;  // line-height para texto 7pt
+  const SEC_GAP = 6;    // espaço entre seções
+  const HEAD_PAD = 4;   // espaço entre cabeçalho de seção e primeiro texto
+  const PARA_GAP = 4;   // espaço entre parágrafos dentro da seção
+  const BULLET_X = 3;   // recuo do bullet
+  const TEXT_X   = 7;   // recuo do texto após bullet
+
   const setFill   = (rgb) => doc.setFillColor(...rgb);
   const setStroke = (rgb) => doc.setDrawColor(...rgb);
   const setTxt    = (rgb) => doc.setTextColor(...rgb);
   const setFont   = (w, sz) => { doc.setFont('helvetica', w); doc.setFontSize(sz); };
-  const rule = (x, y, w, color = P.divider, h = 0.3) => { setFill(color); doc.rect(x, y, w, h, 'F'); };
 
   setFill(P.pageBg); doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
@@ -110,218 +118,236 @@ async function buildPDF(quote, cfg) {
   setFont('bold', 13); setTxt(P.purple);
   doc.text(cfg.document_title || 'PROPOSTA COMERCIAL', RX, 10, { align: 'right' });
   setFont('normal', 8); setTxt(P.textSub);
-  doc.text('Nº ' + (quote.quote_number || '—'), RX, 16, { align: 'right' });
-  doc.text('Data: ' + fmtDate(quote.created_date), RX, 21, { align: 'right' });
+  doc.text('Nº ' + (quote.quote_number || '—'), RX, 16.5, { align: 'right' });
+  doc.text('Data: ' + fmtDate(quote.created_date), RX, 21.5, { align: 'right' });
   const validDays = quote.validity_days || cfg.validity_days || 30;
   const vd = new Date(); vd.setDate(vd.getDate() + validDays);
   const validUntil = String(vd.getDate()).padStart(2,'0') + '/' + String(vd.getMonth()+1).padStart(2,'0') + '/' + vd.getFullYear();
-  doc.text('Válida até: ' + validUntil, RX, 26, { align: 'right' });
+  doc.text('Válida até: ' + validUntil, RX, 26.5, { align: 'right' });
 
-  setFill(P.green); doc.rect(ML, 30, CW, 0.8, 'F');
-  let Y = 35;
+  setFill(P.green); doc.rect(ML, 31, CW, 0.8, 'F');
+  let Y = 37;
 
+  // ── Helper: cabeçalho de seção ──
+  const SH = 6; // altura do cabeçalho de seção
   const sectionHead = (label) => {
-    setFill([246, 241, 251]); doc.rect(ML, Y, CW, 5.5, 'F');
-    setFill(P.purple); doc.rect(ML, Y, 2, 5.5, 'F');
+    setFill([246, 241, 251]); doc.rect(ML, Y, CW, SH, 'F');
+    setFill(P.purple); doc.rect(ML, Y, 2.5, SH, 'F');
     setFont('bold', 9); setTxt(P.purple);
-    doc.text(label, ML + 4, Y + 3.9);
-    Y += 7;
+    doc.text(label, ML + 5, Y + 4.2);
+    Y += SH + HEAD_PAD;
   };
 
   // ── SECTION 1 — CLIENTE ──
   sectionHead('DADOS DO CLIENTE');
-  Y += 1;
-  const COL_A_LBL = ML + 2, COL_A_VAL = ML + 24;
-  const COL_B_LBL = ML + CW / 2 + 2, COL_B_VAL = ML + CW / 2 + 24;
-  const HALF_VAL_W = CW / 2 - 26;
+  const COL_A_LBL = ML + 2, COL_A_VAL = ML + 26;
+  const COL_B_LBL = ML + CW/2 + 2, COL_B_VAL = ML + CW/2 + 26;
+  const HALF_VAL_W = CW/2 - 28;
 
   [
     [['Nome', quote.client_name || '—'], ['CPF', quote.client_cpf || '—']],
     [['Telefone', quote.client_phone || '—'], ['E-mail', quote.client_email || '—']],
-  ].forEach(([left, right]) => {
+  ].forEach(([left, right], i) => {
+    if (i > 0) Y += 1; // espaço extra entre linhas
     setFont('bold', 7.5); setTxt(P.textSub);
     doc.text(left[0] + ':', COL_A_LBL, Y);
     doc.text(right[0] + ':', COL_B_LBL, Y);
     setFont('normal', 8.5); setTxt(P.textMain);
     doc.text(doc.splitTextToSize(left[1], HALF_VAL_W)[0], COL_A_VAL, Y);
     doc.text(doc.splitTextToSize(right[1], HALF_VAL_W)[0], COL_B_VAL, Y);
-    Y += 6;
+    Y += LH + 1;
   });
-  rule(ML, Y, CW, P.divider, 0.25); Y += 5;
+  Y += 2;
+  setFill(P.divider); doc.rect(ML, Y, CW, 0.25, 'F');
+  Y += SEC_GAP;
 
   // ── SECTION 2 — ITENS ──
   sectionHead('ITENS DO ORÇAMENTO');
   const TC = { desc: { x: ML, w: 100 }, qty: { x: ML+102, w: 14 }, unit: { x: ML+118, w: 28 } };
-  const TR = PAGE_W - MR, TH = 6.5;
+  const TR = PAGE_W - MR, TH = 7;
 
   const drawTableHeader = (sy) => {
     setFill(P.purple); doc.rect(ML, sy, CW, TH, 'F');
     setFont('bold', 8); setTxt(P.white);
-    doc.text('Descrição', TC.desc.x + 2, sy + 4.4);
-    doc.text('Qtd', TC.qty.x + TC.qty.w/2, sy + 4.4, { align: 'center' });
-    doc.text('Valor Unit.', TC.unit.x + TC.unit.w - 1, sy + 4.4, { align: 'right' });
-    doc.text('Total', TR - 1, sy + 4.4, { align: 'right' });
+    doc.text('Descrição', TC.desc.x + 3, sy + 4.8);
+    doc.text('Qtd', TC.qty.x + TC.qty.w/2, sy + 4.8, { align: 'center' });
+    doc.text('Valor Unit.', TC.unit.x + TC.unit.w - 1, sy + 4.8, { align: 'right' });
+    doc.text('Total', TR - 2, sy + 4.8, { align: 'right' });
     return sy + TH;
   };
 
   Y = drawTableHeader(Y);
   let zebra = false;
   (quote.items || []).forEach((item) => {
-    const nameLines = doc.splitTextToSize(item.product_name || '—', TC.desc.w - 3);
-    const rowH = Math.max(6.5, nameLines.length * 5 + 2);
+    const nameLines = doc.splitTextToSize(item.product_name || '—', TC.desc.w - 4);
+    const rowH = Math.max(7, nameLines.length * LH + 2.5);
     if (zebra) { setFill([245,243,248]); doc.rect(ML,Y,CW,rowH,'F'); }
     setFont('normal', 8.5); setTxt(P.textMain);
-    doc.text(nameLines, TC.desc.x + 2, Y + 4.5);
-    doc.text(String(item.quantity || 1), TC.qty.x + TC.qty.w/2, Y + 4.5, { align: 'center' });
-    doc.text(BRL(item.unit_price), TC.unit.x + TC.unit.w - 1, Y + 4.5, { align: 'right' });
-    doc.text(BRL(item.total), TR - 1, Y + 4.5, { align: 'right' });
+    doc.text(nameLines, TC.desc.x + 3, Y + 4.8);
+    doc.text(String(item.quantity || 1), TC.qty.x + TC.qty.w/2, Y + 4.8, { align: 'center' });
+    doc.text(BRL(item.unit_price), TC.unit.x + TC.unit.w - 1, Y + 4.8, { align: 'right' });
+    doc.text(BRL(item.total), TR - 2, Y + 4.8, { align: 'right' });
     setFill([220,215,230]); doc.rect(ML, Y + rowH - 0.25, CW, 0.25, 'F');
     Y += rowH; zebra = !zebra;
   });
-
-  setFill(P.purple); doc.rect(ML, Y, CW, 0.4, 'F'); Y += 5;
+  setFill(P.purple); doc.rect(ML, Y, CW, 0.4, 'F');
+  Y += SEC_GAP;
 
   // ── SECTION 3 — RESUMO FINANCEIRO ──
   const hasDsc = (quote.discount || 0) > 0;
   const totalAVista = quote.total;
   const inst18 = (quote.subtotal > 0 ? quote.subtotal : quote.total) / 18;
-  const OPT_W = CW/2 - 2, OPT_X1 = ML, OPT_X2 = ML + OPT_W + 4, OPT_H = hasDsc ? 28 : 24;
+  const OPT_W = CW/2 - 3, OPT_X1 = ML, OPT_X2 = ML + OPT_W + 6;
+  const OPT_BODY_H = hasDsc ? 22 : 18;
+  const OPT_HEAD_H = 7;
+  const OPT_H = OPT_HEAD_H + OPT_BODY_H;
 
-  setFill(P.green); doc.roundedRect(OPT_X1, Y, OPT_W, 7, 1.5, 1.5, 'F');
-  setFont('bold', 8); setTxt(P.white);
-  doc.text('À VISTA  (Dinheiro ou PIX)', OPT_X1 + OPT_W/2, Y + 4.8, { align: 'center' });
+  // Opção A — À Vista
+  setFill(P.green); doc.roundedRect(OPT_X1, Y, OPT_W, OPT_HEAD_H, 1.5, 1.5, 'F');
+  setFont('bold', 8.5); setTxt(P.white);
+  doc.text('À VISTA  (Dinheiro ou PIX)', OPT_X1 + OPT_W/2, Y + 4.9, { align: 'center' });
   setFill([250,252,243]); setStroke([180,210,60]); doc.setLineWidth(0.3);
-  doc.roundedRect(OPT_X1, Y+6.5, OPT_W, OPT_H-6.5, 1.5, 1.5, 'FD');
-  const AX = OPT_X1 + OPT_W - 4; let AY = Y + 12;
-  setFont('normal', 7.5); setTxt(P.textSub); doc.text('Subtotal:', OPT_X1+4, AY);
-  setFont('normal', 7.5); setTxt(P.textMain); doc.text(BRL(quote.subtotal), AX, AY, { align: 'right' });
-  AY += 5.5;
+  doc.roundedRect(OPT_X1, Y + OPT_HEAD_H, OPT_W, OPT_BODY_H, 1.5, 1.5, 'FD');
+  const AX = OPT_X1 + OPT_W - 4; let AY = Y + OPT_HEAD_H + 5;
+  setFont('normal', 8); setTxt(P.textSub); doc.text('Subtotal:', OPT_X1 + 4, AY);
+  setFont('normal', 8); setTxt(P.textMain); doc.text(BRL(quote.subtotal), AX, AY, { align: 'right' });
+  AY += LH + 1;
   if (hasDsc) {
     const pct = quote.subtotal > 0 ? ((quote.discount/quote.subtotal)*100).toFixed(1)+'%' : '';
-    setFont('normal', 7.5); setTxt(P.textSub); doc.text('Desconto '+(pct?'('+pct+')':'')+':',OPT_X1+4,AY);
-    setFont('bold', 7.5); setTxt([80,140,0]); doc.text('- '+BRL(quote.discount),AX,AY,{align:'right'});
-    AY += 5.5;
+    setFont('normal', 8); setTxt(P.textSub); doc.text('Desconto '+(pct?'('+pct+')':'')+':',OPT_X1+4,AY);
+    setFont('bold', 8); setTxt([80,140,0]); doc.text('- '+BRL(quote.discount),AX,AY,{align:'right'});
+    AY += LH + 1;
   }
-  setFill([180,210,60]); doc.rect(OPT_X1+2, AY-1, OPT_W-4, 0.25, 'F'); AY += 2.5;
-  setFont('bold', 11); setTxt([60,110,0]); doc.text(BRL(totalAVista), OPT_X1+OPT_W/2, AY, { align: 'center' });
+  setFill([180,210,60]); doc.rect(OPT_X1+3, AY, OPT_W-6, 0.25, 'F'); AY += 3;
+  setFont('bold', 12); setTxt([60,110,0]); doc.text(BRL(totalAVista), OPT_X1+OPT_W/2, AY, { align: 'center' });
 
-  setFill(P.purple); doc.roundedRect(OPT_X2, Y, OPT_W, 7, 1.5, 1.5, 'F');
-  setFont('bold', 8); setTxt(P.white);
-  doc.text('PARCELADO  (Cartão de Crédito)', OPT_X2+OPT_W/2, Y+4.8, { align: 'center' });
+  // Opção B — Parcelado
+  setFill(P.purple); doc.roundedRect(OPT_X2, Y, OPT_W, OPT_HEAD_H, 1.5, 1.5, 'F');
+  setFont('bold', 8.5); setTxt(P.white);
+  doc.text('PARCELADO  (Cartão de Crédito)', OPT_X2+OPT_W/2, Y+4.9, { align: 'center' });
   setFill([250,247,254]); setStroke([210,200,225]); doc.setLineWidth(0.3);
-  doc.roundedRect(OPT_X2, Y+6.5, OPT_W, OPT_H-6.5, 1.5, 1.5, 'FD');
-  const BX = OPT_X2+OPT_W-4; let BY = Y+12;
-  setFont('normal', 7.5); setTxt(P.textSub); doc.text('Valor total:', OPT_X2+4, BY);
-  setFont('normal', 7.5); setTxt(P.textMain); doc.text(BRL(quote.subtotal), BX, BY, { align: 'right' });
-  BY += 5.5;
-  setFont('normal', 7.5); setTxt(P.textSub); doc.text('Parcelamento em até 18×:', OPT_X2+4, BY);
-  BY += 5.5;
-  setFill([210,200,225]); doc.rect(OPT_X2+2, BY-1, OPT_W-4, 0.25, 'F'); BY += 2.5;
-  setFont('bold', 11); setTxt(P.purple); doc.text(BRL(inst18)+'/mês', OPT_X2+OPT_W/2, BY, { align: 'center' });
+  doc.roundedRect(OPT_X2, Y + OPT_HEAD_H, OPT_W, OPT_BODY_H, 1.5, 1.5, 'FD');
+  const BX = OPT_X2+OPT_W-4; let BY = Y + OPT_HEAD_H + 5;
+  setFont('normal', 8); setTxt(P.textSub); doc.text('Valor total:', OPT_X2+4, BY);
+  setFont('normal', 8); setTxt(P.textMain); doc.text(BRL(quote.subtotal), BX, BY, { align: 'right' });
+  BY += LH + 1;
+  setFont('normal', 8); setTxt(P.textSub); doc.text('Parcelamento em até 18×:', OPT_X2+4, BY);
+  BY += LH + 1;
+  setFill([210,200,225]); doc.rect(OPT_X2+3, BY, OPT_W-6, 0.25, 'F'); BY += 3;
+  setFont('bold', 12); setTxt(P.purple); doc.text(BRL(inst18)+'/mês', OPT_X2+OPT_W/2, BY, { align: 'center' });
 
-  Y += OPT_H + 6;
+  Y += OPT_H + SEC_GAP;
 
   // ── SECTION 4 — CONDIÇÕES COMERCIAIS ──
   sectionHead('CONDIÇÕES COMERCIAIS');
   const conds = (cfg.conditions || '')
     .split('\n').map((l) => l.trim().replace('{validity_days}', validDays)).filter(Boolean);
 
-  // Two-column conditions layout
   const half = Math.ceil(conds.length / 2);
-  const leftConds = conds.slice(0, half);
+  const leftConds  = conds.slice(0, half);
   const rightConds = conds.slice(half);
-  const colW = CW / 2 - 5;
-  const condStartY = Y;
-  setFont('normal', 7.5); setTxt(P.textMain);
-  let lY = condStartY, rY = condStartY;
+  const condColW   = CW/2 - 8;
+  let lY = Y, rY = Y;
+
+  setFont('normal', 8); setTxt(P.textMain);
   leftConds.forEach((line) => {
-    setFill(P.green); doc.rect(ML+1, lY-1.8, 1.5, 1.5, 'F');
-    const wrapped = doc.splitTextToSize(line, colW - 5);
-    doc.text(wrapped, ML+5, lY); lY += wrapped.length * 5;
+    const wrapped = doc.splitTextToSize(line, condColW);
+    setFill(P.green); doc.rect(ML + BULLET_X, lY - 1.8, 1.6, 1.6, 'F');
+    doc.text(wrapped, ML + TEXT_X, lY);
+    lY += wrapped.length * LH + 2;
   });
   rightConds.forEach((line) => {
-    setFill(P.green); doc.rect(ML + CW/2 + 1, rY-1.8, 1.5, 1.5, 'F');
-    const wrapped = doc.splitTextToSize(line, colW - 5);
-    doc.text(wrapped, ML + CW/2 + 5, rY); rY += wrapped.length * 5;
+    const wrapped = doc.splitTextToSize(line, condColW);
+    setFill(P.green); doc.rect(ML + CW/2 + BULLET_X, rY - 1.8, 1.6, 1.6, 'F');
+    doc.text(wrapped, ML + CW/2 + TEXT_X, rY);
+    rY += wrapped.length * LH + 2;
   });
-  Y = Math.max(lY, rY) + 4;
+  Y = Math.max(lY, rY) + PARA_GAP;
 
   if (quote.notes) {
-    setFont('bold', 8); setTxt(P.purple); doc.text('Observações:', ML, Y); Y += 5;
-    setFont('normal', 7.5); setTxt(P.textMain);
+    setFont('bold', 8); setTxt(P.purple); doc.text('Observações:', ML, Y); Y += LH + 1;
+    setFont('normal', 8); setTxt(P.textMain);
     const obs = doc.splitTextToSize(quote.notes, CW);
-    doc.text(obs, ML, Y); Y += obs.length * 4.5 + 3;
+    doc.text(obs, ML, Y); Y += obs.length * LH + PARA_GAP;
   }
 
-  // ── SECTION 5 — GARANTIA + VIP (two columns side by side) ──
-  Y += 1;
-  // Draw two section headers side by side
-  const COL1X = ML, COL2X = ML + CW/2 + 2, COLW2 = CW/2 - 2;
+  // ── SECTION 5 — GARANTIA + VIP lado a lado ──
+  Y += 2;
+  const COL1X = ML, COL2X = ML + CW/2 + 3, COLW = CW/2 - 5;
 
-  // Left header: GARANTIA
-  setFill([246,241,251]); doc.rect(COL1X, Y, CW/2-2, 5.5, 'F');
-  setFill(P.purple); doc.rect(COL1X, Y, 2, 5.5, 'F');
-  setFont('bold', 8); setTxt(P.purple); doc.text('PRAZOS DE GARANTIA', COL1X+4, Y+3.9);
-  // Right header: VIP
-  setFill([246,241,251]); doc.rect(COL2X, Y, COLW2, 5.5, 'F');
-  setFill(P.purple); doc.rect(COL2X, Y, 2, 5.5, 'F');
-  setFont('bold', 8); setTxt(P.purple); doc.text('ACOMPANHAMENTO VIP VITALÍCIO', COL2X+4, Y+3.9);
-  Y += 8;
+  // Cabeçalhos lado a lado
+  setFill([246,241,251]); doc.rect(COL1X, Y, COLW, SH, 'F');
+  setFill(P.purple); doc.rect(COL1X, Y, 2.5, SH, 'F');
+  setFont('bold', 8.5); setTxt(P.purple); doc.text('PRAZOS DE GARANTIA', COL1X+5, Y+4.2);
 
-  // Left: garantia texts
+  setFill([246,241,251]); doc.rect(COL2X, Y, COLW, SH, 'F');
+  setFill(P.purple); doc.rect(COL2X, Y, 2.5, SH, 'F');
+  setFont('bold', 8.5); setTxt(P.purple); doc.text('ACOMPANHAMENTO VIP VITALÍCIO', COL2X+5, Y+4.2);
+  Y += SH + HEAD_PAD;
+
+  // Coluna esquerda — Garantia
   let GY = Y;
-  setFont('bold', 7.5); setTxt(P.purple); doc.text('Garantia de Fábrica:', COL1X+2, GY); GY += 4.5;
-  setFont('normal', 7); setTxt(P.textMain);
-  const gfLines = doc.splitTextToSize(cfg.warranty_factory || DEFAULT_CFG.warranty_factory, CW/2 - 8);
-  doc.text(gfLines, COL1X+2, GY); GY += gfLines.length * 4 + 3;
-  setFont('bold', 7.5); setTxt(P.purple); doc.text('Garantia de Adaptação:', COL1X+2, GY); GY += 4.5;
-  setFont('normal', 7); setTxt(P.textMain);
-  const gaLines = doc.splitTextToSize(cfg.warranty_adaptation || DEFAULT_CFG.warranty_adaptation, CW/2 - 8);
-  doc.text(gaLines, COL1X+2, GY); GY += gaLines.length * 4;
+  setFont('bold', 8); setTxt(P.purple);
+  doc.text('Garantia de Fábrica:', COL1X+2, GY);
+  GY += LH + 1;
+  setFont('normal', 7.5); setTxt(P.textMain);
+  const gfLines = doc.splitTextToSize(cfg.warranty_factory || DEFAULT_CFG.warranty_factory, COLW - 4);
+  doc.text(gfLines, COL1X+2, GY);
+  GY += gfLines.length * LH_SM + PARA_GAP;
+  setFont('bold', 8); setTxt(P.purple);
+  doc.text('Garantia de Adaptação:', COL1X+2, GY);
+  GY += LH + 1;
+  setFont('normal', 7.5); setTxt(P.textMain);
+  const gaLines = doc.splitTextToSize(cfg.warranty_adaptation || DEFAULT_CFG.warranty_adaptation, COLW - 4);
+  doc.text(gaLines, COL1X+2, GY);
+  GY += gaLines.length * LH_SM;
 
-  // Right: VIP texts
+  // Coluna direita — VIP
   let VY = Y;
-  setFont('normal', 7); setTxt(P.textMain);
-  const vipLines = doc.splitTextToSize(cfg.vip_intro || DEFAULT_CFG.vip_intro, COLW2 - 6);
-  doc.text(vipLines, COL2X+2, VY); VY += vipLines.length * 4 + 2;
+  setFont('normal', 7.5); setTxt(P.textMain);
+  const vipLines = doc.splitTextToSize(cfg.vip_intro || DEFAULT_CFG.vip_intro, COLW - 4);
+  doc.text(vipLines, COL2X+2, VY);
+  VY += vipLines.length * LH_SM + PARA_GAP;
 
   const revisoes = [
     { label: '1ª Revisão', desc: '3 meses após a compra' },
     { label: '2ª Revisão', desc: '9 meses após a compra' },
     { label: 'Revisões Subsequentes', desc: 'A cada 12 meses (anualmente)' },
   ];
+  setFont('normal', 7.5); setTxt(P.textMain);
   revisoes.forEach(({ label, desc }) => {
-    setFill(P.green); doc.rect(COL2X+2, VY-1.8, 1.3, 1.3, 'F');
-    setFont('bold', 7); setTxt(P.textMain); doc.text(label + ': ', COL2X+5.5, VY);
+    setFill(P.green); doc.rect(COL2X+2, VY-1.8, 1.5, 1.5, 'F');
+    setFont('bold', 7.5); doc.text(label + ': ', COL2X + TEXT_X, VY);
     const lw = doc.getTextWidth(label + ': ');
-    setFont('normal', 7); doc.text(desc, COL2X+5.5+lw, VY);
-    VY += 5;
+    setFont('normal', 7.5); doc.text(desc, COL2X + TEXT_X + lw, VY);
+    VY += LH + 1;
   });
-  VY += 1;
-  setFont('normal', 6.5); setTxt(P.textSub);
-  const extraLines = doc.splitTextToSize(cfg.vip_extra || DEFAULT_CFG.vip_extra, COLW2 - 6);
-  doc.text(extraLines, COL2X+2, VY); VY += extraLines.length * 4;
+  VY += 2;
+  setFont('normal', 7); setTxt(P.textSub);
+  const extraLines = doc.splitTextToSize(cfg.vip_extra || DEFAULT_CFG.vip_extra, COLW - 4);
+  doc.text(extraLines, COL2X+2, VY);
+  VY += extraLines.length * LH_SM;
 
-  Y = Math.max(GY, VY) + 6;
+  Y = Math.max(GY, VY) + SEC_GAP + 2;
 
-  // ── ASSINATURA inline (right-aligned) ──
-  const SIG_W = 55, SIG_X = PAGE_W - MR - SIG_W;
+  // ── ASSINATURA (alinhada à direita) ──
+  const SIG_W = 58, SIG_X = PAGE_W - MR - SIG_W;
   setFill(P.textSub); doc.rect(SIG_X, Y, SIG_W, 0.35, 'F');
-  Y += 4;
-  setFont('bold', 8.5); setTxt(P.textMain);
+  Y += LH;
+  setFont('bold', 9); setTxt(P.textMain);
   doc.text(cfg.signer_name || 'Fabio Malveira', SIG_X + SIG_W/2, Y, { align: 'center' });
-  Y += 4.5;
-  setFont('normal', 7.5); setTxt(P.textSub);
+  Y += LH;
+  setFont('normal', 8); setTxt(P.textSub);
   doc.text(cfg.signer_role || 'Comercial Sonatta', SIG_X + SIG_W/2, Y, { align: 'center' });
-  Y += 8;
+  Y += SEC_GAP + 2;
 
-  // ── FOOTER (dinâmico — logo após o conteúdo, mas nunca acima de PAGE_H-18) ──
-  const FY = Math.max(Y + 4, PAGE_H - 18);
+  // ── FOOTER ──
+  const FY = Math.max(Y + 2, PAGE_H - 18);
   setFill(P.green); doc.rect(ML, FY, CW, 0.7, 'F');
-  const FL = FY + 5;
+  const FL = FY + 5.5;
   setFont('normal', 7); setTxt(P.textSub);
   doc.text(cfg.address || '', ML, FL);
-  doc.text((cfg.phone || '') + '  ·  ' + (cfg.email || ''), ML, FL+4.5);
+  doc.text((cfg.phone || '') + '  ·  ' + (cfg.email || ''), ML, FL + 5);
   setFont('normal', 7); setTxt(P.purple);
   doc.text((cfg.website || '') + '  ·  ' + (cfg.instagram || ''), PAGE_W-MR, FL, { align: 'right' });
 
