@@ -59,7 +59,6 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
   const [billingCfg, setBillingCfg] = useState(null);
   const [includeFixedCost, setIncludeFixedCost] = useState(true);
   const [referenceProducts, setReferenceProducts] = useState([]);
-  const [refSearch, setRefSearch] = useState('');
 
   useEffect(() => {
     const loadBilling = async () => {
@@ -134,15 +133,10 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
 
   const setField = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
-  // Reference products: filter by search term (reference or name) and optionally by markup category
-  const matchingRefProducts = referenceProducts.filter((rp) => {
-    const term = refSearch.trim().toLowerCase();
-    if (!term) return formData.markup_category ? rp.category === formData.markup_category : false;
-    return (
-      rp.reference?.toLowerCase().includes(term) ||
-      rp.name?.toLowerCase().includes(term)
-    );
-  });
+  // Reference products matching the selected markup category
+  const matchingRefProducts = referenceProducts.filter(
+    (rp) => rp.category === formData.markup_category
+  );
 
   const calcRefFinalPrice = (rp) => {
     if (!billingCfg) return null;
@@ -369,23 +363,14 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
           </div>
 
           {/* ── Produtos de Referência (comparação) ── */}
-          <div className="pt-2 border-t bg-amber-50 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <BookOpen className="h-4 w-4 text-amber-700" />
-              <p className="text-sm font-semibold text-amber-800">Comparar com Produto de Referência</p>
-            </div>
-            <div className="relative mb-3">
-              <Input
-                placeholder="Buscar por referência ou nome (ex: REF-001)..."
-                value={refSearch}
-                onChange={(e) => setRefSearch(e.target.value)}
-                className="bg-white border-amber-300 pr-8"
-              />
-              {refSearch && (
-                <button type="button" onClick={() => setRefSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
-              )}
-            </div>
-            {matchingRefProducts.length > 0 ? (
+          {formData.markup_category && matchingRefProducts.length > 0 && (
+            <div className="pt-2 border-t bg-amber-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="h-4 w-4 text-amber-700" />
+                <p className="text-sm font-semibold text-amber-800">
+                  Produtos de Referência — Categoria {formData.markup_category}
+                </p>
+              </div>
               <div className="space-y-2">
                 {matchingRefProducts.map((rp) => {
                   const finalRef = calcRefFinalPrice(rp);
@@ -394,7 +379,6 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
                       <div>
                         <span className="text-xs text-slate-500 font-medium">{rp.reference} — </span>
                         <span className="text-sm font-semibold text-slate-800">{rp.name}</span>
-                        <span className="ml-2 text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">Cat. {rp.category}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-slate-500">Valor Final:</span>
@@ -410,14 +394,10 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
                     </div>
                   );
                 })}
-                <p className="text-xs text-slate-500 mt-1">Clique em "Usar" para preencher o Preço Final com o valor do produto de referência.</p>
               </div>
-            ) : (
-              <p className="text-xs text-slate-500 text-center py-2">
-                {refSearch ? 'Nenhum produto de referência encontrado.' : formData.markup_category ? 'Nenhum produto de referência nessa categoria.' : 'Digite uma referência ou selecione uma categoria de markup para ver sugestões.'}
-              </p>
-            )}
-          </div>
+              <p className="text-xs text-slate-500 mt-2">Clique em "Usar" para preencher o Preço Final com o valor do produto de referência.</p>
+            </div>
+          )}
 
           {/* ── Preço Final ── */}
           <div className="pt-2">
