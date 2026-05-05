@@ -119,7 +119,9 @@ export default function Sales() {
       filtered = filtered.filter(s =>
         s.client_name?.toLowerCase().includes(term) ||
         s.sale_number?.toLowerCase().includes(term) ||
-        s.seller_name?.toLowerCase().includes(term)
+        s.seller_name?.toLowerCase().includes(term) ||
+        String(s.total || '').includes(term) ||
+        String(s.subtotal || '').includes(term)
       );
     }
 
@@ -456,7 +458,7 @@ Obrigado pela preferência!
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Buscar por cliente, número ou vendedor..."
+                  placeholder="Buscar por cliente, número, vendedor ou valor..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
