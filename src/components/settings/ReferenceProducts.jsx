@@ -199,9 +199,13 @@ export default function ReferenceProducts() {
   };
 
   const CATEGORY_ORDER = { '90': 1, '70': 2, '50': 3, '30': 4, '10': 5 };
-  const sortedProducts = [...products].sort((a, b) =>
-    (CATEGORY_ORDER[a.category] || 99) - (CATEGORY_ORDER[b.category] || 99)
-  );
+  const sortedProducts = [...products].sort((a, b) => {
+    const catDiff = (CATEGORY_ORDER[a.category] || 99) - (CATEGORY_ORDER[b.category] || 99);
+    if (catDiff !== 0) return catDiff;
+    const aFinal = calculateFinalPrice(a.cost, a.category, a.include_fixed_cost !== false);
+    const bFinal = calculateFinalPrice(b.cost, b.category, b.include_fixed_cost !== false);
+    return bFinal - aFinal;
+  });
 
   const exportToExcel = () => {
     try {
