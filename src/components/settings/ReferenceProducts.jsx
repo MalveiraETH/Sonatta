@@ -187,6 +187,22 @@ export default function ReferenceProducts() {
     return labels[category] || category;
   };
 
+  const getCategoryColor = (category) => {
+    const colors = {
+      '90': 'bg-purple-100 text-purple-800',
+      '70': 'bg-blue-100 text-blue-800',
+      '50': 'bg-emerald-100 text-emerald-800',
+      '30': 'bg-amber-100 text-amber-800',
+      '10': 'bg-slate-100 text-slate-700',
+    };
+    return colors[category] || 'bg-gray-100 text-gray-700';
+  };
+
+  const CATEGORY_ORDER = { '90': 1, '70': 2, '50': 3, '30': 4, '10': 5 };
+  const sortedProducts = [...products].sort((a, b) =>
+    (CATEGORY_ORDER[a.category] || 99) - (CATEGORY_ORDER[b.category] || 99)
+  );
+
   const exportToExcel = () => {
     try {
       const exportData = products.map(product => ({
@@ -381,14 +397,14 @@ export default function ReferenceProducts() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  products.map((product) => {
+                  sortedProducts.map((product) => {
                     const includeFixedCost = product.include_fixed_cost !== false;
                     return (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.reference}</TableCell>
                         <TableCell>{product.name}</TableCell>
                         <TableCell>
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-[#6B3FA0]/10 text-[#6B3FA0]">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(product.category)}`}>
                             {getCategoryLabel(product.category)}
                           </span>
                         </TableCell>
