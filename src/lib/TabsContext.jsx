@@ -22,16 +22,15 @@ export function TabsProvider({ children, initialPage = 'Dashboard', initialName 
     setTabs(prev => {
       const newTabs = prev.filter(t => t.page !== page);
       if (newTabs.length === 0) return prev;
+      // Se a aba fechada era a ativa, redireciona para a anterior
+      setActiveTab(active => {
+        if (active !== page) return active;
+        const idx = prev.findIndex(t => t.page === page);
+        return newTabs[Math.max(0, idx - 1)].page;
+      });
       return newTabs;
     });
-    setActiveTab(prev => {
-      if (prev !== page) return prev;
-      const idx = tabs.findIndex(t => t.page === page);
-      const newTabs = tabs.filter(t => t.page !== page);
-      if (newTabs.length === 0) return tabs[0].page;
-      return newTabs[Math.max(0, idx - 1)].page;
-    });
-  }, [tabs]);
+  }, []);
 
   const activateTab = useCallback((page) => {
     setActiveTab(page);

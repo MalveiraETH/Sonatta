@@ -20,6 +20,16 @@ import {
 import AppointmentForm from '@/components/appointments/AppointmentForm';
 import TestForm from '@/components/tests/TestForm';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   ChevronLeft,
   ChevronRight,
   Edit,
@@ -211,6 +221,8 @@ export default function Appointments() {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [testFormOpen, setTestFormOpen] = useState(false);
   const [preselectedAppointmentForTest, setPreselectedAppointmentForTest] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [appointmentToDelete, setAppointmentToDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -240,11 +252,17 @@ export default function Appointments() {
     setFormOpen(true);
   };
 
-  const handleDelete = async (appointment) => {
-    if (!confirm('Excluir este agendamento?')) return;
+  const handleDelete = (appointment) => {
+    setAppointmentToDelete(appointment);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      await base44.entities.Appointment.delete(appointment.id);
+      await base44.entities.Appointment.delete(appointmentToDelete.id);
       toast.success('Agendamento excluído');
+      setDeleteDialogOpen(false);
+      setAppointmentToDelete(null);
       loadData();
     } catch { toast.error('Erro ao excluir'); }
   };
@@ -559,6 +577,23 @@ export default function Appointments() {
         preselectedAppointmentData={preselectedAppointmentForTest}
         onSuccess={loadData}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o agendamento de "{appointmentToDelete?.client_name}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

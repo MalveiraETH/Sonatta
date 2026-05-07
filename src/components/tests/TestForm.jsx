@@ -67,7 +67,7 @@ function DeviceCombobox({ device, products, onSelect, onRemove }) {
   );
 }
 
-export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null }) {
+export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null, preselectedAppointmentData = null }) {
   const [loading, setLoading] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
   const [clients, setClients] = useState([]);
@@ -100,12 +100,12 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         });
       } else {
         setFormData({
-          client_id: preselectedClientId || '',
+          client_id: preselectedClientId || preselectedAppointmentData?.client_id || '',
           start_date: format(new Date(), 'yyyy-MM-dd'),
           end_date: '',
           devices: [],
-          professional_id: '',
-          referral_professional_id: '',
+          professional_id: preselectedAppointmentData?.professional_id || '',
+          referral_professional_id: preselectedAppointmentData?.test_referral_id || '',
           status: 'em_teste',
           notes: ''
         });

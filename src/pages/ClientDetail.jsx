@@ -200,6 +200,22 @@ export default function ClientDetail() {
     );
   }
 
+  const handleDelete = async () => {
+    if (currentUser?.role !== 'admin') {
+      toast.error('Apenas administradores podem excluir clientes');
+      return;
+    }
+    try {
+      await base44.entities.Client.delete(client.id);
+      toast.success('Cliente excluído com sucesso');
+      if (tabsContext?.closeTab) tabsContext.closeTab('ClientDetail');
+      else window.location.href = createPageUrl('Clients');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -761,23 +777,6 @@ export default function ClientDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
         </AlertDialog>
-        </div>
-        );
-
-        async function handleDelete() {
-        if (currentUser?.role !== 'admin') {
-        toast.error('Apenas administradores podem excluir clientes');
-        return;
-        }
-
-      try {
-        await base44.entities.Client.delete(client.id);
-        toast.success('Cliente excluído com sucesso');
-        if (tabsContext?.closeTab) tabsContext.closeTab('ClientDetail');
-        else window.location.href = createPageUrl('Clients');
-        } catch (error) {
-        console.error('Error:', error);
-        toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
-        }
-        }
+      </div>
+    );
 }
