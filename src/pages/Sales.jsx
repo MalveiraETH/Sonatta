@@ -420,16 +420,6 @@ Obrigado pela preferência!
           <Card className="p-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-slate-500 mb-1">Faturamento</p>
-                <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalValue)}</p>
-              </div>
-              <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
                 <p className="text-xs sm:text-sm text-slate-500 mb-1">Ticket Médio</p>
                 <p className="text-lg sm:text-2xl font-bold text-blue-600">{formatCurrency(stats.avgTicket)}</p>
               </div>
