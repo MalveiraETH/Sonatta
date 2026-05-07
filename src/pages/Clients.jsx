@@ -38,8 +38,10 @@ import ClientForm from '@/components/clients/ClientForm';
 import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users } from 'lucide-react';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
+import { useTabs } from '@/lib/TabsContext';
 
 export default function Clients() {
+  const { openTab } = useTabs() || {};
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
@@ -357,7 +359,7 @@ export default function Clients() {
                 <TableRow 
                   key={client.id} 
                   className="hover:bg-slate-50 cursor-pointer"
-                  onClick={() => window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`}
+                  onClick={() => openTab ? openTab('ClientDetail', client.full_name, { id: client.id }) : (window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`)}
                 >
                   <TableCell>
                     <div>
@@ -412,7 +414,7 @@ export default function Clients() {
             <Card 
               key={client.id} 
               className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`}
+              onClick={() => openTab ? openTab('ClientDetail', client.full_name, { id: client.id }) : (window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`)}
             >
               <div className="space-y-3">
                 <div className="flex items-start justify-between">

@@ -52,8 +52,10 @@ import {
 import { format } from 'date-fns';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { ptBR } from 'date-fns/locale';
+import { useTabs } from '@/lib/TabsContext';
 
 export default function ClientDetail() {
+  const tabsContext = useTabs();
   const [loading, setLoading] = useState(true);
   const [client, setClient] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -76,8 +78,9 @@ export default function ClientDetail() {
   }, []);
 
   const loadData = async () => {
+    const tabParams = tabsContext?.getTabParams?.('ClientDetail') || {};
     const urlParams = new URLSearchParams(window.location.search);
-    const clientId = urlParams.get('id');
+    const clientId = tabParams.id || urlParams.get('id');
 
     if (!clientId) {
       setLoading(false);
@@ -202,11 +205,9 @@ export default function ClientDetail() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link to={createPageUrl('Clients')}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={() => tabsContext?.closeTab ? tabsContext.closeTab('ClientDetail') : (window.location.href = createPageUrl('Clients'))}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold text-slate-800">{client.full_name}</h1>
             <div className="flex items-center gap-2 mt-1">
@@ -772,7 +773,8 @@ export default function ClientDetail() {
       try {
         await base44.entities.Client.delete(client.id);
         toast.success('Cliente excluído com sucesso');
-        window.location.href = createPageUrl('Clients');
+        if (tabsContext?.closeTab) tabsContext.closeTab('ClientDetail');
+        else window.location.href = createPageUrl('Clients');
         } catch (error) {
         console.error('Error:', error);
         toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);

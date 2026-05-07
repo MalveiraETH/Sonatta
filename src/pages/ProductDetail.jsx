@@ -20,6 +20,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { useTabs } from '@/lib/TabsContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function ProductDetail() {
+  const tabsContext = useTabs();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
   const [movements, setMovements] = useState([]);
@@ -44,8 +46,9 @@ export default function ProductDetail() {
   }, []);
 
   const loadData = async () => {
+    const tabParams = tabsContext?.getTabParams?.('ProductDetail') || {};
     const urlParams = new URLSearchParams(window.location.search);
-    const productId = urlParams.get('id');
+    const productId = tabParams.id || urlParams.get('id');
 
     if (!productId) {
       setLoading(false);
@@ -154,10 +157,7 @@ export default function ProductDetail() {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => {
-              const tab = product.stock_type === 'serializado' ? 'serialized' : 'non-serialized';
-              window.location.href = createPageUrl('Inventory') + `?tab=${tab}`;
-            }}
+            onClick={() => tabsContext?.closeTab ? tabsContext.closeTab('ProductDetail') : (window.location.href = createPageUrl('Inventory'))}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

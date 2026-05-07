@@ -64,6 +64,7 @@ import {
   ArrowDownCircle,
   Edit3
 } from 'lucide-react';
+import { useTabs } from '@/lib/TabsContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -77,6 +78,7 @@ import {
 } from 'recharts';
 
 export default function Inventory() {
+  const { openTab } = useTabs() || {};
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
@@ -679,11 +681,9 @@ export default function Inventory() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link to={`${createPageUrl('ProductDetail')}?id=${product.id}`} className="flex items-center">
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver Detalhes
-                              </Link>
+                            <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : (window.location.href = `${createPageUrl('ProductDetail')}?id=${product.id}`)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalhes
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(product)}>
                               <Edit className="h-4 w-4 mr-2" />
@@ -736,11 +736,9 @@ export default function Inventory() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link to={`${createPageUrl('ProductDetail')}?id=${product.id}`} className="flex items-center">
+                          <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : (window.location.href = `${createPageUrl('ProductDetail')}?id=${product.id}`)}>
                               <Eye className="h-4 w-4 mr-2" />
                               Detalhes
-                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(product)}>
                             <Edit className="h-4 w-4 mr-2" />
