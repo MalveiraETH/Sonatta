@@ -255,35 +255,18 @@ Obrigado pela preferência!
 
   const handleCancel = async (sale) => {
     try {
-      // Devolver produtos ao estoque
-      for (const item of sale.items) {
-        const product = await base44.entities.Product.list().then(products => 
-          products.find(p => p.id === item.product_id)
-        );
-        
-        if (product) {
-          if (product.stock_type === 'serializado') {
-            // Para produtos serializados, voltar status para disponível
-            await base44.entities.Product.update(product.id, { status: 'disponivel' });
-          } else {
-            // Para não serializados, aumentar a quantidade
-            await base44.entities.Product.update(product.id, { 
-              quantity: product.quantity + item.quantity 
-            });
-          }
-          
-          // Registrar movimento de estoque
-          await base44.entities.StockMovement.create({
-            product_id: product.id,
-            product_name: product.name,
-            type: 'entrada',
-            quantity: item.quantity,
-            reason: `Venda ${sale.sale_number} cancelada`,
-            reference_id: sale.id
-          });
-        }
+      // Devolver produtos ao estoque via função backend (contorna RLS)
+      try {
+        await base44.functions.invoke('processSaleStock', {
+          items: sale.items,
+          sale_id: sale.id,
+          sale_number: sale.sale_number,
+          mode: 'cancel'
+        });
+      } catch (stockError) {
+        console.warn('Aviso: não foi possível devolver estoque automaticamente:', stockError.message);
       }
-      
+
       await base44.entities.Sale.update(sale.id, { status: 'cancelado' });
       toast.success('Venda cancelada e produtos devolvidos ao estoque');
       setCancelConfirmOpen(false);

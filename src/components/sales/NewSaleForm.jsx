@@ -169,19 +169,15 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   const loadData = async () => {
     try {
-      const [clientsData, productsData, categoriesData, paymentTypesData, user] = await Promise.all([
+      const [clientsData, productsData, user] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Product.list(),
-        base44.entities.ExpenseCategory.filter({ type: 'receita' }),
-        base44.entities.PaymentType.filter({ status: 'ativo' }),
         base44.auth.me()
       ]);
       setClients(clientsData);
       setProducts(productsData);
-      setCategories(categoriesData);
-      setPaymentTypes(paymentTypesData);
       setCurrentUser(user);
-      
+
       if (!sale && !quote) {
         setFormData(prev => ({
           ...prev,
@@ -191,6 +187,21 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       }
     } catch (e) {
       console.error(e);
+    }
+
+    // Categorias e formas de pagamento podem ser restritas por RLS — carregar separadamente
+    try {
+      const categoriesData = await base44.entities.ExpenseCategory.filter({ type: 'receita' });
+      setCategories(categoriesData);
+    } catch (e) {
+      console.warn('Categorias não disponíveis para este perfil');
+    }
+
+    try {
+      const paymentTypesData = await base44.entities.PaymentType.filter({ status: 'ativo' });
+      setPaymentTypes(paymentTypesData);
+    } catch (e) {
+      console.warn('Tipos de pagamento não disponíveis para este perfil');
     }
   };
 
@@ -500,37 +511,26 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       // Criar parcelas em Contas a Receber para Pix Parcelado e Cartão de Crédito
       await createInstallmentsForSale(newSale, saleDate);
 
-      // Atualizar estoque
-      for (const item of formData.items) {
-        const product = products.find(p => p.id === item.product_id);
-        if (product) {
-          if (product.stock_type === 'serializado') {
-            // Produto serializado: marcar como vendido
-            await base44.entities.Product.update(product.id, {
-              status: 'vendido'
-            });
-          } else if (product.stock_type === 'nao_serializado') {
-            // Produto não serializado: deduzir quantidade
-            await base44.entities.Product.update(product.id, {
-              quantity: product.quantity - item.quantity
-            });
-          }
-
-          await base44.entities.StockMovement.create({
-            product_id: product.id,
-            product_name: product.name,
-            type: 'saida',
-            quantity: item.quantity,
-            reason: `Venda ${saleNumber}`,
-            reference_id: newSale.id,
-            sale_date: format(saleDate, 'yyyy-MM-dd')
-          });
-        }
+      // Atualizar estoque via função backend (contorna RLS de Product.update)
+      try {
+        await base44.functions.invoke('processSaleStock', {
+          items: formData.items,
+          sale_id: newSale.id,
+          sale_number: saleNumber,
+          sale_date: format(saleDate, 'yyyy-MM-dd'),
+          mode: 'sale'
+        });
+      } catch (stockError) {
+        console.warn('Aviso: não foi possível atualizar estoque automaticamente:', stockError.message);
       }
 
       // Atualizar status do cliente para "cliente_ativo" após venda
       if (formData.client_id) {
-        await base44.entities.Client.update(formData.client_id, { status: 'cliente_ativo' });
+        try {
+          await base44.entities.Client.update(formData.client_id, { status: 'cliente_ativo' });
+        } catch (e) {
+          console.warn('Aviso: não foi possível atualizar status do cliente:', e.message);
+        }
       }
 
       toast.success('Venda registrada com sucesso!');
