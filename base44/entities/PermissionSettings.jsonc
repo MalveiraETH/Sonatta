@@ -1,0 +1,60 @@
+{
+  "name": "PermissionSettings",
+  "type": "object",
+  "properties": {
+    "module": {
+      "type": "string",
+      "description": "Nome do m\u00f3dulo"
+    },
+    "action": {
+      "type": "string",
+      "description": "Nome da a\u00e7\u00e3o"
+    },
+    "admin": {
+      "type": "boolean",
+      "default": true,
+      "description": "Permiss\u00e3o para Administrador"
+    },
+    "fonoaudiologo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Permiss\u00e3o para Fonoaudi\u00f3logo"
+    },
+    "comercial": {
+      "type": "boolean",
+      "default": false,
+      "description": "Permiss\u00e3o para Consultor Comercial"
+    },
+    "recepcao": {
+      "type": "boolean",
+      "default": false,
+      "description": "Permiss\u00e3o para Recep\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "module",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
