@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { invalidatePermissionCache } from '@/lib/usePermissions';
 
 const roles = [
   { key: 'admin', label: 'Administrador', color: 'bg-purple-100 text-purple-700' },
@@ -102,6 +103,7 @@ export default function AccessPermissions() {
         }
       })
     );
+    invalidatePermissionCache();
     toast.success('Permissões salvas com sucesso!');
     setSaving(false);
     setDirty(false);
@@ -117,6 +119,7 @@ export default function AccessPermissions() {
     setPerms(DEFAULT_PERMISSIONS.map(d => ({ ...d })));
     setDirty(false);
     setSaving(false);
+    invalidatePermissionCache();
     toast.success('Permissões restauradas para o padrão');
   };
 

@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const TabsContext = createContext(null);
 
-export function TabsProvider({ children }) {
-  const [tabs, setTabs] = useState([{ page: 'Dashboard', name: 'Dashboard', params: {} }]);
-  const [activeTab, setActiveTab] = useState('Dashboard');
+export function TabsProvider({ children, initialPage = 'Dashboard', initialName = 'Dashboard' }) {
+  const [tabs, setTabs] = useState([{ page: initialPage, name: initialName, params: {} }]);
+  const [activeTab, setActiveTab] = useState(initialPage);
 
   const openTab = useCallback((page, name, params = {}) => {
     setTabs(prev => {

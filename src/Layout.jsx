@@ -16,7 +16,8 @@ import {
   ChevronDown,
   Bell,
   Ear,
-  DollarSign
+  DollarSign,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +30,7 @@ import { cn } from '@/lib/utils';
 import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
 import { useTabs } from '@/lib/TabsContext';
 import { PAGES } from './pages.config';
+import { usePermissions } from '@/lib/usePermissions';
 
 const menuItems = [
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
@@ -56,8 +58,14 @@ const userRoleLabels = {
 // Componente interno que usa o contexto de abas (desktop)
 function DesktopTabsContent({ user }) {
   const { tabs, activeTab, openTab, closeTab, activateTab } = useTabs();
+  const { canAccessPage, loading: permsLoading } = usePermissions(user);
+
+  const allowedMenuItems = permsLoading
+    ? []
+    : menuItems.filter(item => canAccessPage(item.page));
 
   const handleMenuClick = (page, name) => {
+    if (!canAccessPage(page)) return;
     const exists = tabs.find(t => t.page === page);
     if (exists) {
       activateTab(page);
@@ -87,7 +95,7 @@ function DesktopTabsContent({ user }) {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto pb-4">
-          {menuItems.map((item) => {
+          {allowedMenuItems.map((item) => {
             const isActive = activeTab === item.page;
             const isOpen = tabs.some(t => t.page === item.page);
             const Icon = item.icon;
@@ -186,14 +194,23 @@ function DesktopTabsContent({ user }) {
           {tabs.map((tab) => {
             const PageComponent = PAGES[tab.page];
             if (!PageComponent) return null;
+            const allowed = canAccessPage(tab.page);
             return (
               <div
                 key={tab.page}
                 className={tab.page === activeTab ? 'block' : 'hidden'}
               >
-                <div className="p-8">
-                  <PageComponent />
-                </div>
+                {allowed ? (
+                  <div className="p-8">
+                    <PageComponent />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+                    <Shield className="h-10 w-10 text-slate-300" />
+                    <p className="text-base font-medium">Acesso não autorizado</p>
+                    <p className="text-sm">Você não tem permissão para acessar esta página.</p>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -209,6 +226,9 @@ export default function Layout({ children, currentPageName }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
+  const { canAccessPage } = usePermissions(user);
+
+  const allowedMobileMenuItems = menuItems.filter(item => canAccessPage(item.page));
 
   useEffect(() => {
     loadUser();
@@ -352,7 +372,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </div>
         <nav className="p-4 space-y-1 pb-24 overflow-y-auto max-h-[calc(100vh-13rem)]">
-          {menuItems.map((item) => {
+          {allowedMobileMenuItems.map((item) => {
             const isActive = currentPageName === item.page;
             const Icon = item.icon;
             return (
@@ -397,7 +417,15 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Main Content */}
       <main className="lg:hidden min-h-screen pt-16 bg-slate-50">
-        <div className="p-3 sm:p-4">{children}</div>
+        <div className="p-3 sm:p-4">
+          {canAccessPage(currentPageName) ? children : (
+            <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
+              <Shield className="h-10 w-10 text-slate-300" />
+              <p className="text-base font-medium">Acesso não autorizado</p>
+              <p className="text-sm text-center">Você não tem permissão para acessar esta página.</p>
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Desktop: sistema de abas */}
