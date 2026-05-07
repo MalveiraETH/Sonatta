@@ -35,7 +35,14 @@ function TabsProviderWithUser({ children }) {
     base44.auth.me().then(u => { setUser(u); setReady(true); }).catch(() => setReady(true));
   }, []);
 
-  if (!ready) return <>{children}</>;
+  // Aguarda o usuário carregar para definir a aba inicial correta
+  if (!ready) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-[#6B3FA0] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const roleDefault = user ? ROLE_DEFAULT_PAGE[user.role] : null;
   const initialPage = roleDefault ? roleDefault.page : mainPageKey;

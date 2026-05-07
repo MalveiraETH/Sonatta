@@ -60,6 +60,16 @@ function DesktopTabsContent({ user }) {
   const { tabs, activeTab, openTab, closeTab, activateTab } = useTabs();
   const { canAccessPage, loading: permsLoading } = usePermissions(user);
 
+  // Fecha abas não permitidas assim que as permissões carregarem
+  useEffect(() => {
+    if (permsLoading || !user) return;
+    tabs.forEach(tab => {
+      if (!canAccessPage(tab.page)) {
+        closeTab(tab.page);
+      }
+    });
+  }, [permsLoading, user]);
+
   const allowedMenuItems = permsLoading
     ? []
     : menuItems.filter(item => canAccessPage(item.page));

@@ -90,18 +90,22 @@ export function usePermissions(user) {
   const can = useCallback((module, action) => {
     if (!user) return false;
     if (user.role === 'admin') return true;
+    // Enquanto carrega, negar acesso para evitar flash de conteúdo não autorizado
+    if (loading) return false;
     const p = perms.find(p => p.module === module && p.action === action);
     if (!p) return false;
     return !!p[user.role];
-  }, [perms, user]);
+  }, [perms, user, loading]);
 
   const canAccessPage = useCallback((pageName) => {
     if (!user) return false;
     if (user.role === 'admin') return true;
+    // Enquanto carrega, negar acesso para evitar flash de conteúdo não autorizado
+    if (loading) return false;
     const mapping = PAGE_PERMISSION_MAP[pageName];
     if (!mapping) return true; // página sem restrição
     return can(mapping.module, mapping.action);
-  }, [can, user]);
+  }, [can, user, loading]);
 
   return { can, canAccessPage, loading };
 }
