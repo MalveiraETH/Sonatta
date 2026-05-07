@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
-import { TabsProvider, useTabs } from '@/lib/TabsContext';
+import { useTabs } from '@/lib/TabsContext';
 import { PAGES } from './pages.config';
 
 const menuItems = [
@@ -401,9 +401,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {/* Desktop: sistema de abas */}
-      <TabsProvider>
-        <DesktopTabsContent user={user} />
-      </TabsProvider>
+      <DesktopTabsContent user={user} />
     </div>
   );
 }
