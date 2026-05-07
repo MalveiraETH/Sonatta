@@ -25,7 +25,7 @@ export const PAGE_PERMISSION_MAP = {
 
 // Defaults caso não haja registros salvos
 const DEFAULT_PERMISSIONS = [
-  { module: 'Dashboard',      action: 'Visualizar Dashboard',     admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Dashboard',      action: 'Visualizar Dashboard',     admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Clientes',       action: 'Visualizar clientes',      admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Clientes',       action: 'Criar/Editar clientes',    admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Clientes',       action: 'Excluir clientes',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
@@ -35,7 +35,7 @@ const DEFAULT_PERMISSIONS = [
   { module: 'Testes',          action: 'Visualizar testes',        admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Testes',          action: 'Criar/Editar testes',      admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Testes',          action: 'Excluir testes',           admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Estoque',         action: 'Visualizar estoque',       admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Estoque',         action: 'Visualizar estoque',       admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Estoque',         action: 'Criar/Editar produtos',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Estoque',         action: 'Excluir produtos',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Orçamentos',      action: 'Visualizar orçamentos',    admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
@@ -47,7 +47,7 @@ const DEFAULT_PERMISSIONS = [
   { module: 'Financeiro',      action: 'Visualizar financeiro',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Financeiro',      action: 'Criar/Editar despesas',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Financeiro',      action: 'Excluir despesas',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Profissionais',   action: 'Visualizar profissionais', admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Profissionais',   action: 'Visualizar profissionais', admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Profissionais',   action: 'Criar/Editar profissionais',admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Contratos',       action: 'Visualizar contratos',     admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Contratos',       action: 'Gerar contratos',          admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
