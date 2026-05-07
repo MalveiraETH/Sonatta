@@ -11,6 +11,7 @@ import { TabsProvider } from '@/lib/TabsContext';
 import { usePermissions, PAGE_PERMISSION_MAP } from '@/lib/usePermissions';
 import { base44 } from '@/api/base44Client';
 import { useState, useEffect } from 'react';
+import SplashScreen from '@/components/SplashScreen';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -19,6 +20,9 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+// Página padrão para admin (e fallback geral)
+const DEFAULT_PAGE = { page: 'Clients', name: 'Clientes' };
 
 // Ordem de preferência de página inicial por papel
 const ROLE_DEFAULT_PAGE = {
@@ -44,9 +48,9 @@ function TabsProviderWithUser({ children }) {
     );
   }
 
-  const roleDefault = user ? ROLE_DEFAULT_PAGE[user.role] : null;
-  const initialPage = roleDefault ? roleDefault.page : mainPageKey;
-  const initialName = roleDefault ? roleDefault.name : mainPageKey;
+  const roleDefault = user ? (ROLE_DEFAULT_PAGE[user.role] || DEFAULT_PAGE) : DEFAULT_PAGE;
+  const initialPage = roleDefault.page;
+  const initialName = roleDefault.name;
 
   return (
     <TabsProvider initialPage={initialPage} initialName={initialName}>
@@ -104,10 +108,12 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+  const [splashDone, setSplashDone] = useState(false);
 
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
+        {!splashDone && <SplashScreen onFinish={() => setSplashDone(true)} />}
         <TabsProviderWithUser>
           <Router>
             <NavigationTracker />
