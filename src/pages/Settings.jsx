@@ -13,6 +13,8 @@ import ReferenceProducts from '@/components/settings/ReferenceProducts';
 import ClientStatusSync from '@/components/settings/ClientStatusSync';
 import QuotePDFSettings from '@/components/settings/QuotePDFSettings';
 import { Settings as SettingsIcon } from 'lucide-react';
+import UsersManagement from '@/components/settings/UsersManagement';
+import AccessPermissions from '@/components/settings/AccessPermissions';
 
 export default function Settings() {
   return (
@@ -36,6 +38,8 @@ export default function Settings() {
           <TabsTrigger value="status_sync" className="text-xs sm:text-sm">Status Clientes</TabsTrigger>
           <TabsTrigger value="quote_pdf" className="text-xs sm:text-sm">PDF Orçamento</TabsTrigger>
           <TabsTrigger value="audit" className="text-xs sm:text-sm">Auditoria</TabsTrigger>
+          <TabsTrigger value="users" className="text-xs sm:text-sm">Usuários</TabsTrigger>
+          <TabsTrigger value="permissions" className="text-xs sm:text-sm">Permissões</TabsTrigger>
         </TabsList>
 
         <TabsContent value="hours">
@@ -80,6 +84,14 @@ export default function Settings() {
 
         <TabsContent value="audit">
           <AuditLog />
+        </TabsContent>
+
+        <TabsContent value="users">
+          <UsersManagement />
+        </TabsContent>
+
+        <TabsContent value="permissions">
+          <AccessPermissions />
         </TabsContent>
       </Tabs>
     </div>
