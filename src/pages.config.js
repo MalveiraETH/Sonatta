@@ -54,6 +54,7 @@ import ClientDetail from './pages/ClientDetail';
 import Clients from './pages/Clients';
 import Contracts from './pages/Contracts';
 import Dashboard from './pages/Dashboard';
+import Financeiro from './pages/Financeiro';
 import Inventory from './pages/Inventory';
 import PixReport from './pages/PixReport';
 import ProductDetail from './pages/ProductDetail';
@@ -75,6 +76,7 @@ export const PAGES = {
     "Clients": Clients,
     "Contracts": Contracts,
     "Dashboard": Dashboard,
+    "Financeiro": Financeiro,
     "Inventory": Inventory,
     "PixReport": PixReport,
     "ProductDetail": ProductDetail,
