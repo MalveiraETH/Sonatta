@@ -39,19 +39,21 @@ import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users 
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { useTabs } from '@/lib/TabsContext';
+import { useNavigate } from 'react-router-dom';
 
 const isMobile = () => window.innerWidth < 1024;
 
 export default function Clients() {
   const { openTab } = useTabs() || {};
+  const navigate = useNavigate();
 
   const navigateToClient = (client) => {
     if (isMobile()) {
-      window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`;
+      navigate(`/ClientDetail?id=${client.id}`);
     } else if (openTab) {
       openTab('ClientDetail', client.full_name, { id: client.id });
     } else {
-      window.location.href = `${createPageUrl('ClientDetail')}?id=${client.id}`;
+      navigate(`/ClientDetail?id=${client.id}`);
     }
   };
   const [loading, setLoading] = useState(true);
