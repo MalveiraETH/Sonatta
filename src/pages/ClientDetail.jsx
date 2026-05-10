@@ -73,14 +73,17 @@ export default function ClientDetail() {
   const [currentUser, setCurrentUser] = useState(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
 
+  const tabParams = tabsContext?.getTabParams?.('ClientDetail') || {};
+  const tabClientId = tabParams.id;
+
   useEffect(() => {
     loadData();
-  }, []);
+  }, [tabClientId]);
 
   const loadData = async () => {
-    const tabParams = tabsContext?.getTabParams?.('ClientDetail') || {};
+    const currentTabParams = tabsContext?.getTabParams?.('ClientDetail') || {};
     const urlParams = new URLSearchParams(window.location.search);
-    const clientId = tabParams.id || urlParams.get('id');
+    const clientId = currentTabParams.id || urlParams.get('id');
 
     if (!clientId) {
       setLoading(false);

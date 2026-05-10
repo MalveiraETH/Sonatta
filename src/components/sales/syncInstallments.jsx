@@ -64,6 +64,7 @@ function buildInstallments(payment, sale, saleDate) {
       installments_total: numInstallments,
       installment_number: i,
       due_date: dueDate,
+      sale_date: typeof saleDate === 'string' ? saleDate : format(saleDate, 'yyyy-MM-dd'),
       original_amount: gross,
       paid_amount: 0,
       remaining_amount: gross,

@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 const statusConfig = {
   // Client Status
   lead: { label: 'Lead', color: 'bg-blue-100 text-blue-700' },
-  em_teste: { label: 'Em Teste', color: 'bg-purple-100 text-purple-700' },
+  teste_agendado: { label: 'Teste Agendado', color: 'bg-purple-100 text-purple-700' },
+  em_teste: { label: 'Em Teste', color: 'bg-blue-100 text-blue-700' },
   teste_estendido: { label: 'Teste Estendido', color: 'bg-amber-100 text-amber-700' },
   teste_finalizado: { label: 'Teste Finalizado', color: 'bg-emerald-100 text-emerald-700' },
   teste_pendente: { label: 'Teste Pendente', color: 'bg-red-100 text-red-700' },

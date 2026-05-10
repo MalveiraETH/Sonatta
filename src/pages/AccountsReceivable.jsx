@@ -555,6 +555,7 @@ export default function AccountsReceivable() {
               <TableHead>Cliente</TableHead>
               <TableHead>Método / Bandeira</TableHead>
               <TableHead>Parcela</TableHead>
+              <TableHead>Dt. Venda</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Dt. Pagamento</TableHead>
               <TableHead className="text-right">Valor Bruto</TableHead>
@@ -588,6 +589,7 @@ export default function AccountsReceivable() {
                      {inst.card_brand && <span className="ml-1 text-xs text-slate-500">({inst.card_brand})</span>}
                     </TableCell>
                     <TableCell>{inst.installment_number}</TableCell>
+                    <TableCell>{inst.sale_date ? formatLocalDate(inst.sale_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
                     <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
                     <TableCell>{inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
                     <TableCell className="text-right">{formatCurrency(getGrossAmount(inst))}</TableCell>
@@ -664,8 +666,13 @@ export default function AccountsReceivable() {
                         </span>
                       </div>
                       <div className="text-sm text-slate-600">
-                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'} • Parcela {inst.installment_number} • {formatLocalDate(inst.due_date)}
+                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'} • Parcela {inst.installment_number} • Venc. {formatLocalDate(inst.due_date)}
                       </div>
+                      {inst.sale_date && (
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          Venda: {formatLocalDate(inst.sale_date)}
+                        </div>
+                      )}
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
