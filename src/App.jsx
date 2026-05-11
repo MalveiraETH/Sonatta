@@ -21,15 +21,9 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
-// Página padrão para admin (e fallback geral)
+// Página padrão para todos os perfis
 const DEFAULT_PAGE = { page: 'Clients', name: 'Clientes' };
-
-// Ordem de preferência de página inicial por papel
-const ROLE_DEFAULT_PAGE = {
-  fonoaudiologo: { page: 'Clients', name: 'Clientes' },
-  comercial:     { page: 'Clients', name: 'Clientes' },
-  recepcao:      { page: 'Appointments', name: 'Agendamentos' },
-};
+const ROLE_DEFAULT_PAGE = {};
 
 function TabsProviderWithUser({ children }) {
   const [user, setUser] = useState(null);
