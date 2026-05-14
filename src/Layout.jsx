@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { base44 } from '@/api/base44Client';
 import {
@@ -28,8 +28,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
-import { useTabs } from '@/lib/TabsContext';
-import { PAGES } from './pages.config';
 import { usePermissions } from '@/lib/usePermissions';
 
 const menuItems = [
@@ -55,181 +53,6 @@ const userRoleLabels = {
   recepcao: 'Recepção'
 };
 
-// Componente interno que usa o contexto de abas (desktop)
-function DesktopTabsContent({ user }) {
-  const { tabs, activeTab, openTab, closeTab, activateTab } = useTabs();
-  const { canAccessPage, loading: permsLoading } = usePermissions(user);
-
-  // Fecha abas não permitidas assim que as permissões carregarem
-  useEffect(() => {
-    if (permsLoading || !user) return;
-    tabs.forEach(tab => {
-      if (!canAccessPage(tab.page)) {
-        closeTab(tab.page);
-      }
-    });
-  }, [permsLoading, user]);
-
-  const allowedMenuItems = permsLoading
-    ? []
-    : menuItems.filter(item => canAccessPage(item.page));
-
-  const handleMenuClick = (page, name) => {
-    if (!canAccessPage(page)) return;
-    const exists = tabs.find(t => t.page === page);
-    if (exists) {
-      activateTab(page);
-    } else {
-      openTab(page, name);
-    }
-  };
-
-  return (
-    <>
-      {/* Sidebar desktop */}
-      <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 bg-[#6B3FA0] z-40 flex-col overflow-hidden">
-        {/* Logo */}
-        <div className="h-24 flex items-center justify-center border-b border-white/10 px-4 flex-shrink-0">
-          <div className="flex flex-col items-center gap-2">
-            <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png"
-              alt="Sonatta"
-              className="w-16 h-16 object-contain"
-            />
-            <div className="text-center">
-              <h1 className="text-white font-bold text-xl tracking-wide">SONATTA</h1>
-              <p className="text-white/60 text-xs">Soluções Auditivas</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto pb-4">
-          {allowedMenuItems.map((item) => {
-            const isActive = activeTab === item.page;
-            const isOpen = tabs.some(t => t.page === item.page);
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.page}
-                onClick={() => handleMenuClick(item.page, item.name)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-left",
-                  isActive
-                    ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
-                    : isOpen
-                    ? "bg-white/15 text-white font-medium"
-                    : "text-white/80 hover:bg-white/10 hover:text-white"
-                )}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                <span className="font-medium text-base flex-1">{item.name}</span>
-                {isOpen && !isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#A4D233] flex-shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User Info */}
-        {user && (
-          <div className="p-4 border-t border-white/10 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-semibold">
-                  {user.full_name?.charAt(0) || 'U'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium truncate">{user.full_name}</p>
-                <p className="text-white/50 text-xs truncate">
-                  {userRoleLabels[user.role] || 'Usuário'}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => base44.auth.logout()}
-                className="text-white/50 hover:text-white hover:bg-white/10"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </aside>
-
-      {/* Main area desktop com abas */}
-      <div className="hidden lg:flex lg:ml-64 flex-col h-screen bg-slate-50">
-        {/* Tab bar */}
-        <div className="flex items-end bg-[#6B3FA0] px-2 pt-2 gap-0.5 flex-shrink-0 overflow-x-auto">
-          {tabs.map((tab) => {
-            const isActive = tab.page === activeTab;
-            const menuItem = menuItems.find(m => m.page === tab.page);
-            const Icon = menuItem?.icon;
-            return (
-              <div
-                key={tab.page}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-t-lg cursor-pointer transition-all duration-150 flex-shrink-0 group",
-                  isActive
-                    ? "bg-slate-50 text-slate-800"
-                    : "bg-[#5a3388] text-white/70 hover:bg-[#7a4ab5] hover:text-white"
-                )}
-                onClick={() => activateTab(tab.page)}
-              >
-                {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
-                <span className="text-sm font-medium whitespace-nowrap">{tab.name}</span>
-                {tabs.length > 1 && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); closeTab(tab.page); }}
-                    className={cn(
-                      "ml-1 rounded-full p-0.5 transition-colors",
-                      isActive
-                        ? "hover:bg-slate-200 text-slate-400 hover:text-slate-700"
-                        : "hover:bg-white/20 text-white/40 hover:text-white"
-                    )}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto">
-          {tabs.map((tab) => {
-            const PageComponent = PAGES[tab.page];
-            if (!PageComponent) return null;
-            const allowed = canAccessPage(tab.page);
-            return (
-              <div
-                key={tab.page}
-                className={tab.page === activeTab ? 'block' : 'hidden'}
-              >
-                {allowed ? (
-                  <div className="p-8">
-                    <PageComponent />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
-                    <Shield className="h-10 w-10 text-slate-300" />
-                    <p className="text-base font-medium">Acesso não autorizado</p>
-                    <p className="text-sm">Você não tem permissão para acessar esta página.</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -237,8 +60,12 @@ export default function Layout({ children, currentPageName }) {
   const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
   const { canAccessPage } = usePermissions(user);
+  const location = useLocation();
 
-  const allowedMobileMenuItems = menuItems.filter(item => canAccessPage(item.page));
+  // Determina a página ativa pela URL
+  const activePageFromUrl = location.pathname.replace(/^\//, '') || 'Clients';
+
+  const allowedMenuItems = menuItems.filter(item => canAccessPage(item.page));
 
   useEffect(() => {
     loadUser();
@@ -281,6 +108,86 @@ export default function Layout({ children, currentPageName }) {
       console.log('User not logged in');
     }
   };
+
+  const Sidebar = ({ mobile = false }) => (
+    <aside className={cn(
+      "bg-[#6B3FA0] flex flex-col",
+      mobile
+        ? cn(
+            "fixed top-0 left-0 h-full w-64 z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto lg:hidden",
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          )
+        : "hidden lg:flex fixed top-0 left-0 h-full w-64 z-40 overflow-hidden"
+    )}>
+      {/* Logo */}
+      <div className="h-24 flex items-center justify-center border-b border-white/10 px-4 flex-shrink-0">
+        <div className="flex flex-col items-center gap-2">
+          <img
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png"
+            alt="Sonatta"
+            className="w-16 h-16 object-contain"
+          />
+          <div className="text-center">
+            <h1 className="text-white font-bold text-xl tracking-wide">SONATTA</h1>
+            <p className="text-white/60 text-xs">Soluções Auditivas</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto pb-4">
+        {allowedMenuItems.map((item) => {
+          const isActive = activePageFromUrl.toLowerCase() === item.page.toLowerCase()
+            || (activePageFromUrl === '' && item.page === 'Clients')
+            || currentPageName === item.page;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.page}
+              to={createPageUrl(item.page)}
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                isActive
+                  ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
+                  : "text-white/80 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              <span className="font-medium text-base flex-1">{item.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User Info */}
+      {user && (
+        <div className="p-4 border-t border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-semibold">
+                {user.full_name?.charAt(0) || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-medium truncate">{user.full_name}</p>
+              <p className="text-white/50 text-xs truncate">
+                {userRoleLabels[user.role] || 'Usuário'}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => base44.auth.logout()}
+              className="text-white/50 hover:text-white hover:bg-white/10"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -364,70 +271,18 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
       {/* Mobile Sidebar */}
-      <aside className={cn(
-        "fixed top-0 left-0 h-full w-64 bg-[#6B3FA0] z-40 transform transition-transform duration-300 ease-in-out overflow-y-auto lg:hidden",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="h-24 flex items-center justify-center border-b border-white/10 px-4">
-          <div className="flex flex-col items-center gap-2">
-            <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png"
-              alt="Sonatta"
-              className="w-16 h-16 object-contain"
-            />
-            <div className="text-center">
-              <h1 className="text-white font-bold text-xl tracking-wide">SONATTA</h1>
-              <p className="text-white/60 text-xs">Soluções Auditivas</p>
-            </div>
-          </div>
-        </div>
-        <nav className="p-4 space-y-1 pb-24 overflow-y-auto max-h-[calc(100vh-13rem)]">
-          {allowedMobileMenuItems.map((item) => {
-            const isActive = currentPageName === item.page;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.page}
-                to={createPageUrl(item.page)}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200",
-                  isActive
-                    ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
-                    : "text-white/80 hover:bg-white/10 hover:text-white"
-                )}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                <span className="font-medium text-sm">{item.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        {user && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="text-white font-semibold">{user.full_name?.charAt(0) || 'U'}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium truncate">{user.full_name}</p>
-                <p className="text-white/50 text-xs truncate">{userRoleLabels[user.role] || 'Usuário'}</p>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => base44.auth.logout()} className="text-white/50 hover:text-white hover:bg-white/10">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </aside>
+      <Sidebar mobile />
 
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Mobile Main Content */}
-      <main className="lg:hidden min-h-screen pt-16 bg-slate-50">
-        <div className="p-3 sm:p-4">
+      {/* Desktop Sidebar */}
+      <Sidebar />
+
+      {/* Main Content */}
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
+        <div className="p-4 lg:p-8">
           {canAccessPage(currentPageName) ? children : (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
               <Shield className="h-10 w-10 text-slate-300" />
@@ -437,9 +292,6 @@ export default function Layout({ children, currentPageName }) {
           )}
         </div>
       </main>
-
-      {/* Desktop: sistema de abas */}
-      <DesktopTabsContent user={user} />
     </div>
   );
 }

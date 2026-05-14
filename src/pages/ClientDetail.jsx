@@ -52,10 +52,10 @@ import {
 import { format } from 'date-fns';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { ptBR } from 'date-fns/locale';
-import { useTabs } from '@/lib/TabsContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function ClientDetail() {
-  const tabsContext = useTabs();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [client, setClient] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -73,17 +73,13 @@ export default function ClientDetail() {
   const [currentUser, setCurrentUser] = useState(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
 
-  const tabParams = tabsContext?.getTabParams?.('ClientDetail') || {};
-  const tabClientId = tabParams.id;
-
   useEffect(() => {
     loadData();
-  }, [tabClientId]);
+  }, []);
 
   const loadData = async () => {
-    const currentTabParams = tabsContext?.getTabParams?.('ClientDetail') || {};
     const urlParams = new URLSearchParams(window.location.search);
-    const clientId = currentTabParams.id || urlParams.get('id');
+    const clientId = urlParams.get('id');
 
     if (!clientId) {
       setLoading(false);
@@ -211,8 +207,7 @@ export default function ClientDetail() {
     try {
       await base44.entities.Client.delete(client.id);
       toast.success('Cliente excluído com sucesso');
-      if (tabsContext?.closeTab) tabsContext.closeTab('ClientDetail');
-      else window.location.href = createPageUrl('Clients');
+      navigate('/Clients');
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
@@ -224,7 +219,7 @@ export default function ClientDetail() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => tabsContext?.closeTab ? tabsContext.closeTab('ClientDetail') : (window.location.href = createPageUrl('Clients'))}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/Clients')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

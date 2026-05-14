@@ -7,10 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import { TabsProvider } from '@/lib/TabsContext';
-import { usePermissions, PAGE_PERMISSION_MAP } from '@/lib/usePermissions';
-import { base44 } from '@/api/base44Client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import SplashScreen from '@/components/SplashScreen';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -20,38 +17,6 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
-
-// Página padrão para todos os perfis
-const DEFAULT_PAGE = { page: 'Clients', name: 'Clientes' };
-const ROLE_DEFAULT_PAGE = {};
-
-function TabsProviderWithUser({ children }) {
-  const [user, setUser] = useState(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    base44.auth.me().then(u => { setUser(u); setReady(true); }).catch(() => setReady(true));
-  }, []);
-
-  // Aguarda o usuário carregar para definir a aba inicial correta
-  if (!ready) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-[#6B3FA0] rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  const roleDefault = user ? (ROLE_DEFAULT_PAGE[user.role] || DEFAULT_PAGE) : DEFAULT_PAGE;
-  const initialPage = roleDefault.page;
-  const initialName = roleDefault.name;
-
-  return (
-    <TabsProvider initialPage={initialPage} initialName={initialName}>
-      {children}
-    </TabsProvider>
-  );
-}
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -108,13 +73,11 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         {!splashDone && <SplashScreen onFinish={() => setSplashDone(true)} />}
-        <TabsProviderWithUser>
-          <Router>
-            <NavigationTracker />
-            <AuthenticatedApp />
-          </Router>
+        <Router>
+          <NavigationTracker />
+          <AuthenticatedApp />
           <Toaster />
-        </TabsProviderWithUser>
+        </Router>
       </QueryClientProvider>
     </AuthProvider>
   )

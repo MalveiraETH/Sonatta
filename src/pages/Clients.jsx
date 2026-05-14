@@ -38,23 +38,13 @@ import ClientForm from '@/components/clients/ClientForm';
 import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users } from 'lucide-react';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
-import { useTabs } from '@/lib/TabsContext';
 import { useNavigate } from 'react-router-dom';
 
-const isMobile = () => window.innerWidth < 1024;
-
 export default function Clients() {
-  const { openTab } = useTabs() || {};
   const navigate = useNavigate();
 
   const navigateToClient = (client) => {
-    if (isMobile()) {
-      navigate(`/ClientDetail?id=${client.id}`);
-    } else if (openTab) {
-      openTab('ClientDetail', client.full_name, { id: client.id });
-    } else {
-      navigate(`/ClientDetail?id=${client.id}`);
-    }
+    navigate(`/ClientDetail?id=${client.id}`);
   };
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState([]);
