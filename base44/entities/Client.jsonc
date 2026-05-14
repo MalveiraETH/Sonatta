@@ -1,0 +1,89 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Nome completo do cliente"
+    },
+    "cpf": {
+      "type": "string",
+      "description": "CPF do cliente"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone/WhatsApp"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-mail do cliente"
+    },
+    "address": {
+      "type": "string",
+      "description": "Endere\u00e7o completo"
+    },
+    "address_cep": {
+      "type": "string",
+      "description": "CEP do cliente"
+    },
+    "address_number": {
+      "type": "string",
+      "description": "N\u00famero do endere\u00e7o"
+    },
+    "address_neighborhood": {
+      "type": "string",
+      "description": "Bairro do cliente"
+    },
+    "birth_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de nascimento"
+    },
+    "referral_professional": {
+      "type": "string",
+      "description": "Profissional que indicou"
+    },
+    "responsible_professional": {
+      "type": "string",
+      "description": "Profissional respons\u00e1vel pelo atendimento"
+    },
+    "payer_name": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel pelo pagamento"
+    },
+    "payer_document": {
+      "type": "string",
+      "description": "CPF ou CNPJ do respons\u00e1vel pelo pagamento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "teste_agendado",
+        "em_teste",
+        "teste_estendido",
+        "teste_finalizado",
+        "teste_pendente",
+        "cliente_ativo",
+        "pos_venda"
+      ],
+      "default": "lead",
+      "description": "Status do cliente"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es gerais"
+    }
+  },
+  "required": [
+    "full_name",
+    "phone"
+  ],
+  "rls": {
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

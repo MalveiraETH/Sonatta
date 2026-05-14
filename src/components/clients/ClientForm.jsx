@@ -27,7 +27,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
     cpf: '',
     phone: '',
     email: '',
-    address: '',
+    address_cep: '',
+    address_number: '',
+    address_neighborhood: '',
     birth_date: '',
     payer_name: '',
     payer_document: '',
@@ -42,7 +44,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         cpf: client.cpf || '',
         phone: client.phone || '',
         email: client.email || '',
-        address: client.address || '',
+        address_cep: client.address_cep || '',
+        address_number: client.address_number || '',
+        address_neighborhood: client.address_neighborhood || '',
         birth_date: client.birth_date || '',
         payer_name: client.payer_name || '',
         payer_document: client.payer_document || '',
@@ -55,7 +59,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         cpf: '',
         phone: '',
         email: '',
-        address: '',
+        address_cep: '',
+        address_number: '',
+        address_neighborhood: '',
         birth_date: '',
         payer_name: '',
         payer_document: '',
@@ -192,13 +198,34 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               />
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Endereço</Label>
+            <div className="space-y-2">
+              <Label htmlFor="address_cep">CEP</Label>
               <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value.toUpperCase() })}
-                placeholder="Endereço completo"
+                id="address_cep"
+                value={formData.address_cep}
+                onChange={(e) => setFormData({ ...formData, address_cep: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+                placeholder="00000-000"
+                maxLength={8}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address_number">Número</Label>
+              <Input
+                id="address_number"
+                value={formData.address_number}
+                onChange={(e) => setFormData({ ...formData, address_number: e.target.value })}
+                placeholder="123"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address_neighborhood">Bairro</Label>
+              <Input
+                id="address_neighborhood"
+                value={formData.address_neighborhood}
+                onChange={(e) => setFormData({ ...formData, address_neighborhood: e.target.value.toUpperCase() })}
+                placeholder="Nome do bairro"
                 className="uppercase"
               />
             </div>
