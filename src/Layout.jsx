@@ -57,7 +57,6 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
   const { canAccessPage } = usePermissions(user);
   const location = useLocation();
@@ -72,33 +71,51 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   useEffect(() => {
-    const handleTouchStart = (e) => setStartY(e.touches[0].clientY);
+    if (window.innerWidth >= 768) return;
+
+    let startYLocal = 0;
+
+    const handleTouchStart = (e) => {
+      // Não inicia pull-to-refresh se o toque começa dentro de um dialog/sheet/overlay
+      const target = e.target;
+      if (target.closest('[role="dialog"]') || target.closest('[data-radix-popper-content-wrapper]') || target.closest('[data-state="open"]')) return;
+      startYLocal = e.touches[0].clientY;
+    };
+
     const handleTouchMove = (e) => {
+      if (!startYLocal) return;
+      const target = e.target;
+      if (target.closest('[role="dialog"]') || target.closest('[data-radix-popper-content-wrapper]') || target.closest('[data-state="open"]')) return;
+
       const currentY = e.touches[0].clientY;
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      if (scrollTop === 0 && currentY > startY && !isRefreshing) {
-        const distance = Math.min(currentY - startY, 120);
+      if (scrollTop === 0 && currentY > startYLocal && !isRefreshing) {
+        const distance = Math.min(currentY - startYLocal, 120);
         setPullDistance(distance);
         if (distance >= 120) {
           setIsRefreshing(true);
           setPullDistance(0);
+          startYLocal = 0;
           setTimeout(() => window.location.reload(), 300);
         }
       }
     };
-    const handleTouchEnd = () => { if (!isRefreshing) setPullDistance(0); };
 
-    if (window.innerWidth < 768) {
-      document.addEventListener('touchstart', handleTouchStart);
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-    }
+    const handleTouchEnd = () => {
+      startYLocal = 0;
+      if (!isRefreshing) setPullDistance(0);
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [startY, isRefreshing]);
+  }, [isRefreshing]);
 
   const loadUser = async () => {
     try {
@@ -109,7 +126,7 @@ export default function Layout({ children, currentPageName }) {
     }
   };
 
-  const Sidebar = ({ mobile = false }) => (
+  const SidebarContent = ({ mobile = false }) => (
     <aside className={cn(
       "bg-[#6B3FA0] flex flex-col",
       mobile
@@ -226,7 +243,6 @@ export default function Layout({ children, currentPageName }) {
         }
         @media (max-width: 768px) {
           .mobile-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-          button, a { min-height: 44px; min-width: 44px; }
           body { overflow-x: hidden; }
           input, select, textarea { font-size: 16px !important; }
         }
@@ -271,14 +287,14 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
       {/* Mobile Sidebar */}
-      <Sidebar mobile />
+      <SidebarContent mobile />
 
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Desktop Sidebar */}
-      <Sidebar />
+      <SidebarContent />
 
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
