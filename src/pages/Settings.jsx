@@ -15,8 +15,12 @@ import QuotePDFSettings from '@/components/settings/QuotePDFSettings';
 import { Settings as SettingsIcon } from 'lucide-react';
 import UsersManagement from '@/components/settings/UsersManagement';
 import AccessPermissions from '@/components/settings/AccessPermissions';
+import SuperAdminUsers from '@/components/settings/SuperAdminUsers';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function Settings() {
+  const { user } = useAuth();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -40,6 +44,9 @@ export default function Settings() {
           <TabsTrigger value="audit" className="text-xs sm:text-sm">Auditoria</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Usuários</TabsTrigger>
           <TabsTrigger value="permissions" className="text-xs sm:text-sm">Permissões</TabsTrigger>
+          {user?.role === 'super_admin' && (
+            <TabsTrigger value="super_admin_users" className="text-xs sm:text-sm">SuperAdmin - Usuários</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="hours">
@@ -93,6 +100,12 @@ export default function Settings() {
         <TabsContent value="permissions">
           <AccessPermissions />
         </TabsContent>
+
+        {user?.role === 'super_admin' && (
+          <TabsContent value="super_admin_users">
+            <SuperAdminUsers />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

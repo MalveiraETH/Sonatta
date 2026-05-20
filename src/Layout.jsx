@@ -52,8 +52,8 @@ const menuItems = [
   { name: 'Uso e Backup', page: 'UsageDashboard', icon: Package },
   { name: 'API Docs', page: 'ApiDocs', icon: FileText },
   { name: 'Configurações', page: 'Settings', icon: Bell },
-  { name: 'SuperAdmin', page: 'SuperAdminDashboard', icon: Shield },
   { name: 'Tenants', page: 'TenantsAdmin', icon: Building2 },
+  { name: 'SuperAdmin', page: 'SuperAdminDashboard', icon: Shield },
 ];
 
 const userRoleLabels = {
@@ -75,7 +75,9 @@ export default function Layout({ children, currentPageName }) {
   // Determina a página ativa pela URL
   const activePageFromUrl = location.pathname.replace(/^\//, '') || 'Clients';
 
-  const allowedMenuItems = menuItems.filter(item => canAccessPage(item.page));
+  const allowedMenuItems = user?.role === 'super_admin' 
+    ? menuItems 
+    : menuItems.filter(item => canAccessPage(item.page));
 
   useEffect(() => {
     loadUser();
@@ -310,7 +312,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50 flex flex-col">
         <div className="p-4 lg:p-8 flex-1">
-          {(canAccessPage(currentPageName) || currentPageName === 'SeedDemo') ? children : (
+          {(user?.role === 'super_admin' || canAccessPage(currentPageName) || currentPageName === 'SeedDemo') ? children : (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
               <Shield className="h-10 w-10 text-slate-300" />
               <p className="text-base font-medium">Acesso não autorizado</p>
