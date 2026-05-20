@@ -40,6 +40,7 @@ import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users 
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import Pagination from '@/components/ui/Pagination';
 
 function FiltersContent({ statusFilter, setStatusFilter, statusLabels, clearFilters, setFilterOpen }) {
   return (
@@ -86,6 +87,8 @@ export default function Clients() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 40;
 
   useEffect(() => {
     if (!tenantLoading) loadData();
@@ -93,6 +96,7 @@ export default function Clients() {
 
   useEffect(() => {
     filterClients();
+    setCurrentPage(1);
   }, [clients, searchTerm, statusFilter]);
 
   const ACTIVE_TEST_STATUSES = ['teste_agendado', 'em_teste', 'teste_estendido', 'teste_pendente'];
@@ -376,7 +380,10 @@ export default function Clients() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredClients.map(client => (
+              (() => {
+                const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+                const endIdx = startIdx + ITEMS_PER_PAGE;
+                return filteredClients.slice(startIdx, endIdx).map(client => (
                 <TableRow 
                   key={client.id} 
                   className="hover:bg-slate-50 cursor-pointer"
@@ -416,10 +423,18 @@ export default function Clients() {
                     )}
                   </TableCell>
                 </TableRow>
-              ))
+              ));
+              })()
             )}
           </TableBody>
         </Table>
+        <div className="p-4 border-t">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredClients.length / ITEMS_PER_PAGE)}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </Card>
 
       {/* Cards - Mobile */}
@@ -429,7 +444,10 @@ export default function Clients() {
             Nenhum cliente encontrado
           </Card>
         ) : (
-          filteredClients.map(client => (
+          (() => {
+            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIdx = startIdx + ITEMS_PER_PAGE;
+            return filteredClients.slice(startIdx, endIdx).map(client => (
             <Card 
               key={client.id} 
               className="p-4 cursor-pointer hover:shadow-md transition-shadow"
@@ -468,8 +486,14 @@ export default function Clients() {
                 </div>
               </div>
             </Card>
-          ))
+          ));
+          })()
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredClients.length / ITEMS_PER_PAGE)}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       <ClientForm

@@ -65,6 +65,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
+import Pagination from '@/components/ui/Pagination';
 
 export default function Tests() {
   const { tenantId, loading: tenantLoading } = useTenant();
@@ -81,6 +82,8 @@ export default function Tests() {
   const [extendMode, setExtendMode] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 40;
 
   useEffect(() => {
     if (!tenantLoading) loadData();
@@ -88,6 +91,7 @@ export default function Tests() {
 
   useEffect(() => {
     filterTests();
+    setCurrentPage(1);
   }, [tests, searchTerm, statusFilter]);
 
   const loadData = async () => {
@@ -494,14 +498,17 @@ export default function Tests() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTests.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-slate-500">
-                  Nenhum teste encontrado
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredTests.map(test => (
+           {filteredTests.length === 0 ? (
+             <TableRow>
+               <TableCell colSpan={9} className="text-center py-12 text-slate-500">
+                 Nenhum teste encontrado
+               </TableCell>
+             </TableRow>
+           ) : (
+             (() => {
+               const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+               const endIdx = startIdx + ITEMS_PER_PAGE;
+               return filteredTests.slice(startIdx, endIdx).map(test => (
                 <TableRow key={test.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{test.test_number}</TableCell>
                   <TableCell>{formatLocalDate(test.start_date)}</TableCell>
@@ -574,10 +581,18 @@ export default function Tests() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))
+              ));
+              })()
             )}
           </TableBody>
         </Table>
+        <div className="p-4 border-t">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredTests.length / ITEMS_PER_PAGE)}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </Card>
 
       {/* Cards - Mobile */}
@@ -587,7 +602,10 @@ export default function Tests() {
             Nenhum teste encontrado
           </Card>
         ) : (
-          filteredTests.map(test => (
+          (() => {
+            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+            const endIdx = startIdx + ITEMS_PER_PAGE;
+            return filteredTests.slice(startIdx, endIdx).map(test => (
             <Card key={test.id} className="p-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
@@ -656,8 +674,14 @@ export default function Tests() {
                 </div>
               </div>
             </Card>
-          ))
+          ));
+          })()
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredTests.length / ITEMS_PER_PAGE)}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Detail Dialog */}

@@ -55,6 +55,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { logDeletion } from '@/components/utils/auditLogger';
+import Pagination from '@/components/ui/Pagination';
 
 export default function Sales() {
   const { tenantId, loading: tenantLoading } = useTenant();
@@ -77,6 +78,8 @@ export default function Sales() {
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [saleToCancel, setSaleToCancel] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 40;
 
   const loadData = async () => {
     try {
@@ -112,6 +115,7 @@ export default function Sales() {
 
   useEffect(() => {
     filterSales();
+    setCurrentPage(1);
   }, [sales, searchTerm, statusFilter]);
 
   const filterSales = () => {
@@ -545,7 +549,7 @@ Obrigado pela preferência!
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredSales.map(sale => (
+               filteredSales.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(sale => (
                   <TableRow key={sale.id} className="hover:bg-slate-50">
                     <TableCell className="font-medium">{sale.sale_number}</TableCell>
                     <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
@@ -779,10 +783,15 @@ Obrigado pela preferência!
                   <div className="text-2xl font-bold text-slate-900">{formatCurrency(getTotalPayments(sale))}</div>
                 </div>
               </Card>
-            ))
-          )}
-        </div>
-      </div>
+              ))
+              )}
+              <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(filteredSales.length / ITEMS_PER_PAGE)}
+              onPageChange={setCurrentPage}
+              />
+              </div>
+              </div>
 
       {/* Modals */}
       <NewSaleForm open={formOpen} onOpenChange={setFormOpen} onSuccess={loadData} />
