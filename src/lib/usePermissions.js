@@ -41,6 +41,11 @@ export function usePermissions(user) {
         usageDashboard: 'backup',
         settings: 'settings',
         dashboard: 'clients', // Dashboard requires clients access
+        tenantsAdmin: 'admin',
+        onboardingTenant: 'admin',
+        billing: 'admin',
+        backupRestore: 'admin',
+        settingsRoles: 'admin',
       };
 
       const resource = resourceMap[pageName] || pageResource;
