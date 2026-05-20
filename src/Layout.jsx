@@ -31,6 +31,7 @@ import {
 import { cn } from '@/lib/utils';
 import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
 import { usePermissions } from '@/lib/usePermissions';
+import Footer from '@/components/Footer';
 
 const menuItems = [
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
@@ -302,8 +303,8 @@ export default function Layout({ children, currentPageName }) {
       <SidebarContent />
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
-        <div className="p-4 lg:p-8">
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50 flex flex-col">
+        <div className="p-4 lg:p-8 flex-1">
           {canAccessPage(currentPageName) ? children : (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
               <Shield className="h-10 w-10 text-slate-300" />
@@ -312,6 +313,7 @@ export default function Layout({ children, currentPageName }) {
             </div>
           )}
         </div>
+        <Footer />
       </main>
     </div>
   );

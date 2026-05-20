@@ -9,6 +9,9 @@ import TenantsAdmin from './pages/TenantsAdmin';
 import OnboardingTenant from './pages/OnboardingTenant';
 import Billing from './pages/Billing';
 import UsageDashboard from './pages/UsageDashboard';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Support from './pages/Support';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
@@ -82,6 +85,13 @@ const AuthenticatedApp = () => {
       <Route path="/UsageDashboard" element={
         <LayoutWrapper currentPageName="UsageDashboard">
           <UsageDashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/TermsOfService" element={<TermsOfService />} />
+      <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+      <Route path="/Support" element={
+        <LayoutWrapper currentPageName="Support">
+          <Support />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
