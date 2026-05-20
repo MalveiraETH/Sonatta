@@ -20,6 +20,9 @@ export function usePermissions(user) {
     },
     canAccessPage: (pageName) => {
       if (!pageName) return false;
+      // Super admin tem acesso a todas as páginas
+      if (user?.role === 'super_admin') return true;
+      
       const pageResource = pageName.charAt(0).toLowerCase() + pageName.slice(1);
       // Map page names to resources
       const resourceMap = {

@@ -16,7 +16,7 @@ export const ROLE_PERMISSIONS = {
     reports: ['read', 'export'],
     analytics: ['read'],
     apidocs: ['read'],
-    // Gestão SaaS
+    // Gestão SaaS - Acesso Total
     webhooks: ['create', 'read', 'update', 'delete'],
     backup: ['create', 'read', 'restore'],
     users: ['create', 'read', 'update', 'delete'],
