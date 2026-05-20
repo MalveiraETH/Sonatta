@@ -308,7 +308,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50 flex flex-col">
         <div className="p-4 lg:p-8 flex-1">
-          {canAccessPage(currentPageName) ? children : (
+          {(canAccessPage(currentPageName) || currentPageName === 'SeedDemo') ? children : (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
               <Shield className="h-10 w-10 text-slate-300" />
               <p className="text-base font-medium">Acesso não autorizado</p>
