@@ -75,7 +75,9 @@ export default function Layout({ children, currentPageName }) {
   // Determina a página ativa pela URL
   const activePageFromUrl = location.pathname.replace(/^\//, '') || 'Clients';
 
-  const allowedMenuItems = user?.role === 'super_admin' 
+  // Owner (app builder) tem acesso total automaticamente
+  const isOwner = user?.email === 'malveira.fabio@gmail.com';
+  const allowedMenuItems = (user?.role === 'super_admin' || isOwner)
     ? menuItems 
     : menuItems.filter(item => canAccessPage(item.page));
 
@@ -312,7 +314,7 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50 flex flex-col">
         <div className="p-4 lg:p-8 flex-1">
-          {(user?.role === 'super_admin' || canAccessPage(currentPageName) || currentPageName === 'SeedDemo') ? children : (
+          {(user?.role === 'super_admin' || isOwner || canAccessPage(currentPageName) || currentPageName === 'SeedDemo') ? children : (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
               <Shield className="h-10 w-10 text-slate-300" />
               <p className="text-base font-medium">Acesso não autorizado</p>
