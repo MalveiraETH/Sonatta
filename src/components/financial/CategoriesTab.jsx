@@ -8,20 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tag, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTenant } from '@/lib/useTenant';
 
 export default function CategoriesTab() {
+  const { tenantId } = useTenant();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', type: 'despesa' });
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    if (tenantId) loadCategories();
+  }, [tenantId]);
 
   const loadCategories = async () => {
     try {
-      const data = await base44.entities.ExpenseCategory.list();
+      const data = await base44.entities.ExpenseCategory.filter({ tenant_id: tenantId });
       setCategories(data);
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
@@ -43,10 +45,10 @@ export default function CategoriesTab() {
 
     try {
       for (const name of defaultExpenses) {
-        await base44.entities.ExpenseCategory.create({ name, type: 'despesa' });
+        await base44.entities.ExpenseCategory.create({ name, type: 'despesa', tenant_id: tenantId });
       }
       for (const name of defaultRevenues) {
-        await base44.entities.ExpenseCategory.create({ name, type: 'receita' });
+        await base44.entities.ExpenseCategory.create({ name, type: 'receita', tenant_id: tenantId });
       }
       toast.success('Categorias criadas!');
       loadCategories();
@@ -61,7 +63,7 @@ export default function CategoriesTab() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await base44.entities.ExpenseCategory.create(formData);
+      await base44.entities.ExpenseCategory.create({ ...formData, tenant_id: tenantId });
       toast.success('Categoria criada!');
       setShowForm(false);
       setFormData({ name: '', type: 'despesa' });

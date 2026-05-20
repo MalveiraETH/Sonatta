@@ -88,8 +88,8 @@ export default function AccountsPayable() {
   const loadFilters = async () => {
     try {
       const [cats, counters] = await Promise.all([
-        base44.entities.ExpenseCategory.filter({ type: 'despesa' }),
-        base44.entities.Counterparty.list()
+        tenantId ? base44.entities.ExpenseCategory.filter({ tenant_id: tenantId, type: 'despesa' }) : [],
+        tenantId ? base44.entities.Counterparty.filter({ tenant_id: tenantId }) : []
       ]);
       setCategories(cats);
       setCounterparties(counters);

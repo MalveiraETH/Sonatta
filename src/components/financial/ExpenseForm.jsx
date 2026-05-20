@@ -42,8 +42,8 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
   const loadData = async () => {
     try {
       const [cats, counters] = await Promise.all([
-        base44.entities.ExpenseCategory.list(),
-        base44.entities.Counterparty.list()
+        tenantId ? base44.entities.ExpenseCategory.filter({ tenant_id: tenantId }) : [],
+        tenantId ? base44.entities.Counterparty.filter({ tenant_id: tenantId }) : []
       ]);
       setCategories(cats);
       setCounterparties(counters);
