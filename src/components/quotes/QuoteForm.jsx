@@ -25,8 +25,10 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logCreation, logEdit } from '@/components/utils/auditLogger';
+import { useTenant } from '@/lib/useTenant';
 
 export default function QuoteForm({ open, onOpenChange, quote, onSuccess, preselectedClient }) {
+  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [referenceProducts, setReferenceProducts] = useState([]);
@@ -256,7 +258,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         await logEdit('Orçamento', `${dataToSave.quote_number} - ${dataToSave.client_name}`, quote.id);
         toast.success('Orçamento atualizado!');
       } else {
-        await base44.entities.Quote.create(dataToSave);
+        await base44.entities.Quote.create({ ...dataToSave, tenant_id: tenantId });
         await logCreation('Orçamento', `${dataToSave.quote_number} - ${dataToSave.client_name}`, dataToSave.quote_number);
         toast.success('Orçamento criado!');
       }

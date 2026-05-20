@@ -19,8 +19,10 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTenant } from '@/lib/useTenant';
 
 export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
+  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -120,7 +122,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         await base44.entities.Client.update(client.id, formData);
         toast.success('Cliente atualizado com sucesso!');
       } else {
-        await base44.entities.Client.create(formData);
+        await base44.entities.Client.create({ ...formData, tenant_id: tenantId });
         toast.success('Cliente cadastrado com sucesso!');
       }
       await onSuccess();

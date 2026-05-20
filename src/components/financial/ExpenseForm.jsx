@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
+import { useTenant } from '@/lib/useTenant';
 
 export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = null }) {
+  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [counterparties, setCounterparties] = useState([]);
@@ -88,6 +90,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
             
             await base44.entities.Expense.create({
               ...baseData,
+              tenant_id: tenantId,
               amount: installmentAmount,
               due_date: format(dueDate, 'yyyy-MM-dd'),
               installment_number: i,
@@ -100,7 +103,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
           if (formData.payment_date) {
             baseData.status = 'pago';
           }
-          await base44.entities.Expense.create(baseData);
+          await base44.entities.Expense.create({ ...baseData, tenant_id: tenantId });
         }
         toast.success('Despesa cadastrada!');
       }

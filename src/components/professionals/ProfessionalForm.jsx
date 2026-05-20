@@ -18,8 +18,10 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTenant } from '@/lib/useTenant';
 
 export default function ProfessionalForm({ open, onOpenChange, professional, onSuccess }) {
+  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -83,7 +85,7 @@ export default function ProfessionalForm({ open, onOpenChange, professional, onS
         await base44.entities.Professional.update(professional.id, formData);
         toast.success('Profissional atualizado!');
       } else {
-        await base44.entities.Professional.create(formData);
+        await base44.entities.Professional.create({ ...formData, tenant_id: tenantId });
         toast.success('Profissional cadastrado!');
       }
       onSuccess();
