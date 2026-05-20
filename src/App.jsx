@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
 import SplashScreen from '@/components/SplashScreen';
+import * as Sentry from '@sentry/react';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -109,7 +110,9 @@ function App() {
         {!splashDone && <SplashScreen onFinish={() => setSplashDone(true)} />}
         <Router>
           <NavigationTracker />
-          <AuthenticatedApp />
+          <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+            <AuthenticatedApp />
+          </Sentry.ErrorBoundary>
           <Toaster />
         </Router>
       </QueryClientProvider>
@@ -117,4 +120,19 @@ function App() {
   )
 }
 
-export default App
+const ErrorFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-red-50">
+    <div className="text-center">
+      <h1 className="text-3xl font-bold text-red-600 mb-4">Erro Inesperado</h1>
+      <p className="text-gray-600 mb-8">Desculpe, algo deu errado. Estamos investigando.</p>
+      <button 
+        onClick={() => window.location.reload()}
+        className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+      >
+        Recarregar Página
+      </button>
+    </div>
+  </div>
+)
+
+export default Sentry.withProfiler(App)

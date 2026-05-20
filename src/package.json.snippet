@@ -1,8 +1,17 @@
-// Add these scripts to your package.json:
+// Adicionar scripts ao package.json:
 
-"scripts": {
-  "test": "vitest",
-  "test:ui": "vitest --ui",
-  "test:run": "vitest run",
-  "test:coverage": "vitest run --coverage"
+{
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:chromium": "playwright test --project=chromium",
+    "test:e2e:mobile": "playwright test --project='Mobile Chrome'"
+  },
+  
+  "env": {
+    "PLAYWRIGHT_TEST_BASE_URL": "http://localhost:5173",
+    "VITE_SENTRY_DSN": "https://your-key@sentry.io/your-project-id"
+  }
 }
