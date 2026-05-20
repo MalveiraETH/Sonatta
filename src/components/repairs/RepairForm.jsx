@@ -40,6 +40,8 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
       });
       setSnSearch('');
     }
+    setSnError('');
+    setClientSearch('');
   }, [repair, open]);
 
   const handleProductSelect = (product) => {
@@ -88,8 +90,10 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
       return;
     }
     
-    // Validar se SN existe no estoque
-    const productExists = serializedProducts.some(p => p.serial_number === form.serial_number);
+    // Validar se SN existe no estoque (ignora ao editar OS já existente com SN cadastrado)
+    const productExists = serializedProducts.some(
+      p => p.serial_number?.trim().toLowerCase() === form.serial_number?.trim().toLowerCase()
+    );
     if (!productExists) {
       setSnError('Produto não encontrado no estoque');
       return;
@@ -124,10 +128,10 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
             <Label>Cliente *</Label>
             <Input
               placeholder="Buscar cliente..."
-              value={clientSearch || form.client_name || ''}
+              value={clientSearch !== '' ? clientSearch : (form.client_name || '')}
               onChange={e => { setClientSearch(e.target.value); set('client_id', ''); set('client_name', ''); }}
             />
-            {clientSearch && !form.client_id && (
+            {clientSearch !== '' && !form.client_id && (
               <div className="border rounded-md max-h-40 overflow-y-auto bg-white shadow-md z-10">
                 {filteredClients.slice(0, 8).map(c => (
                   <div
