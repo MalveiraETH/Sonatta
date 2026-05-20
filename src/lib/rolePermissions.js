@@ -128,6 +128,17 @@ export const ROLE_PERMISSIONS = {
     // API Docs
     apidocs: ['read'],
   },
+
+  user: {
+    // Clientes (read)
+    clients: ['read'],
+    // Agendamentos (read)
+    appointments: ['read'],
+    // Profissionais (read)
+    professionals: ['read'],
+    // API Docs
+    apidocs: ['read'],
+  },
 };
 
 export const ROLE_LABELS = {
