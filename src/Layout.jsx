@@ -33,7 +33,7 @@ import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
 import { usePermissions } from '@/lib/usePermissions';
 import Footer from '@/components/Footer';
 
-const menuItems = [
+const appMenuItems = [
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Clientes', page: 'Clients', icon: Users },
   { name: 'Agendamentos', page: 'Appointments', icon: Calendar },
@@ -46,6 +46,9 @@ const menuItems = [
   { name: 'Consertos', page: 'DeviceRepairs', icon: Wrench },
   { name: 'Financeiro', page: 'Financeiro', icon: DollarSign },
   { name: 'Cadastros', page: 'Registrations', icon: FileText },
+];
+
+const saasMenuItems = [
   { name: 'Analytics', page: 'Analytics', icon: LayoutDashboard },
   { name: 'Relatórios', page: 'Reports', icon: FileText },
   { name: 'Webhooks', page: 'Webhooks', icon: FileText },
@@ -55,6 +58,8 @@ const menuItems = [
   { name: 'Tenants', page: 'TenantsAdmin', icon: Building2 },
   { name: 'SuperAdmin', page: 'SuperAdminDashboard', icon: Shield },
 ];
+
+const allMenuItems = [...appMenuItems, ...saasMenuItems];
 
 const userRoleLabels = {
   super_admin: 'Super Administrador',
@@ -79,9 +84,15 @@ export default function Layout({ children, currentPageName }) {
 
   // Owner (app builder) tem acesso total automaticamente
   const isOwner = user?.email === 'malveira.fabio@gmail.com';
-  const allowedMenuItems = (user?.role === 'super_admin' || isOwner)
-    ? menuItems 
-    : menuItems.filter(item => canAccessPage(item.page));
+  const hasFullAccess = user?.role === 'super_admin' || isOwner;
+  
+  const allowedAppItems = hasFullAccess 
+    ? appMenuItems 
+    : appMenuItems.filter(item => canAccessPage(item.page));
+  
+  const allowedSaasItems = hasFullAccess 
+    ? saasMenuItems 
+    : saasMenuItems.filter(item => canAccessPage(item.page));
 
   useEffect(() => {
     loadUser();
@@ -169,29 +180,69 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto pb-4">
-        {allowedMenuItems.map((item) => {
-          const isActive = activePageFromUrl.toLowerCase() === item.page.toLowerCase()
-            || (activePageFromUrl === '' && item.page === 'Clients')
-            || currentPageName === item.page;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.page}
-              to={createPageUrl(item.page)}
-              onClick={() => setSidebarOpen(false)}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                isActive
-                  ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
-                  : "text-white/80 hover:bg-white/10 hover:text-white"
-              )}
-            >
-              <Icon className="h-5 w-5 flex-shrink-0" />
-              <span className="font-medium text-base flex-1">{item.name}</span>
-            </Link>
-          );
-        })}
+      <nav className="flex-1 p-4 overflow-y-auto pb-4 space-y-6">
+        {/* APP Menu */}
+        <div>
+          <div className="px-2 py-2 mb-3">
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">App</p>
+          </div>
+          <div className="space-y-1">
+            {allowedAppItems.map((item) => {
+              const isActive = activePageFromUrl.toLowerCase() === item.page.toLowerCase()
+                || (activePageFromUrl === '' && item.page === 'Clients')
+                || currentPageName === item.page;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                    isActive
+                      ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium text-base flex-1">{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* SAAS Menu */}
+        {allowedSaasItems.length > 0 && (
+          <div>
+            <div className="px-2 py-2 mb-3 border-t border-white/10 pt-4">
+              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">SaaS</p>
+            </div>
+            <div className="space-y-1">
+              {allowedSaasItems.map((item) => {
+                const isActive = activePageFromUrl.toLowerCase() === item.page.toLowerCase()
+                  || currentPageName === item.page;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                      isActive
+                        ? "bg-blue-400/20 text-blue-200 border border-blue-400/30 font-semibold"
+                        : "text-white/80 hover:bg-blue-500/10 hover:text-white"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium text-base flex-1">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* User Info */}
