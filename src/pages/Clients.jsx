@@ -40,6 +40,35 @@ import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
+function FiltersContent({ statusFilter, setStatusFilter, statusLabels, clearFilters, setFilterOpen }) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm">Status</Label>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" onClick={clearFilters} className="flex-1">
+          Limpar
+        </Button>
+        <Button onClick={() => setFilterOpen(false)} className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]">
+          Aplicar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Clients() {
   const navigate = useNavigate();
 
@@ -130,33 +159,7 @@ export default function Clients() {
     ativos: clients.filter(c => c.status === 'cliente_ativo').length
   };
 
-  const FiltersContent = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label className="text-sm">Status</Label>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {Object.entries(statusLabels).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" onClick={clearFilters} className="flex-1">
-          Limpar
-        </Button>
-        <Button onClick={() => setFilterOpen(false)} className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]">
-          Aplicar
-        </Button>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -181,7 +184,7 @@ export default function Clients() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card 
           className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
           onClick={() => setStatusFilter('all')}
@@ -334,7 +337,7 @@ export default function Clients() {
               <SheetTitle>Filtros</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <FiltersContent />
+              <FiltersContent statusFilter={statusFilter} setStatusFilter={setStatusFilter} statusLabels={statusLabels} clearFilters={clearFilters} setFilterOpen={setFilterOpen} />
             </div>
           </SheetContent>
         </Sheet>
