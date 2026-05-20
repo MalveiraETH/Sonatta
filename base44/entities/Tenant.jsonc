@@ -54,6 +54,14 @@
       "default": "gratuito",
       "description": "Plano contratado"
     },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "ID do cliente Stripe"
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "description": "ID da assinatura Stripe"
+    },
     "notes": {
       "type": "string",
       "description": "Observa\u00e7\u00f5es internas"
