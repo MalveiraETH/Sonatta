@@ -27,6 +27,7 @@ import { ptBR } from 'date-fns/locale';
 import SalesChart from '@/components/dashboard/SalesChart';
 import ClientsChart from '@/components/dashboard/ClientsChart';
 import FinancialChart from '@/components/dashboard/FinancialChart';
+import PromoteSuperAdminButton from '@/components/PromoteSuperAdminButton';
 
 export default function Dashboard() {
   const { tenantId, loading: tenantLoading } = useTenant();
@@ -234,11 +235,14 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+          </p>
+        </div>
+        <PromoteSuperAdminButton />
       </div>
 
       {/* Filtros de Período */}
