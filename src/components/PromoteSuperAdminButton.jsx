@@ -10,7 +10,7 @@ export default function PromoteSuperAdminButton() {
   const handlePromote = async () => {
     setLoading(true);
     try {
-      const response = await base44.functions.invoke('promoteSuperAdmin', {});
+      const response = await base44.functions.invoke('promoteToSuperAdminDB', {});
       
       if (response.data.success) {
         toast.success('Você foi promovido a super_admin! Recarregando...');
