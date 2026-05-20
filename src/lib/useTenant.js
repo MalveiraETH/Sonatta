@@ -6,8 +6,7 @@ let cachedTenantId = null;
 
 /**
  * Hook que retorna o tenant_id do usuário logado.
- * - Admin: busca o tenant pelo nome "Sonatta" (único tenant existente)
- * - Outros roles: mesma lógica por ora (app ainda single-tenant visualmente)
+ * Usa user.tenant_id do usuário autenticado.
  * 
  * Retorna: { tenantId, loading }
  */
@@ -22,10 +21,10 @@ export function useTenant() {
       return;
     }
 
-    base44.entities.Tenant.list().then(tenants => {
-      if (tenants.length > 0) {
-        cachedTenantId = tenants[0].id;
-        setTenantId(tenants[0].id);
+    base44.auth.me().then(user => {
+      if (user?.tenant_id) {
+        cachedTenantId = user.tenant_id;
+        setTenantId(user.tenant_id);
       }
       setLoading(false);
     }).catch(() => setLoading(false));
