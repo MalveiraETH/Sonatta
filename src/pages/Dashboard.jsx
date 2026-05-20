@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import SalesChart from '@/components/dashboard/SalesChart';
+import ClientsChart from '@/components/dashboard/ClientsChart';
+import FinancialChart from '@/components/dashboard/FinancialChart';
 
 export default function Dashboard() {
   const { tenantId, loading: tenantLoading } = useTenant();
@@ -419,6 +422,14 @@ export default function Dashboard() {
           </Card>
         </Link>
       </div>
+
+      {/* Gráficos de Análise */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SalesChart data={recentSales} />
+        <ClientsChart clients={todayAppointments} />
+      </div>
+
+      <FinancialChart sales={recentSales} expenses={lowStockProducts} />
 
       {/* Listas Operacionais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
