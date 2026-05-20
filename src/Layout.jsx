@@ -61,7 +61,9 @@ const userRoleLabels = {
   admin: 'Administrador',
   fonoaudiologo: 'Fonoaudiólogo(a)',
   comercial: 'Consultor Comercial',
-  recepcao: 'Recepção'
+  recepcao: 'Recepção',
+  financeiro: 'Financeiro',
+  user: 'Usuário'
 };
 
 export default function Layout({ children, currentPageName }) {

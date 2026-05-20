@@ -27,6 +27,7 @@ const validRoles = [
   { value: 'comercial', label: 'Consultor Comercial' },
   { value: 'recepcao', label: 'Recepção' },
   { value: 'financeiro', label: 'Financeiro' },
+  { value: 'user', label: 'Usuário' },
 ];
 
 const roleColors = {
@@ -36,6 +37,7 @@ const roleColors = {
   comercial: 'bg-green-100 text-green-800',
   recepcao: 'bg-yellow-100 text-yellow-800',
   financeiro: 'bg-indigo-100 text-indigo-800',
+  user: 'bg-gray-100 text-gray-800',
 };
 
 export default function SuperAdminUsers() {

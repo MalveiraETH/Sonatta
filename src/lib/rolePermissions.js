@@ -137,6 +137,7 @@ export const ROLE_LABELS = {
   comercial: 'Consultor Comercial',
   recepcao: 'Recepção',
   financeiro: 'Financeiro',
+  user: 'Usuário',
 };
 
 export function canAccess(userRole, resource, action) {
