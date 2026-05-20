@@ -1,267 +1,270 @@
-# Guia de Usuário - Sonatta SaaS
+# Guia do Usuário - Sonatta SaaS
 
-## 📖 Índice
+## Bem-vindo ao Sonatta!
 
-1. [Primeiros Passos](#primeiros-passos)
-2. [Gestão de Clientes](#gestão-de-clientes)
-3. [Vendas & Orçamentos](#vendas--orçamentos)
-4. [Agendamentos](#agendamentos)
-5. [Financeiro](#financeiro)
-6. [Configurações](#configurações)
+Sonatta é uma plataforma completa para gerenciar sua clínica auditiva, desde clientes até vendas, agendamentos e financeiro.
 
----
+## 📋 Índice
 
-## Primeiros Passos
+1. [Começando](#começando)
+2. [Dashboard](#dashboard)
+3. [Clientes](#clientes)
+4. [Vendas](#vendas)
+5. [Agendamentos](#agendamentos)
+6. [Estoque](#estoque)
+7. [Financeiro](#financeiro)
+8. [Relatórios](#relatórios)
+9. [FAQ](#faq)
+10. [Suporte](#suporte)
 
-### 1. Login
-- Acesse **www.sonatta.com.br**
-- Digite seu email e senha
-- Clique em **"Entrar"**
+## Começando
 
-### 2. Dashboard
-Visualize:
-- ✓ Resumo de vendas
-- ✓ Clientes ativos
-- ✓ Agendamentos do dia
-- ✓ Alertas de garantia
+### Login
+1. Acesse https://sonatta.com.br
+2. Insira seu email e senha
+3. Clique "Entrar"
 
-### 3. Seu Perfil
-Clique no ícone no canto superior:
-- **Meu Perfil** - Editar dados
-- **Configurações** - Preferências
-- **Sair** - Logout
+### Primeiro Acesso
+- Atualize seu perfil em Configurações
+- Convide sua equipe em Usuários
+- Configure seu horário de atendimento em Configurações
 
----
+## Dashboard
 
-## Gestão de Clientes
+A página inicial mostra:
+- **KPIs:** Vendas este mês, clientes ativos, agendamentos hoje
+- **Gráficos:** Tendência de vendas, receita por mês
+- **Atividades recentes:** Últimas vendas e clientes
 
-### Criar Cliente
+## Clientes
 
-1. Navegue até **Clientes**
-2. Clique em **"Novo Cliente"**
-3. Preencha:
-   - Nome completo*
-   - Telefone/WhatsApp*
-   - Email (opcional)
-   - CPF (opcional)
-   - Data de nascimento
-   - Endereço
-4. Clique **"Salvar"**
-
-*Campos obrigatórios
-
-### Buscar Cliente
-
-1. Use a barra **"Buscar"** no topo
-2. Digite nome ou telefone
-3. Clique no cliente para abrir
+### Adicionar Novo Cliente
+1. Clique "Novo Cliente"
+2. Preencha dados básicos (nome, telefone, email)
+3. Adicione endereço (opcional)
+4. Defina status inicial
+5. Clique "Salvar"
 
 ### Editar Cliente
+1. Localize o cliente na lista
+2. Clique no ícone ✏️
+3. Atualize informações
+4. Clique "Salvar"
 
-1. Encontre o cliente
-2. Clique no **ícone de edição** (lápis)
-3. Modifique os dados
-4. Clique **"Salvar Alterações"**
+### Filtros
+- **Status:** Lead, Cliente Ativo, Pós-Venda
+- **Busca:** Digite nome ou telefone
 
-### Status do Cliente
+### Ações Rápidas
+- 📞 WhatsApp direto
+- 📧 Enviar email
+- 📅 Agendar consulta
+- 💰 Ver histórico de vendas
 
-- **Lead** - Novo prospect
-- **Cliente Ativo** - Fazendo compras
-- **Pós-Venda** - Acompanhamento
+## Vendas
 
----
+### Criar Nova Venda
 
-## Vendas & Orçamentos
+**Opção 1: Do zero**
+1. Menu → Vendas → Novo
+2. Selecione cliente
+3. Adicione produtos
+4. Escolha método de pagamento
+5. Clique "Confirmar Venda"
 
-### Criar Orçamento
-
-1. Navegue até **Orçamentos**
-2. Clique **"Novo Orçamento"**
-3. Selecione o cliente
-4. Clique **"Adicionar Item"**:
-   - Selecione produto
-   - Quantidade
-   - Preço unitário
-5. Configure **Validade** (padrão: 30 dias)
-6. Clique **"Salvar"**
-
-### Converter para Venda
-
-1. Abra o orçamento aprovado
-2. Clique **"Converter para Venda"**
-3. Sistema cria venda automaticamente
-4. Gere **Nota Fiscal** se necessário
-
-### Registrar Venda Direta
-
-1. Navegue até **Vendas**
-2. Clique **"Nova Venda"**
-3. Selecione cliente
-4. Escolha método de pagamento:
-   - Dinheiro
-   - PIX
-   - PIX Parcelado
-   - Cartão de Crédito
-5. Configure parcelamento (se aplicável)
-6. Clique **"Salvar"**
+**Opção 2: Converter Orçamento**
+1. Menu → Orçamentos
+2. Localize orçamento aprovado
+3. Clique "Converter para Venda"
 
 ### Métodos de Pagamento
+- **PIX Parcelado:** À vista com juros baixos
+- **Cartão de Crédito:** 1-12x com juros
+- **Dinheiro:** À vista
+- **Transferência:** Via banco
 
-#### PIX à Vista
-- Menor taxa
-- Ideal para grandes valores
-
-#### PIX Parcelado
-- Até 12x
-- Taxa por parcela
-- Controle de inadimplência
-
-#### Cartão de Crédito
-- 1 a 12 parcelas
-- Taxa de 2-3%
-- Liquidação em D+1
-
----
-
-## Agendamentos
-
-### Agendar Atendimento
-
-1. Navegue até **Agendamentos**
-2. Clique **"Novo Agendamento"**
-3. Selecione cliente
-4. Escolha:
-   - **Tipo**: Teste, Ajuste, Retorno, etc
-   - **Data**
-   - **Horário**
-   - **Profissional**
-5. Clique **"Confirmar"**
-
-### Tipos de Atendimento
-
-- **Teste** - Avaliação inicial (2-3h)
-- **Ajuste** - Calibração aparelho (1h)
-- **Manutenção** - Limpeza/reparo (30min)
-- **Retorno** - Follow-up (30min)
-- **Avaliação** - Reassessment (1-2h)
-
-### Status do Agendamento
-
-- 🟦 **Agendado** - Confirmado
-- 🟨 **Confirmado** - Ligou para confirmar
-- 🟩 **Realizado** - Atendimento feito
-- 🟥 **Faltou** - Cliente não compareceu
-- ⚪ **Cancelado** - Desmarcado
-
----
-
-## Financeiro
-
-### Contas a Receber
-
-1. Navegue até **Financeiro**
-2. Aba **"Contas a Receber"**
-3. Visualize:
-   - Parcelas pendentes
-   - Atrasadas
-   - Pagas
-
-### Registrar Pagamento
-
-1. Clique na parcela
-2. Clique **"Registrar Pagamento"**
-3. Selecione **Método**
-4. Insira **Valor**
-5. Clique **"Confirmar"**
-
-### Gerar Relatório
-
-1. Clique **"Gerar Relatório"**
-2. Escolha período
-3. Clique **"Baixar PDF"**
-
----
-
-## Configurações
-
-### Perfil
-
-- Nome
-- Email
-- Telefone
-- Senha
-
-### Empresa
-
-- Nome da clínica
-- CNPJ
-- Endereço
-- Logo
-- Dados bancários
-
-### Plano
-
-- Ver plano atual
-- Upgrade
-- Faturamento
-
-### Integração WhatsApp
-
-1. Vá em **Configurações > WhatsApp**
-2. Clique **"Conectar"**
-3. Escaneie QR Code
-4. Autorize
-5. Pronto! Receberá mensagens
-
----
-
-## Dúvidas Frequentes
-
-### Como faço para...
-
-**...exportar meus dados?**
-1. Vá em Configurações
-2. Clique "Exportar Dados"
-3. Selecione período
-4. Arquivo baixa em Excel
-
-**...deletar um cliente?**
-1. Abra cliente
-2. Clique "⋮" (mais)
-3. Clique "Deletar"
-4. Confirme
-
-**...registrar um teste?**
-1. Vá em **Testes**
-2. Clique **"Novo Teste"**
-3. Selecione cliente
-4. Data início/fim
-5. Equipamentos utilizados
-
-**...gerar NFS-e?**
+### Gerar Nota Fiscal
 1. Abra venda
 2. Clique "Gerar NFe"
 3. Revise dados
 4. Clique "Emitir"
-5. Salve XML
 
----
+### Acompanhar Pagamentos
+- Status em tempo real
+- Lembretes automáticos
+- Parcelamentos em aberto
+
+## Agendamentos
+
+### Agendar Consulta
+1. Menu → Agendamentos → Novo
+2. Selecione cliente e profissional
+3. Escolha data e hora
+4. Defina tipo (Teste, Ajuste, Manutenção)
+5. Adicione notas (opcional)
+6. Clique "Agendar"
+
+### Confirmar Presença
+1. Na lista de agendamentos
+2. Clique ✓ para confirmar
+3. Cliente recebe notificação via WhatsApp
+
+### Reagendar
+1. Abra agendamento
+2. Clique "Modificar"
+3. Escolha nova data/hora
+4. Cliente é notificado automaticamente
+
+### Calendário
+- Visualize semana/mês
+- Arrastar para remarcar
+- Cores por profissional
+
+## Estoque
+
+### Adicionar Produto
+1. Menu → Estoque → Novo Produto
+2. Defina tipo (Serializado ou Não)
+3. Preencha dados
+4. Define preço de venda
+5. Clique "Salvar"
+
+### Registrar Entrada
+1. Clique "Entrada"
+2. Selecione produto
+3. Informe quantidade
+4. Nota fiscal (opcional)
+5. Clique "Registrar"
+
+### Baixa de Estoque
+1. Clique "Saída"
+2. Selecione produto
+3. Informe quantidade
+4. Motivo (venda, dano, etc)
+5. Clique "Confirmar"
+
+### Alertas
+- 🔴 Estoque baixo: vermelho
+- 🟡 Atenção: amarelo
+- 🟢 OK: verde
+
+## Financeiro
+
+### Receitas
+1. Menu → Financeiro → Receitas
+2. Ver todas as vendas recebidas
+3. Filtrar por período/cliente
+4. Download de relatório
+
+### Despesas
+1. Menu → Financeiro → Despesas
+2. Clique "Nova Despesa"
+3. Preencha categoria e valor
+4. Data de vencimento
+5. Clique "Salvar"
+
+### Contas a Receber
+1. Menu → Financeiro → Contas a Receber
+2. Visualize pagamentos pendentes
+3. Clique para detalhar
+4. Marque como pago
+
+### Relatórios
+- Fluxo de caixa
+- DRE (Demonstração de Resultado)
+- Receita por período
+- Despesa por categoria
+
+## Relatórios
+
+### Relatórios Disponíveis
+- 📊 Vendas por mês
+- 💰 Receita por profissional
+- 👥 Clientes por status
+- 📈 Crescimento mês a mês
+- 🏥 Testes realizados
+
+### Exportar
+1. Abra relatório
+2. Clique "Exportar"
+3. Escolha formato (PDF ou Excel)
+4. Arquivo é baixado
+
+### Agendar Relatórios
+1. Configure periodicidade (semanal/mensal)
+2. Deixe email
+3. Receba automaticamente
+
+## FAQ
+
+### Como redefinir senha?
+1. Na tela de login, clique "Esqueci minha senha"
+2. Informe seu email
+3. Clique no link recebido
+4. Crie nova senha
+
+### Como exportar dados?
+1. Menu → Configurações → Backup
+2. Clique "Baixar Backup"
+3. Arquivo JSON é baixado com todos dados
+
+### Como converter orçamento em venda?
+1. Vá para Orçamentos
+2. Localize orçamento
+3. Clique "Converter"
+4. Venda é criada automaticamente
+
+### Há limite de usuários?
+- **Plano Gratuito:** 1 usuário
+- **Plano Básico:** 5 usuários
+- **Plano Premium:** Usuários ilimitados
+
+### Como ativar WhatsApp?
+1. Menu → Configurações → Integração
+2. Conecte sua conta WhatsApp Business
+3. Templates de mensagens são configurados
+4. Mensagens automáticas começam
 
 ## Suporte
 
-### Chat
-Clique no ícone de chat (💬) - resposta em até 2h
+### Dúvidas?
+- 📧 Email: support@sonatta.com.br
+- 💬 WhatsApp: (92) 99169-2102
+- 🌐 Chat: https://sonatta.com.br/support
+- 📖 Docs: https://docs.sonatta.com.br
 
-### Email
-suporte@sonatta.com.br
+### Reportar Bug
+1. Vá para Suporte
+2. Clique "Reportar Problema"
+3. Descreva o que aconteceu
+4. Anexe screenshot se possível
+5. Nossa equipe investigará
 
-### WhatsApp
-(92) 99169-2102
+### Feedback
+Adoramos ouvir sugestões!
+- Clique "Feedback" em Suporte
+- Descreva sua ideia
+- Votamos nos melhores
 
-### Base de Conhecimento
-https://sonatta.com.br/help
+## Dicas & Truques
+
+✅ **Teclas de Atalho**
+- `Ctrl + K`: Busca rápida
+- `Ctrl + N`: Novo registro
+- `Escape`: Fechar modal
+
+✅ **Produtividade**
+- Use filtros para encontrar dados rápido
+- Configure lembretes de pagamentos
+- Exporte dados mensalmente (backup)
+
+✅ **Segurança**
+- Altere senha a cada 3 meses
+- Não compartilhe credenciais
+- Faça backup regularmente
 
 ---
 
-## Versão
-Sonatta v1.0.0 - Maio 2026
+**Versão:** 1.0.0
+**Última atualização:** 2026-05-20
+**Próxima revisão:** 2026-08-20

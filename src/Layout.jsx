@@ -48,6 +48,7 @@ const menuItems = [
   { name: 'Cadastros', page: 'Registrations', icon: FileText },
   { name: 'Relatórios', page: 'Reports', icon: FileText },
   { name: 'Uso e Backup', page: 'UsageDashboard', icon: Package },
+  { name: 'API Docs', page: 'ApiDocs', icon: FileText },
   { name: 'Configurações', page: 'Settings', icon: Bell },
   { name: 'Tenants', page: 'TenantsAdmin', icon: Building2 },
 ];
