@@ -46,6 +46,7 @@ const menuItems = [
   { name: 'Financeiro', page: 'Financeiro', icon: DollarSign },
   { name: 'Cadastros', page: 'Registrations', icon: FileText },
   { name: 'Relatórios', page: 'Reports', icon: FileText },
+  { name: 'Uso e Backup', page: 'UsageDashboard', icon: Package },
   { name: 'Configurações', page: 'Settings', icon: Bell },
   { name: 'Tenants', page: 'TenantsAdmin', icon: Building2 },
 ];

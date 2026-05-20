@@ -8,6 +8,7 @@ import PageNotFound from './lib/PageNotFound';
 import TenantsAdmin from './pages/TenantsAdmin';
 import OnboardingTenant from './pages/OnboardingTenant';
 import Billing from './pages/Billing';
+import UsageDashboard from './pages/UsageDashboard';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
@@ -76,6 +77,11 @@ const AuthenticatedApp = () => {
       <Route path="/Billing" element={
         <LayoutWrapper currentPageName="Billing">
           <Billing />
+        </LayoutWrapper>
+      } />
+      <Route path="/UsageDashboard" element={
+        <LayoutWrapper currentPageName="UsageDashboard">
+          <UsageDashboard />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
