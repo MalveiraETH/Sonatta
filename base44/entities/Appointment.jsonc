@@ -1,0 +1,95 @@
+{
+  "name": "Appointment",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "ID do tenant (cl\u00ednica)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nome do cliente"
+    },
+    "professional_id": {
+      "type": "string",
+      "description": "ID do profissional respons\u00e1vel"
+    },
+    "professional_name": {
+      "type": "string",
+      "description": "Nome do profissional"
+    },
+    "test_referral_id": {
+      "type": "string",
+      "description": "ID do profissional de indica\u00e7\u00e3o do teste"
+    },
+    "test_referral_name": {
+      "type": "string",
+      "description": "Nome do profissional de indica\u00e7\u00e3o do teste"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do agendamento"
+    },
+    "time": {
+      "type": "string",
+      "description": "Hor\u00e1rio do agendamento"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "teste",
+        "ajuste",
+        "manutencao",
+        "retorno",
+        "avaliacao"
+      ],
+      "description": "Tipo de atendimento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "agendado",
+        "confirmado",
+        "realizado",
+        "faltou",
+        "cancelado"
+      ],
+      "default": "agendado",
+      "description": "Status do agendamento"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    },
+    "test_id": {
+      "type": "string",
+      "description": "ID do teste vinculado"
+    },
+    "test_appointment_type": {
+      "type": "string",
+      "enum": [
+        "inicio",
+        "termino"
+      ],
+      "description": "Indica se \u00e9 agendamento de in\u00edcio ou t\u00e9rmino do teste"
+    }
+  },
+  "required": [
+    "client_id",
+    "date",
+    "time",
+    "type"
+  ],
+  "rls": {
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

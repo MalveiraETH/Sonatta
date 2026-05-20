@@ -2,6 +2,10 @@
   "name": "Client",
   "type": "object",
   "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "ID do tenant (cl\u00ednica)"
+    },
     "full_name": {
       "type": "string",
       "description": "Nome completo do cliente"

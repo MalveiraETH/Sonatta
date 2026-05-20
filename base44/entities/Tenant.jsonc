@@ -1,0 +1,87 @@
+{
+  "name": "Tenant",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da cl\u00ednica/empresa"
+    },
+    "cnpj": {
+      "type": "string",
+      "description": "CNPJ da empresa"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone principal"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-mail principal"
+    },
+    "address": {
+      "type": "string",
+      "description": "Endere\u00e7o completo"
+    },
+    "city": {
+      "type": "string",
+      "description": "Cidade"
+    },
+    "state": {
+      "type": "string",
+      "description": "Estado (UF)"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL do logotipo"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "inativo",
+        "suspenso"
+      ],
+      "default": "ativo",
+      "description": "Status do tenant"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "gratuito",
+        "basico",
+        "premium"
+      ],
+      "default": "gratuito",
+      "description": "Plano contratado"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es internas"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

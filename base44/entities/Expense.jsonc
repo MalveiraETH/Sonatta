@@ -1,0 +1,126 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "ID do tenant (cl\u00ednica)"
+    },
+    "competency_month": {
+      "type": "string",
+      "description": "M\u00eas de compet\u00eancia"
+    },
+    "competency_year": {
+      "type": "number",
+      "description": "Ano de compet\u00eancia"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do evento"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de vencimento"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de pagamento"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID da categoria"
+    },
+    "category_name": {
+      "type": "string",
+      "description": "Nome da categoria"
+    },
+    "counterparty_id": {
+      "type": "string",
+      "description": "ID do fornecedor/pessoal"
+    },
+    "counterparty_name": {
+      "type": "string",
+      "description": "Nome do fornecedor/pessoal"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "fixo",
+        "variavel"
+      ],
+      "description": "Fixo ou Vari\u00e1vel"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "dinheiro",
+        "pix",
+        "cartao_credito",
+        "cartao_debito",
+        "boleto",
+        "transferencia"
+      ],
+      "description": "M\u00e9todo de pagamento"
+    },
+    "installments": {
+      "type": "number",
+      "default": 1,
+      "description": "Quantidade de parcelas"
+    },
+    "installment_number": {
+      "type": "number",
+      "description": "N\u00famero da parcela (se parcelado)"
+    },
+    "parent_expense_id": {
+      "type": "string",
+      "description": "ID da despesa pai (se for parcela)"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00famero da nota fiscal ou recibo"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "a_pagar",
+        "atrasado",
+        "pago"
+      ],
+      "default": "a_pagar",
+      "description": "Status do pagamento"
+    },
+    "recurring_expense_id": {
+      "type": "string",
+      "description": "ID da despesa recorrente origem"
+    }
+  },
+  "required": [
+    "due_date",
+    "amount",
+    "category_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": true,
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
