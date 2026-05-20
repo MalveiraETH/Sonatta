@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
@@ -71,6 +72,7 @@ function FiltersContent({ statusFilter, setStatusFilter, statusLabels, clearFilt
 
 export default function Clients() {
   const navigate = useNavigate();
+  const { tenantId, loading: tenantLoading } = useTenant();
 
   const navigateToClient = (client) => {
     navigate(`/ClientDetail?id=${client.id}`);
@@ -86,8 +88,8 @@ export default function Clients() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!tenantLoading) loadData();
+  }, [tenantLoading, tenantId]);
 
   useEffect(() => {
     filterClients();
@@ -97,9 +99,10 @@ export default function Clients() {
 
   const loadData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [clientsData, testsData] = await Promise.all([
-        base44.entities.Client.list('-created_date'),
-        base44.entities.Test.list('-created_date')
+        base44.entities.Client.filter(filter, '-created_date'),
+        base44.entities.Test.filter(filter, '-created_date')
       ]);
       setClients(clientsData);
 
