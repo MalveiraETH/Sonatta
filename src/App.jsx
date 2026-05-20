@@ -12,6 +12,7 @@ import UsageDashboard from './pages/UsageDashboard';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Support from './pages/Support';
+import BackupRestore from './pages/BackupRestore';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
@@ -93,6 +94,11 @@ const AuthenticatedApp = () => {
       <Route path="/Support" element={
         <LayoutWrapper currentPageName="Support">
           <Support />
+        </LayoutWrapper>
+      } />
+      <Route path="/BackupRestore" element={
+        <LayoutWrapper currentPageName="BackupRestore">
+          <BackupRestore />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

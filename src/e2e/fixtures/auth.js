@@ -1,12 +1,11 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { test as base } from '@playwright/test';
+/* eslint-disable no-undef */
+import { test as base, expect } from '@playwright/test';
 
-export const test = base.extend({
+const testWithAuth = base.extend({
   authenticatedPage: async ({ page }, use) => {
-    // Login before each test
     await page.goto('/');
     
-    // Mock login (ajuste conforme seu fluxo real)
     await page.evaluate(() => {
       localStorage.setItem('auth_token', 'test-token-123');
       localStorage.setItem('user', JSON.stringify({
@@ -24,4 +23,5 @@ export const test = base.extend({
   },
 });
 
-export { expect } from '@playwright/test';
+export const test = testWithAuth;
+export { expect };
