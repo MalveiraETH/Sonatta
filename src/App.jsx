@@ -18,6 +18,7 @@ import ApiDocs from './pages/ApiDocs';
 import Analytics from './pages/Analytics';
 import Webhooks from './pages/Webhooks';
 import SettingsRoles from './pages/SettingsRoles';
+import Dashboard from './pages/Dashboard';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
@@ -129,6 +130,11 @@ const AuthenticatedApp = () => {
       <Route path="/SuperAdminDashboard" element={
         <LayoutWrapper currentPageName="SuperAdminDashboard">
           <SuperAdminDashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/Dashboard" element={
+        <LayoutWrapper currentPageName="Dashboard">
+          <Dashboard />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
