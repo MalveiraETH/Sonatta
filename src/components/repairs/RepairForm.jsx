@@ -19,6 +19,7 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
   const [clientSearch, setClientSearch] = useState('');
   const [snSearch, setSnSearch] = useState('');
   const [snFocused, setSnFocused] = useState(false);
+  const [snError, setSnError] = useState('');
 
   useEffect(() => {
     base44.entities.Client.list('-full_name', 200).then(setClients);
@@ -86,6 +87,14 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
       alert('Preencha todos os campos obrigatórios.');
       return;
     }
+    
+    // Validar se SN existe no estoque
+    const productExists = serializedProducts.some(p => p.serial_number === form.serial_number);
+    if (!productExists) {
+      setSnError('Produto não encontrado no estoque');
+      return;
+    }
+
     setLoading(true);
     if (repair?.id) {
       await base44.entities.DeviceRepair.update(repair.id, form);
@@ -142,11 +151,13 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
               onChange={e => {
                 setSnSearch(e.target.value);
                 set('serial_number', e.target.value);
+                setSnError('');
               }}
               onFocus={() => setSnFocused(true)}
               onBlur={() => setTimeout(() => setSnFocused(false), 200)}
               placeholder="Buscar por SN, modelo ou marca..."
               autoComplete="off"
+              className={snError ? 'border-red-500' : ''}
             />
             {snFocused && snSearch && filteredProducts.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 border rounded-md max-h-48 overflow-y-auto bg-white shadow-lg z-50">
@@ -163,10 +174,11 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
               </div>
             )}
             {snFocused && snSearch && filteredProducts.length === 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1 border rounded-md bg-white shadow-lg z-50 px-3 py-2 text-sm text-slate-400">
-                Nenhum aparelho encontrado — o SN digitado será salvo manualmente.
+              <div className="absolute left-0 right-0 top-full mt-1 border rounded-md bg-white shadow-lg z-50 px-3 py-2 text-sm text-red-500 font-medium">
+                Produto não encontrado
               </div>
             )}
+            {snError && <p className="text-red-500 text-sm mt-1">{snError}</p>}
           </div>
 
           {/* Nome do Aparelho */}
