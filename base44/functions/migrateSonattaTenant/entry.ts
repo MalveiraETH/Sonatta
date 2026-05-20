@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     for (const r of toUpdate) {
       await base44.asServiceRole.entities[entityName].update(r.id, { tenant_id: tenantId });
       updated++;
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise(resolve => setTimeout(resolve, 1200));
     }
 
     const remaining = allToUpdate.length - updated;
