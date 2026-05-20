@@ -16,6 +16,7 @@ import BackupRestore from './pages/BackupRestore';
 import ApiDocs from './pages/ApiDocs';
 import Analytics from './pages/Analytics';
 import Webhooks from './pages/Webhooks';
+import SettingsRoles from './pages/SettingsRoles';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
@@ -117,6 +118,11 @@ const AuthenticatedApp = () => {
       <Route path="/Webhooks" element={
         <LayoutWrapper currentPageName="Webhooks">
           <Webhooks />
+        </LayoutWrapper>
+      } />
+      <Route path="/SettingsRoles" element={
+        <LayoutWrapper currentPageName="SettingsRoles">
+          <SettingsRoles />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
