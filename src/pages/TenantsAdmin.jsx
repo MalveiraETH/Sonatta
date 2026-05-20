@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Building2, ShieldAlert } from 'lucide-react';
+import { Plus, Pencil, Building2, ShieldAlert, Users, UserPlus, Mail, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const emptyForm = () => ({
@@ -39,27 +39,70 @@ const planColors = {
 export default function TenantsAdmin() {
   const [user, setUser] = useState(null);
   const [tenants, setTenants] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
 
+  // Invite from tenant view
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteTenant, setInviteTenant] = useState(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('user');
+  const [inviting, setInviting] = useState(false);
+
+  // Users panel
+  const [usersOpen, setUsersOpen] = useState(false);
+  const [usersTenant, setUsersTenant] = useState(null);
+
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
-    loadTenants();
+    loadData();
   }, []);
 
-  const loadTenants = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Tenant.list('-created_date');
+      const [data, users] = await Promise.all([
+        base44.entities.Tenant.list('-created_date'),
+        base44.entities.User.list(),
+      ]);
       setTenants(data);
+      setAllUsers(users);
     } catch (e) {
-      toast.error('Erro ao carregar tenants');
+      toast.error('Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Keep alias for single-tenant loads
+  const loadTenants = loadData;
+
+  const usersForTenant = (tenantId) => allUsers.filter(u => u.tenant_id === tenantId);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
+    // After a short delay find the new user and assign tenant
+    setTimeout(async () => {
+      try {
+        const users = await base44.entities.User.list();
+        const invited = users.find(u => u.email === inviteEmail.trim());
+        if (invited && inviteTenant) {
+          await base44.entities.User.update(invited.id, { tenant_id: inviteTenant.id });
+        }
+        loadData();
+      } catch (_) { loadData(); }
+    }, 1500);
+    toast.success(`Convite enviado para ${inviteEmail}`);
+    setInviteEmail('');
+    setInviteRole('user');
+    setInviteOpen(false);
+    setInviting(false);
   };
 
   const openCreate = () => {
@@ -183,9 +226,28 @@ export default function TenantsAdmin() {
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(tenant)}>
-                        <Pencil className="h-4 w-4 text-slate-500" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-500 gap-1 text-xs"
+                          onClick={() => { setUsersTenant(tenant); setUsersOpen(true); }}
+                        >
+                          <Users className="h-3.5 w-3.5" />
+                          {usersForTenant(tenant.id).length}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Convidar usuário"
+                          onClick={() => { setInviteTenant(tenant); setInviteEmail(''); setInviteRole('user'); setInviteOpen(true); }}
+                        >
+                          <UserPlus className="h-4 w-4 text-[#6B3FA0]" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(tenant)}>
+                          <Pencil className="h-4 w-4 text-slate-500" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -194,6 +256,81 @@ export default function TenantsAdmin() {
           </Table>
         )}
       </Card>
+
+      {/* Users Panel Dialog */}
+      <Dialog open={usersOpen} onOpenChange={setUsersOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-[#6B3FA0]" />
+              Usuários — {usersTenant?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            {usersTenant && usersForTenant(usersTenant.id).length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-6">Nenhum usuário associado.</p>
+            ) : (
+              <ul className="divide-y">
+                {usersTenant && usersForTenant(usersTenant.id).map(u => (
+                  <li key={u.id} className="flex items-center gap-3 py-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[#6B3FA0] font-semibold text-sm">{u.full_name?.charAt(0) || '?'}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{u.full_name}</p>
+                      <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                    </div>
+                    <span className="text-xs text-slate-500 shrink-0">{u.role}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setInviteTenant(usersTenant); setInviteEmail(''); setInviteRole('user'); setUsersOpen(false); setInviteOpen(true); }} className="gap-1">
+              <UserPlus className="h-4 w-4" /> Convidar
+            </Button>
+            <Button onClick={() => setUsersOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-[#6B3FA0]" />
+              Convidar para {inviteTenant?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input type="email" placeholder="email@exemplo.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Papel</Label>
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="fonoaudiologo">Fonoaudiólogo(a)</SelectItem>
+                  <SelectItem value="comercial">Consultor Comercial</SelectItem>
+                  <SelectItem value="recepcao">Recepção</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+            <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+              {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar Convite'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

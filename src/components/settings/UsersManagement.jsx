@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { UserPlus, Mail, Shield, User, Loader2 } from 'lucide-react';
+import { UserPlus, Mail, Shield, User, Loader2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const roleLabels = {
@@ -48,14 +48,19 @@ const roleColors = {
 
 export default function UsersManagement() {
   const [users, setUsers] = useState([]);
+  const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('user');
+  const [inviteTenantId, setInviteTenantId] = useState('none');
   const [inviting, setInviting] = useState(false);
+
   const [editUser, setEditUser] = useState(null);
   const [editRole, setEditRole] = useState('');
+  const [editTenantId, setEditTenantId] = useState('none');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -64,34 +69,63 @@ export default function UsersManagement() {
 
   const loadData = async () => {
     setLoading(true);
-    const [me, allUsers] = await Promise.all([
+    const [me, allUsers, allTenants] = await Promise.all([
       base44.auth.me(),
       base44.entities.User.list(),
+      base44.entities.Tenant.list(),
     ]);
     setCurrentUser(me);
     setUsers(allUsers);
+    setTenants(allTenants);
     setLoading(false);
   };
+
+  const tenantName = (id) => tenants.find(t => t.id === id)?.name || '—';
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
+    // After invite, find the newly created user and set tenant_id
+    if (inviteTenantId && inviteTenantId !== 'none') {
+      // Poll briefly to find the invited user, then update
+      setTimeout(async () => {
+        try {
+          const allUsers = await base44.entities.User.list();
+          const invited = allUsers.find(u => u.email === inviteEmail.trim());
+          if (invited) {
+            await base44.entities.User.update(invited.id, { tenant_id: inviteTenantId });
+          }
+          loadData();
+        } catch (_) { loadData(); }
+      }, 1500);
+    } else {
+      loadData();
+    }
     toast.success(`Convite enviado para ${inviteEmail}`);
     setInviteEmail('');
     setInviteRole('user');
+    setInviteTenantId('none');
     setInviteOpen(false);
     setInviting(false);
-    loadData();
   };
 
-  const handleSaveRole = async () => {
+  const handleSave = async () => {
     setSaving(true);
-    await base44.entities.User.update(editUser.id, { role: editRole });
-    toast.success('Papel atualizado com sucesso');
+    await base44.entities.User.update(editUser.id, {
+      role: editRole,
+      tenant_id: editTenantId === 'none' ? null : editTenantId,
+    });
+    toast.success('Usuário atualizado com sucesso');
     setEditUser(null);
     setSaving(false);
     loadData();
+  };
+
+  const openEdit = (u) => {
+    setEditUser(u);
+    setEditRole(u.role || 'user');
+    setEditTenantId(u.tenant_id || 'none');
   };
 
   if (loading) {
@@ -127,6 +161,7 @@ export default function UsersManagement() {
                 <TableHead>Nome</TableHead>
                 <TableHead>E-mail</TableHead>
                 <TableHead>Papel</TableHead>
+                <TableHead>Tenant</TableHead>
                 {currentUser?.role === 'admin' && <TableHead className="text-right">Ações</TableHead>}
               </TableRow>
             </TableHeader>
@@ -152,15 +187,21 @@ export default function UsersManagement() {
                       {roleLabels[u.role] || u.role}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    {u.tenant_id ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-700">
+                        <Building2 className="h-3 w-3 text-[#6B3FA0]" />
+                        {tenantName(u.tenant_id)}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </TableCell>
                   {currentUser?.role === 'admin' && (
                     <TableCell className="text-right">
                       {u.id !== currentUser?.id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { setEditUser(u); setEditRole(u.role || 'user'); }}
-                        >
-                          Alterar Papel
+                        <Button variant="outline" size="sm" onClick={() => openEdit(u)}>
+                          Editar
                         </Button>
                       )}
                     </TableCell>
@@ -194,15 +235,28 @@ export default function UsersManagement() {
             <div className="space-y-2">
               <Label>Papel</Label>
               <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>
                   <SelectItem value="fonoaudiologo">Fonoaudiólogo(a)</SelectItem>
                   <SelectItem value="comercial">Consultor Comercial</SelectItem>
                   <SelectItem value="recepcao">Recepção</SelectItem>
                   <SelectItem value="user">Usuário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Building2 className="h-4 w-4 text-[#6B3FA0]" />
+                Tenant (Clínica)
+              </Label>
+              <Select value={inviteTenantId} onValueChange={setInviteTenantId}>
+                <SelectTrigger><SelectValue placeholder="Selecionar tenant..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem tenant</SelectItem>
+                  {tenants.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -216,33 +270,48 @@ export default function UsersManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Role Dialog */}
+      {/* Edit Dialog */}
       <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-[#6B3FA0]" />
-              Alterar Papel de {editUser?.full_name}
+              Editar {editUser?.full_name}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label>Papel</Label>
-            <Select value={editRole} onValueChange={setEditRole}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="fonoaudiologo">Fonoaudiólogo(a)</SelectItem>
-                <SelectItem value="comercial">Consultor Comercial</SelectItem>
-                <SelectItem value="recepcao">Recepção</SelectItem>
-                <SelectItem value="user">Usuário</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Papel</Label>
+              <Select value={editRole} onValueChange={setEditRole}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="fonoaudiologo">Fonoaudiólogo(a)</SelectItem>
+                  <SelectItem value="comercial">Consultor Comercial</SelectItem>
+                  <SelectItem value="recepcao">Recepção</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <Building2 className="h-4 w-4 text-[#6B3FA0]" />
+                Tenant (Clínica)
+              </Label>
+              <Select value={editTenantId} onValueChange={setEditTenantId}>
+                <SelectTrigger><SelectValue placeholder="Selecionar tenant..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem tenant</SelectItem>
+                  {tenants.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditUser(null)}>Cancelar</Button>
-            <Button onClick={handleSaveRole} disabled={saving} className="bg-[#6B3FA0] hover:bg-[#5a3388] text-white">
+            <Button onClick={handleSave} disabled={saving} className="bg-[#6B3FA0] hover:bg-[#5a3388] text-white">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
             </Button>
           </DialogFooter>
