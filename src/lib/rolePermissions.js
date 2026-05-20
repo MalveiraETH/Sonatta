@@ -1,5 +1,46 @@
 // Role-based permissions mapping
 export const ROLE_PERMISSIONS = {
+  super_admin: {
+    // Clientes
+    clients: ['create', 'read', 'update', 'delete'],
+    // Vendas
+    sales: ['create', 'read', 'update', 'delete', 'export'],
+    // Agendamentos
+    appointments: ['create', 'read', 'update', 'delete'],
+    // Estoque
+    inventory: ['create', 'read', 'update', 'delete'],
+    // Orçamentos
+    quotes: ['create', 'read', 'update', 'delete', 'convert'],
+    // Contratos
+    contracts: ['create', 'read', 'update', 'delete'],
+    // Consertos
+    repairs: ['create', 'read', 'update', 'delete'],
+    // Financeiro
+    financeiro: ['create', 'read', 'update', 'delete'],
+    // Testes
+    tests: ['create', 'read', 'update', 'delete'],
+    // Profissionais
+    professionals: ['create', 'read', 'update', 'delete'],
+    // Cadastros
+    registrations: ['create', 'read', 'update', 'delete'],
+    // Relatórios
+    reports: ['read', 'export'],
+    // Analytics
+    analytics: ['read'],
+    // Webhooks
+    webhooks: ['create', 'read', 'update', 'delete'],
+    // API Docs
+    apidocs: ['read'],
+    // Backup
+    backup: ['create', 'read', 'restore'],
+    // Usuários
+    users: ['create', 'read', 'update', 'delete'],
+    // Configurações
+    settings: ['read', 'update'],
+    // Admin SaaS
+    admin: ['create', 'read', 'update', 'delete'],
+  },
+
   admin: {
     // Clientes
     clients: ['create', 'read', 'update', 'delete'],
@@ -107,6 +148,7 @@ export const ROLE_PERMISSIONS = {
 };
 
 export const ROLE_LABELS = {
+  super_admin: 'Super Administrador',
   admin: 'Administrador',
   fonoaudiologo: 'Fonoaudiólogo(a)',
   comercial: 'Consultor Comercial',

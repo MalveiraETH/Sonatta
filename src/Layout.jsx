@@ -56,6 +56,7 @@ const menuItems = [
 ];
 
 const userRoleLabels = {
+  super_admin: 'Super Administrador',
   admin: 'Administrador',
   fonoaudiologo: 'Fonoaudiólogo(a)',
   comercial: 'Consultor Comercial',
