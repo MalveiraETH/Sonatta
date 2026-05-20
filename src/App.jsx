@@ -14,6 +14,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Support from './pages/Support';
 import BackupRestore from './pages/BackupRestore';
 import ApiDocs from './pages/ApiDocs';
+import Analytics from './pages/Analytics';
+import Webhooks from './pages/Webhooks';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
@@ -105,6 +107,16 @@ const AuthenticatedApp = () => {
       <Route path="/ApiDocs" element={
         <LayoutWrapper currentPageName="ApiDocs">
           <ApiDocs />
+        </LayoutWrapper>
+      } />
+      <Route path="/Analytics" element={
+        <LayoutWrapper currentPageName="Analytics">
+          <Analytics />
+        </LayoutWrapper>
+      } />
+      <Route path="/Webhooks" element={
+        <LayoutWrapper currentPageName="Webhooks">
+          <Webhooks />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

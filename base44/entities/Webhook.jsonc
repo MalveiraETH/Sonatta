@@ -1,0 +1,85 @@
+{
+  "name": "Webhook",
+  "type": "object",
+  "properties": {
+    "tenant_id": {
+      "type": "string",
+      "description": "ID do tenant"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do webhook"
+    },
+    "url": {
+      "type": "string",
+      "description": "URL de destino"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "sale.created",
+        "sale.updated",
+        "client.created",
+        "client.updated",
+        "payment.received",
+        "appointment.created"
+      ],
+      "description": "Tipo de evento"
+    },
+    "secret": {
+      "type": "string",
+      "description": "Chave secreta para assinatura"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se webhook est\u00e1 ativo"
+    },
+    "headers": {
+      "type": "object",
+      "description": "Headers customizados"
+    },
+    "retry_count": {
+      "type": "number",
+      "default": 3,
+      "description": "N\u00famero de retentativas"
+    },
+    "last_triggered": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltimo disparo"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email do criador"
+    }
+  },
+  "required": [
+    "name",
+    "url",
+    "event_type",
+    "secret"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
