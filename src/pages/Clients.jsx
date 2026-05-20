@@ -78,6 +78,7 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
+  const [activeTestsByClient, setActiveTestsByClient] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -92,10 +93,26 @@ export default function Clients() {
     filterClients();
   }, [clients, searchTerm, statusFilter]);
 
+  const ACTIVE_TEST_STATUSES = ['teste_agendado', 'em_teste', 'teste_estendido', 'teste_pendente'];
+
   const loadData = async () => {
     try {
-      const clientsData = await base44.entities.Client.list('-created_date');
+      const [clientsData, testsData] = await Promise.all([
+        base44.entities.Client.list('-created_date'),
+        base44.entities.Test.list('-created_date')
+      ]);
       setClients(clientsData);
+
+      // Mapear o teste ativo mais recente por cliente
+      const testsMap = {};
+      testsData.forEach(test => {
+        if (ACTIVE_TEST_STATUSES.includes(test.status) && test.client_id) {
+          if (!testsMap[test.client_id]) {
+            testsMap[test.client_id] = test;
+          }
+        }
+      });
+      setActiveTestsByClient(testsMap);
     } catch (error) {
       console.error(error);
     } finally {
@@ -147,6 +164,21 @@ export default function Clients() {
     cliente_ativo: 'Cliente Ativo',
     pos_venda: 'Pós-Venda'
   };
+
+  const testTagConfig = {
+    teste_agendado: { label: 'Teste Agendado', cls: 'bg-purple-100 text-purple-700' },
+    em_teste:       { label: 'Em Teste',        cls: 'bg-blue-100 text-blue-700' },
+    teste_estendido:{ label: 'Teste Estendido', cls: 'bg-amber-100 text-amber-700' },
+    teste_pendente: { label: 'Teste Pendente',  cls: 'bg-red-100 text-red-700' },
+  };
+
+  const clientMainStatusCls = (status) => {
+    if (status === 'cliente_ativo') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'pos_venda') return 'bg-violet-100 text-violet-700';
+    return 'bg-slate-100 text-slate-700';
+  };
+
+  const mainStatusLabel = (status) => statusLabels[status] || status;
 
   const stats = {
     total: clients.length,
@@ -376,18 +408,16 @@ export default function Clients() {
                   </TableCell>
                   <TableCell>{client.phone || '-'}</TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                      client.status === 'cliente_ativo' ? 'bg-emerald-100 text-emerald-700' :
-                      client.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
-                      client.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
-                      client.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
-                      client.status === 'teste_finalizado' ? 'bg-teal-100 text-teal-700' :
-                      client.status === 'teste_pendente' ? 'bg-red-100 text-red-700' :
-                      client.status === 'lead' ? 'bg-slate-100 text-slate-700' :
-                      'bg-slate-100 text-slate-700'
-                    }`}>
-                      {statusLabels[client.status] || client.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${clientMainStatusCls(client.status)}`}>
+                        {mainStatusLabel(client.status)}
+                      </span>
+                      {activeTestsByClient[client.id] && testTagConfig[activeTestsByClient[client.id].status] && (
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${testTagConfig[activeTestsByClient[client.id].status].cls}`}>
+                          {testTagConfig[activeTestsByClient[client.id].status].label}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                     {client.phone && (
@@ -426,20 +456,16 @@ export default function Clients() {
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-semibold text-slate-900">{client.full_name}</span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        client.status === 'cliente_ativo' ? 'bg-emerald-100 text-emerald-700' :
-                        client.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
-                        client.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
-                        client.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
-                        client.status === 'teste_finalizado' ? 'bg-teal-100 text-teal-700' :
-                        client.status === 'teste_pendente' ? 'bg-red-100 text-red-700' :
-                        client.status === 'lead' ? 'bg-slate-100 text-slate-700' :
-                        'bg-slate-100 text-slate-700'
-                      }`}>
-                        {statusLabels[client.status] || client.status}
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${clientMainStatusCls(client.status)}`}>
+                        {mainStatusLabel(client.status)}
                       </span>
+                      {activeTestsByClient[client.id] && testTagConfig[activeTestsByClient[client.id].status] && (
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${testTagConfig[activeTestsByClient[client.id].status].cls}`}>
+                          {testTagConfig[activeTestsByClient[client.id].status].label}
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-slate-600">
                       {client.phone || 'Sem telefone'}

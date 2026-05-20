@@ -69,6 +69,7 @@ export default function Tests() {
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
+  const [clientsMap, setClientsMap] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -113,6 +114,15 @@ export default function Tests() {
 
       setTests(updatedTests);
       setCurrentUser(user);
+
+      // Carregar dados dos clientes para exibir status
+      const clientIds = [...new Set(testsData.map(t => t.client_id).filter(Boolean))];
+      if (clientIds.length > 0) {
+        const clientsData = await base44.entities.Client.list();
+        const map = {};
+        clientsData.forEach(c => { map[c.id] = c; });
+        setClientsMap(map);
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -218,6 +228,24 @@ export default function Tests() {
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
+  };
+
+  const clientStatusLabels = {
+    lead: 'Lead',
+    cliente_ativo: 'Cliente Ativo',
+    pos_venda: 'Pós-Venda',
+    teste_agendado: 'Teste Agendado',
+    em_teste: 'Em Teste',
+    teste_estendido: 'Teste Estendido',
+    teste_finalizado: 'Teste Finalizado',
+    teste_pendente: 'Teste Pendente',
+  };
+
+  const clientStatusCls = (status) => {
+    if (status === 'cliente_ativo') return 'bg-emerald-100 text-emerald-700';
+    if (status === 'pos_venda') return 'bg-violet-100 text-violet-700';
+    if (status === 'lead') return 'bg-slate-100 text-slate-700';
+    return 'bg-gray-100 text-gray-600';
   };
 
   const stats = {
@@ -455,6 +483,7 @@ export default function Tests() {
               <TableHead>Data Início</TableHead>
               <TableHead>Data Término</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead>Status Cliente</TableHead>
               <TableHead className="text-center">Aparelhos</TableHead>
               <TableHead>Profissional</TableHead>
               <TableHead>Status</TableHead>
@@ -464,7 +493,7 @@ export default function Tests() {
           <TableBody>
             {filteredTests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-slate-500">
+                <TableCell colSpan={9} className="text-center py-12 text-slate-500">
                   Nenhum teste encontrado
                 </TableCell>
               </TableRow>
@@ -475,6 +504,15 @@ export default function Tests() {
                   <TableCell>{formatLocalDate(test.start_date)}</TableCell>
                   <TableCell>{formatLocalDate(test.end_date)}</TableCell>
                   <TableCell>{test.client_name}</TableCell>
+                  <TableCell>
+                    {clientsMap[test.client_id] ? (
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${clientStatusCls(clientsMap[test.client_id].status)}`}>
+                        {clientStatusLabels[clientsMap[test.client_id].status] || clientsMap[test.client_id].status}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">-</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-center">{test.devices?.length || 0}</TableCell>
                   <TableCell className="text-sm">{test.professional_name || '-'}</TableCell>
                   <TableCell>
