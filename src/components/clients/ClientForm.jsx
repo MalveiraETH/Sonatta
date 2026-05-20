@@ -17,12 +17,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTenant } from '@/lib/useTenant';
+import { usePlanLimits } from '@/lib/usePlanLimits';
 
 export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
   const { tenantId } = useTenant();
+  const { limits, isAllowed } = usePlanLimits('clients');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -116,6 +118,12 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       return;
     }
 
+    // Check plan limits for new clients
+    if (!client && !isAllowed) {
+      toast.error(`Limite de clientes atingido. Upgrade seu plano.`);
+      return;
+    }
+
     setLoading(true);
     try {
       if (client) {
@@ -143,6 +151,17 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
             {client ? 'Editar Cliente' : 'Novo Cliente'}
           </DialogTitle>
         </DialogHeader>
+
+        {!client && !isAllowed && limits && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 mb-4">
+            <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-red-800">
+              <p className="font-semibold">Limite de clientes atingido</p>
+              <p>Seu plano permite {limits.limit} clientes. Você já tem {limits.used}.</p>
+              <a href="/Billing" className="text-red-600 underline hover:no-underline font-medium">Upgrade aqui</a>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
