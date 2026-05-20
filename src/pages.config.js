@@ -65,6 +65,7 @@ import Reports from './pages/Reports';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
 import Tests from './pages/Tests';
+import DeviceRepairs from './pages/DeviceRepairs';
 import __Layout from './Layout.jsx';
 
 
@@ -87,6 +88,7 @@ export const PAGES = {
     "Sales": Sales,
     "Settings": Settings,
     "Tests": Tests,
+    "DeviceRepairs": DeviceRepairs,
 }
 
 export const pagesConfig = {

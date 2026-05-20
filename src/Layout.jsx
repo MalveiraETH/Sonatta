@@ -17,7 +17,8 @@ import {
   Bell,
   Ear,
   DollarSign,
-  Shield
+  Shield,
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,6 +41,7 @@ const menuItems = [
   { name: 'Orçamentos', page: 'Quotes', icon: FileText },
   { name: 'Vendas', page: 'Sales', icon: ShoppingCart },
   { name: 'Contratos', page: 'Contracts', icon: FileSignature },
+  { name: 'Consertos', page: 'DeviceRepairs', icon: Wrench },
   { name: 'Financeiro', page: 'Financeiro', icon: DollarSign },
   { name: 'Cadastros', page: 'Registrations', icon: FileText },
   { name: 'Relatórios', page: 'Reports', icon: FileText },
