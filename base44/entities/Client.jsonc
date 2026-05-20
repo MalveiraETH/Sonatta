@@ -59,11 +59,6 @@
       "type": "string",
       "enum": [
         "lead",
-        "teste_agendado",
-        "em_teste",
-        "teste_estendido",
-        "teste_finalizado",
-        "teste_pendente",
         "cliente_ativo",
         "pos_venda"
       ],

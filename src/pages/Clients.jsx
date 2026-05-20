@@ -156,11 +156,6 @@ export default function Clients() {
 
   const statusLabels = {
     lead: 'Lead',
-    teste_agendado: 'Teste Agendado',
-    em_teste: 'Em Teste',
-    teste_estendido: 'Teste Estendido',
-    teste_finalizado: 'Teste Finalizado',
-    teste_pendente: 'Teste Pendente',
     cliente_ativo: 'Cliente Ativo',
     pos_venda: 'Pós-Venda'
   };
@@ -183,12 +178,9 @@ export default function Clients() {
   const stats = {
     total: clients.length,
     leads: clients.filter(c => c.status === 'lead').length,
-    agendado: clients.filter(c => c.status === 'teste_agendado').length,
-    emTeste: clients.filter(c => c.status === 'em_teste').length,
-    estendido: clients.filter(c => c.status === 'teste_estendido').length,
-    finalizado: clients.filter(c => c.status === 'teste_finalizado').length,
-    pendente: clients.filter(c => c.status === 'teste_pendente').length,
-    ativos: clients.filter(c => c.status === 'cliente_ativo').length
+    emTeste: Object.keys(activeTestsByClient).length,
+    ativos: clients.filter(c => c.status === 'cliente_ativo').length,
+    posVenda: clients.filter(c => c.status === 'pos_venda').length,
   };
 
 
@@ -216,7 +208,7 @@ export default function Clients() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card 
           className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
           onClick={() => setStatusFilter('all')}
@@ -245,32 +237,6 @@ export default function Clients() {
 
         <Card 
           className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
-          onClick={() => setStatusFilter('em_teste')}
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Em Teste</p>
-              <p className="text-lg sm:text-2xl font-bold text-blue-600">{stats.emTeste}</p>
-            </div>
-            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
-          </div>
-        </Card>
-
-        <Card 
-          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
-          onClick={() => setStatusFilter('teste_finalizado')}
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-slate-500 mb-1">Finalizado</p>
-              <p className="text-lg sm:text-2xl font-bold text-purple-600">{stats.finalizado}</p>
-            </div>
-            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500 opacity-60" />
-          </div>
-        </Card>
-
-        <Card 
-          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
           onClick={() => setStatusFilter('cliente_ativo')}
         >
           <div className="flex items-start justify-between">
@@ -279,6 +245,19 @@ export default function Clients() {
               <p className="text-lg sm:text-2xl font-bold text-emerald-600">{stats.ativos}</p>
             </div>
             <Users className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
+          </div>
+        </Card>
+
+        <Card 
+          className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]" 
+          onClick={() => setStatusFilter('pos_venda')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs sm:text-sm text-slate-500 mb-1">Pós-Venda</p>
+              <p className="text-lg sm:text-2xl font-bold text-violet-600">{stats.posVenda}</p>
+            </div>
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-violet-500 opacity-60" />
           </div>
         </Card>
       </div>

@@ -157,19 +157,12 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
   const updateClientStatus = async (clientId, testStatus) => {
     try {
-      let clientStatus = 'em_teste';
-
-      if (testStatus === 'em_teste') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_estendido') {
-        clientStatus = 'em_teste';
-      } else if (testStatus === 'teste_finalizado') {
-        clientStatus = 'cliente_ativo';
-      } else if (testStatus === 'teste_pendente') {
-        clientStatus = 'em_teste';
+      // Status do cliente é independente do teste: só altera para cliente_ativo ao finalizar
+      // Nos demais casos, mantém o status atual (não toca no status lead/cliente_ativo/pos_venda)
+      if (testStatus === 'teste_finalizado') {
+        await base44.entities.Client.update(clientId, { status: 'cliente_ativo' });
       }
-
-      await base44.entities.Client.update(clientId, { status: clientStatus });
+      // Para outros status de teste (em_teste, teste_estendido, teste_pendente), não altera o status do cliente
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
     }
