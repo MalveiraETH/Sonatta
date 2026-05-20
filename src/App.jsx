@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import TenantsAdmin from './pages/TenantsAdmin';
 import OnboardingTenant from './pages/OnboardingTenant';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import Billing from './pages/Billing';
 import UsageDashboard from './pages/UsageDashboard';
 import TermsOfService from './pages/TermsOfService';
@@ -123,6 +124,11 @@ const AuthenticatedApp = () => {
       <Route path="/SettingsRoles" element={
         <LayoutWrapper currentPageName="SettingsRoles">
           <SettingsRoles />
+        </LayoutWrapper>
+      } />
+      <Route path="/SuperAdminDashboard" element={
+        <LayoutWrapper currentPageName="SuperAdminDashboard">
+          <SuperAdminDashboard />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

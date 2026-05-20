@@ -52,6 +52,7 @@ const menuItems = [
   { name: 'Uso e Backup', page: 'UsageDashboard', icon: Package },
   { name: 'API Docs', page: 'ApiDocs', icon: FileText },
   { name: 'Configurações', page: 'Settings', icon: Bell },
+  { name: 'SuperAdmin', page: 'SuperAdminDashboard', icon: Shield },
   { name: 'Tenants', page: 'TenantsAdmin', icon: Building2 },
 ];
 
