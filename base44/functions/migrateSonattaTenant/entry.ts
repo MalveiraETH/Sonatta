@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const entityName = body.entity || null;
     const tenantIdOverride = body.tenant_id || null;
+    const maxRecords = body.max_records || 50; // limita quantos migrar por chamada
 
     // 1. Buscar o tenant Sonatta
     const existingTenants = await base44.asServiceRole.entities.Tenant.filter({ name: 'Sonatta - Aparelhos Auditivos Manaus' });
@@ -34,35 +35,32 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, tenant_id: tenantId, message: 'Tenant encontrado. Passe { entity: "NomeEntidade" } para migrar.' });
     }
 
-    // 2. Buscar registros sem tenant_id
+    // 2. Buscar registros sem tenant_id (limitado a maxRecords por chamada)
     const records = await base44.asServiceRole.entities[entityName].list('-created_date', 2000);
-    const toUpdate = records.filter(r => !r.tenant_id);
+    const allToUpdate = records.filter(r => !r.tenant_id);
+    const toUpdate = allToUpdate.slice(0, maxRecords);
 
     if (toUpdate.length === 0) {
-      return Response.json({ success: true, tenant_id: tenantId, entity: entityName, migrated: 0, message: 'Nenhum registro para migrar.' });
+      return Response.json({ success: true, tenant_id: tenantId, entity: entityName, migrated: 0, remaining: 0, message: 'Nenhum registro para migrar.' });
     }
 
-    // 3. Atualizar em lotes de 3 com pausa de 500ms
+    // 3. Atualizar um por um com pausa de 600ms
     let updated = 0;
-    const batchSize = 3;
-    for (let i = 0; i < toUpdate.length; i += batchSize) {
-      const batch = toUpdate.slice(i, i + batchSize);
-      await Promise.all(batch.map(r =>
-        base44.asServiceRole.entities[entityName].update(r.id, { tenant_id: tenantId })
-      ));
-      updated += batch.length;
-      if (i + batchSize < toUpdate.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+    for (const r of toUpdate) {
+      await base44.asServiceRole.entities[entityName].update(r.id, { tenant_id: tenantId });
+      updated++;
+      await new Promise(resolve => setTimeout(resolve, 600));
     }
 
+    const remaining = allToUpdate.length - updated;
     return Response.json({
       success: true,
       tenant_id: tenantId,
       entity: entityName,
       total: records.length,
       migrated: updated,
-      message: `${updated} registro(s) de ${entityName} migrado(s) com sucesso.`
+      remaining,
+      message: `${updated} migrado(s). ${remaining > 0 ? `${remaining} ainda pendentes — rode novamente.` : 'Todos migrados!'}`
     });
 
   } catch (error) {
