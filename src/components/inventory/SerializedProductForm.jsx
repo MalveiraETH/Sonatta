@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -220,7 +219,6 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         toast.success('Produto atualizado!');
         await onSuccess();
         onOpenChange(false);
-        window.location.href = createPageUrl('Inventory') + '?tab=serialized';
       } else {
         const newProduct = await base44.entities.Product.create(dataToSave);
         await base44.entities.StockMovement.create({
@@ -233,7 +231,6 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         toast.success('Produto cadastrado!');
         await onSuccess();
         onOpenChange(false);
-        window.location.href = createPageUrl('Inventory') + '?tab=serialized';
       }
     } catch (error) {
       console.error('Error:', error);
