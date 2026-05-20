@@ -45,8 +45,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 import ExpenseForm from '@/components/financial/ExpenseForm';
+import { useTenant } from '@/lib/useTenant';
 
 export default function AccountsPayable() {
+  const { tenantId } = useTenant();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,14 +69,14 @@ export default function AccountsPayable() {
   const [visibleCount, setVisibleCount] = useState(25);
 
   useEffect(() => {
-    loadExpenses();
-    loadFilters();
-  }, []);
+    if (tenantId) { loadExpenses(); loadFilters(); }
+  }, [tenantId]);
 
   const loadExpenses = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Expense.list('-payment_date');
+      if (!tenantId) { setLoading(false); return; }
+      const data = await base44.entities.Expense.filter({ tenant_id: tenantId }, '-payment_date');
       setExpenses(data);
     } catch (error) {
       toast.error('Erro ao carregar despesas');

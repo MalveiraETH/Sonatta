@@ -27,8 +27,10 @@ import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSig
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
+import { useTenant } from '@/lib/useTenant';
 
 export default function Reports() {
+  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [clients, setClients] = useState([]);
@@ -48,29 +50,30 @@ export default function Reports() {
   const [testStatusFilter, setTestStatusFilter] = useState('todos');
 
   useEffect(() => {
+    if (!tenantId) return;
     loadData();
 
     // Atualiza relatório de testes em tempo real
     const unsubscribe = base44.entities.Test.subscribe((event) => {
       if (event.type === 'update' || event.type === 'create' || event.type === 'delete') {
-        base44.entities.Test.list().then(setTests);
+        base44.entities.Test.filter({ tenant_id: tenantId }).then(setTests);
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [tenantId]);
 
   const loadData = async () => {
     try {
       const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData, testsData, movementsData] = await Promise.all([
-        base44.entities.Product.list(),
-        base44.entities.Client.list(),
-        base44.entities.Sale.list('-created_date'),
-        base44.entities.Professional.list(),
-        base44.entities.Appointment.list(),
-        base44.entities.Installment.list(),
-        base44.entities.Expense.list(),
-        base44.entities.Test.list(),
-        base44.entities.StockMovement.filter({ type: 'saida' })
+        base44.entities.Product.filter({ tenant_id: tenantId }),
+        base44.entities.Client.filter({ tenant_id: tenantId }),
+        base44.entities.Sale.filter({ tenant_id: tenantId }, '-created_date'),
+        base44.entities.Professional.filter({ tenant_id: tenantId }),
+        base44.entities.Appointment.filter({ tenant_id: tenantId }),
+        base44.entities.Installment.filter({ tenant_id: tenantId }),
+        base44.entities.Expense.filter({ tenant_id: tenantId }),
+        base44.entities.Test.filter({ tenant_id: tenantId }),
+        base44.entities.StockMovement.filter({ tenant_id: tenantId, type: 'saida' })
       ]);
       setProducts(productsData);
       setClients(clientsData);

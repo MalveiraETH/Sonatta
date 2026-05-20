@@ -44,8 +44,10 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
+import { useTenant } from '@/lib/useTenant';
 
 export default function AccountsReceivable() {
+  const { tenantId } = useTenant();
   const [installments, setInstallments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,13 +71,14 @@ export default function AccountsReceivable() {
   const [liquidating, setLiquidating] = useState(false);
 
   useEffect(() => {
-    loadInstallments();
-  }, []);
+    if (tenantId) loadInstallments();
+  }, [tenantId]);
 
   const loadInstallments = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Installment.list('due_date');
+      if (!tenantId) { setLoading(false); return; }
+      const data = await base44.entities.Installment.filter({ tenant_id: tenantId }, 'due_date');
       // Ordenar: atrasados primeiro, depois pendentes, depois pagos
       const sortedData = data.sort((a, b) => {
         const today = new Date();
