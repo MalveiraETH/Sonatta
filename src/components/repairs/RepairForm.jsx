@@ -13,18 +13,23 @@ const SUPPLIERS = ['Phonak', 'Widex', 'Oticon', 'Signia', 'Starkey', 'ReSound', 
 export default function RepairForm({ open, onClose, repair, onSaved }) {
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
+  const [serializedProducts, setSerializedProducts] = useState([]);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
+  const [snSearch, setSnSearch] = useState('');
+  const [snFocused, setSnFocused] = useState(false);
 
   useEffect(() => {
     base44.entities.Client.list('-full_name', 200).then(setClients);
     base44.entities.Professional.list('-full_name', 50).then(setProfessionals);
+    base44.entities.Product.filter({ stock_type: 'serializado' }, '-created_date', 500).then(setSerializedProducts);
   }, []);
 
   useEffect(() => {
     if (repair) {
       setForm(repair);
+      setSnSearch(repair.serial_number || '');
     } else {
       setForm({
         date_opened: new Date().toISOString().split('T')[0],
@@ -32,8 +37,30 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
         warranty_repair: false,
         repair_cost: 0,
       });
+      setSnSearch('');
     }
   }, [repair, open]);
+
+  const handleProductSelect = (product) => {
+    setForm(prev => ({
+      ...prev,
+      serial_number: product.serial_number || '',
+      device_name: [product.brand, product.model, product.name].filter(Boolean).join(' '),
+    }));
+    setSnSearch(product.serial_number || '');
+    setSnFocused(false);
+  };
+
+  const filteredProducts = serializedProducts.filter(p => {
+    if (!snSearch) return false;
+    const q = snSearch.toLowerCase();
+    return (
+      p.serial_number?.toLowerCase().includes(q) ||
+      p.name?.toLowerCase().includes(q) ||
+      p.model?.toLowerCase().includes(q) ||
+      p.brand?.toLowerCase().includes(q)
+    );
+  });
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -107,14 +134,49 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
             )}
           </div>
 
-          {/* Dados do aparelho */}
+          {/* Número de Série com autocomplete do estoque */}
+          <div className="space-y-1 relative">
+            <Label>Número de Série *</Label>
+            <Input
+              value={snSearch}
+              onChange={e => {
+                setSnSearch(e.target.value);
+                set('serial_number', e.target.value);
+              }}
+              onFocus={() => setSnFocused(true)}
+              onBlur={() => setTimeout(() => setSnFocused(false), 200)}
+              placeholder="Buscar por SN, modelo ou marca..."
+              autoComplete="off"
+            />
+            {snFocused && snSearch && filteredProducts.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 border rounded-md max-h-48 overflow-y-auto bg-white shadow-lg z-50">
+                {filteredProducts.slice(0, 10).map(p => (
+                  <div
+                    key={p.id}
+                    className="px-3 py-2 hover:bg-purple-50 cursor-pointer text-sm border-b last:border-0"
+                    onMouseDown={() => handleProductSelect(p)}
+                  >
+                    <span className="font-medium text-slate-800">{p.serial_number}</span>
+                    <span className="text-slate-500 ml-2">{[p.brand, p.model, p.name].filter(Boolean).join(' ')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {snFocused && snSearch && filteredProducts.length === 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 border rounded-md bg-white shadow-lg z-50 px-3 py-2 text-sm text-slate-400">
+                Nenhum aparelho encontrado — o SN digitado será salvo manualmente.
+              </div>
+            )}
+          </div>
+
+          {/* Nome do Aparelho */}
           <div className="space-y-1">
             <Label>Nome do Aparelho *</Label>
-            <Input value={form.device_name || ''} onChange={e => set('device_name', e.target.value)} placeholder="Ex: Phonak Audéo M90" />
-          </div>
-          <div className="space-y-1">
-            <Label>Número de Série *</Label>
-            <Input value={form.serial_number || ''} onChange={e => set('serial_number', e.target.value)} placeholder="SN do aparelho" />
+            <Input
+              value={form.device_name || ''}
+              onChange={e => set('device_name', e.target.value)}
+              placeholder="Preenchido automaticamente ou edite manualmente"
+            />
           </div>
 
           {/* OS e Nota */}
