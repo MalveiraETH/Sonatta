@@ -18,7 +18,8 @@ import {
   Ear,
   DollarSign,
   Shield,
-  Wrench
+  Wrench,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +47,7 @@ const menuItems = [
   { name: 'Cadastros', page: 'Registrations', icon: FileText },
   { name: 'Relatórios', page: 'Reports', icon: FileText },
   { name: 'Configurações', page: 'Settings', icon: Bell },
+  { name: 'Tenants', page: 'TenantsAdmin', icon: Building2 },
 ];
 
 const userRoleLabels = {
