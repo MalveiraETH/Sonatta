@@ -1,63 +1,64 @@
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 
-// Mapeamento de página (key do PAGES) para módulo e ação "Visualizar X"
+// Mapeamento de página (key do PAGES) para módulo
 export const PAGE_PERMISSION_MAP = {
-  Dashboard:        { module: 'Dashboard',      action: 'Visualizar Dashboard' },
-  Clients:          { module: 'Clientes',        action: 'Visualizar clientes' },
-  ClientDetail:     { module: 'Clientes',        action: 'Visualizar clientes' },
-  Appointments:     { module: 'Agendamentos',    action: 'Visualizar agendamentos' },
-  Tests:            { module: 'Testes',           action: 'Visualizar testes' },
-  Inventory:        { module: 'Estoque',          action: 'Visualizar estoque' },
-  ProductDetail:    { module: 'Estoque',          action: 'Visualizar estoque' },
-  Quotes:           { module: 'Orçamentos',       action: 'Visualizar orçamentos' },
-  Sales:            { module: 'Vendas',           action: 'Visualizar vendas' },
-  Financeiro:       { module: 'Financeiro',       action: 'Visualizar financeiro' },
-  AccountsPayable:  { module: 'Financeiro',       action: 'Visualizar financeiro' },
-  AccountsReceivable:{ module: 'Financeiro',      action: 'Visualizar financeiro' },
-  PixReport:        { module: 'Financeiro',       action: 'Visualizar financeiro' },
-  Professionals:    { module: 'Profissionais',    action: 'Visualizar profissionais' },
-  Contracts:        { module: 'Contratos',        action: 'Visualizar contratos' },
-  DeviceRepairs:    { module: 'Consertos',        action: 'Visualizar consertos' },
-  Reports:          { module: 'Relatórios',       action: 'Visualizar relatórios' },
-  Registrations:    { module: 'Configurações',    action: 'Acessar configurações' },
-  Settings:         { module: 'Configurações',    action: 'Acessar configurações' },
+  Dashboard:        'Dashboard',
+  Clients:          'Clientes',
+  ClientDetail:     'Clientes',
+  Appointments:     'Agendamentos',
+  Tests:            'Testes',
+  Inventory:        'Estoque',
+  ProductDetail:    'Estoque',
+  Quotes:           'Orçamentos',
+  Sales:            'Vendas',
+  Financeiro:       'Financeiro',
+  AccountsPayable:  'Financeiro',
+  AccountsReceivable: 'Financeiro',
+  PixReport:        'Financeiro',
+  Professionals:    'Profissionais',
+  Contracts:        'Contratos',
+  DeviceRepairs:    'Consertos',
+  Reports:          'Relatórios',
+  Registrations:    'Cadastros',
+  Settings:         'Configurações',
 };
 
 // Defaults caso não haja registros salvos
 const DEFAULT_PERMISSIONS = [
-  { module: 'Dashboard',      action: 'Visualizar Dashboard',     admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Clientes',       action: 'Visualizar clientes',      admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Dashboard',      action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Clientes',       action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Clientes',       action: 'Criar/Editar clientes',    admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Clientes',       action: 'Excluir clientes',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Agendamentos',   action: 'Visualizar agendamentos',  admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Agendamentos',   action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Agendamentos',   action: 'Criar/Editar agendamentos',admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Agendamentos',   action: 'Excluir agendamentos',     admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Testes',          action: 'Visualizar testes',        admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
-  { module: 'Testes',          action: 'Criar/Editar testes',      admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Testes',          action: 'Excluir testes',           admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Estoque',         action: 'Visualizar estoque',       admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Estoque',         action: 'Criar/Editar produtos',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Estoque',         action: 'Excluir produtos',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Orçamentos',      action: 'Visualizar orçamentos',    admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
-  { module: 'Orçamentos',      action: 'Criar/Editar orçamentos',  admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Orçamentos',      action: 'Excluir orçamentos',       admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Vendas',          action: 'Visualizar vendas',        admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
-  { module: 'Vendas',          action: 'Criar vendas',             admin: true, fonoaudiologo: false, comercial: true,  recepcao: false },
-  { module: 'Vendas',          action: 'Excluir vendas',           admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Financeiro',      action: 'Visualizar financeiro',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Financeiro',      action: 'Criar/Editar despesas',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Financeiro',      action: 'Excluir despesas',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Profissionais',   action: 'Visualizar profissionais', admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Profissionais',   action: 'Criar/Editar profissionais',admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Contratos',       action: 'Visualizar contratos',     admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Contratos',       action: 'Gerar contratos',          admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Consertos',       action: 'Visualizar consertos',     admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
-  { module: 'Consertos',       action: 'Criar/Editar consertos',   admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
-  { module: 'Consertos',       action: 'Excluir consertos',        admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Relatórios',      action: 'Visualizar relatórios',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Configurações',   action: 'Acessar configurações',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Configurações',   action: 'Gerenciar usuários',       admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Testes',         action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Testes',         action: 'Criar/Editar testes',      admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
+  { module: 'Testes',         action: 'Excluir testes',           admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Estoque',        action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Estoque',        action: 'Criar/Editar produtos',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Estoque',        action: 'Excluir produtos',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Orçamentos',     action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Orçamentos',     action: 'Criar/Editar orçamentos',  admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
+  { module: 'Orçamentos',     action: 'Excluir orçamentos',       admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Vendas',         action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Vendas',         action: 'Criar vendas',             admin: true, fonoaudiologo: false, comercial: true,  recepcao: false },
+  { module: 'Vendas',         action: 'Excluir vendas',           admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Financeiro',     action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Financeiro',     action: 'Criar/Editar despesas',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Financeiro',     action: 'Excluir despesas',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Profissionais',  action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Profissionais',  action: 'Criar/Editar profissionais',admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Contratos',      action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
+  { module: 'Contratos',      action: 'Gerar contratos',          admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
+  { module: 'Consertos',      action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Consertos',      action: 'Criar/Editar consertos',   admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
+  { module: 'Consertos',      action: 'Excluir consertos',        admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Relatórios',     action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Cadastros',      action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Configurações',  action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Configurações',  action: 'Gerenciar usuários',       admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
 ];
 
 let cachedPerms = null;
@@ -106,9 +107,9 @@ export function usePermissions(user) {
     if (user.role === 'admin') return true;
     // Enquanto carrega, negar acesso para evitar flash de conteúdo não autorizado
     if (loading) return false;
-    const mapping = PAGE_PERMISSION_MAP[pageName];
-    if (!mapping) return true; // página sem restrição
-    return can(mapping.module, mapping.action);
+    const module = PAGE_PERMISSION_MAP[pageName];
+    if (!module) return true; // página sem restrição
+    return can(module, 'Ver página');
   }, [can, user, loading]);
 
   return { can, canAccessPage, loading };
