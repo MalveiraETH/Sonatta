@@ -4,14 +4,14 @@ export default function SplashScreen({ onFinish }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    // Inicia fade out aos 9s, termina aos 10s
+    // Inicia fade out aos 4s, termina aos 5s
     const fadeTimer = setTimeout(() => {
       setVisible(false);
-    }, 9000);
+    }, 4000);
 
     const finishTimer = setTimeout(() => {
       onFinish?.();
-    }, 10000);
+    }, 5000);
 
     return () => {
       clearTimeout(fadeTimer);
@@ -121,7 +121,7 @@ export default function SplashScreen({ onFinish }) {
                 height: '100%',
                 background: 'linear-gradient(90deg, #6B3FA0, #A4D233)',
                 borderRadius: 9999,
-                animation: 'progressFill 10s linear forwards',
+                animation: 'progressFill 5s linear forwards',
               }}
             />
           </div>
