@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -9,129 +9,68 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const corrections = {
-      lead: [],
-      teste_agendado: [],
-      em_teste: [],
-      teste_finalizado: [],
-      teste_estendido: [],
-      teste_pendente: [],
-      cliente_ativo: [],
-      pos_venda: []
-    };
+    // Buscar tudo de uma vez
+    const [allClients, allSales] = await Promise.all([
+      base44.asServiceRole.entities.Client.list('-created_date', 1000),
+      base44.asServiceRole.entities.Sale.filter({ status: 'pago' }, '-sale_date', 2000)
+    ]);
 
-    // Buscar todos os clientes
-    const allClients = await base44.asServiceRole.entities.Client.list('-created_date', 1000);
-    
+    // Agrupar vendas por cliente
+    const salesByClient = {};
+    for (const sale of allSales) {
+      if (!salesByClient[sale.client_id]) salesByClient[sale.client_id] = [];
+      salesByClient[sale.client_id].push(sale);
+    }
+
+    const corrected = [];
+
     for (const client of allClients) {
       let newStatus = null;
+      const clientSales = salesByClient[client.id] || [];
 
-      // 1. Verificar se tem venda (cliente_ativo ou pos_venda)
-      const sales = await base44.asServiceRole.entities.Sale.filter({ 
-        client_id: client.id,
-        status: 'pago'
-      });
-
-      if (sales.length > 0) {
-        // Verificar se há aparelho auditivo na última venda
-        let lastDeviceSale = null;
+      if (clientSales.length > 0) {
+        // Tem venda paga: verificar se ainda está em garantia (2 anos)
         let lastDeviceSaleDate = null;
 
-        for (const sale of sales) {
+        for (const sale of clientSales) {
           if (!sale.items || sale.items.length === 0) continue;
-          
-          const hasDevice = sale.items.some(item => 
+          const hasDevice = sale.items.some(item =>
             item.product_name?.toLowerCase().includes('aparelho') ||
             item.product_name?.toLowerCase().includes('auditivo')
           );
-
           if (hasDevice) {
             const saleDate = new Date(sale.sale_date || sale.created_date);
-            if (!lastDeviceSale || saleDate > lastDeviceSaleDate) {
-              lastDeviceSale = sale;
+            if (!lastDeviceSaleDate || saleDate > lastDeviceSaleDate) {
               lastDeviceSaleDate = saleDate;
             }
           }
         }
 
-        if (lastDeviceSale) {
-          // Verificar garantia
-          let maxWarrantyYears = 2;
-          
-          for (const item of lastDeviceSale.items) {
-            const products = await base44.asServiceRole.entities.Product.filter({ 
-              id: item.product_id 
-            });
-            
-            if (products.length > 0) {
-              const product = products[0];
-              if (product.warranty_years && product.warranty_years > maxWarrantyYears) {
-                maxWarrantyYears = product.warranty_years;
-              }
-            }
-          }
-
-          const warrantyEndDate = new Date(lastDeviceSaleDate);
-          warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + maxWarrantyYears);
-
-          if (new Date() > warrantyEndDate) {
-            newStatus = 'pos_venda';
-          } else {
-            newStatus = 'cliente_ativo';
-          }
+        if (lastDeviceSaleDate) {
+          const warrantyEnd = new Date(lastDeviceSaleDate);
+          warrantyEnd.setFullYear(warrantyEnd.getFullYear() + 2);
+          newStatus = new Date() > warrantyEnd ? 'pos_venda' : 'cliente_ativo';
         } else {
-          // Venda sem aparelho = cliente ativo
           newStatus = 'cliente_ativo';
         }
       } else {
-        // 2. Sem venda: verificar testes
-        const tests = await base44.asServiceRole.entities.Test.filter({ 
-          client_id: client.id 
-        });
-
-        if (tests.length > 0) {
-          // Pegar o teste mais recente
-          const sortedTests = tests.sort((a, b) => 
-            new Date(b.created_date) - new Date(a.created_date)
-          );
-          const latestTest = sortedTests[0];
-
-          const statusMap = {
-            'teste_agendado': 'teste_agendado',
-            'em_teste': 'em_teste',
-            'teste_estendido': 'teste_estendido',
-            'teste_finalizado': 'teste_finalizado',
-            'teste_pendente': 'teste_pendente'
-          };
-
-          newStatus = statusMap[latestTest.status] || 'lead';
-        } else {
-          // 3. Sem teste e sem venda = lead
-          newStatus = 'lead';
-        }
+        // Sem venda paga = lead (testes não afetam mais o status)
+        newStatus = 'lead';
       }
 
-      // Aplicar correção se necessário
       if (newStatus && newStatus !== client.status) {
-        await base44.asServiceRole.entities.Client.update(client.id, { 
-          status: newStatus 
-        });
-        corrections[newStatus].push(client.full_name);
+        await base44.asServiceRole.entities.Client.update(client.id, { status: newStatus });
+        corrected.push({ name: client.full_name, from: client.status, to: newStatus });
       }
     }
 
-    const totalCorrected = Object.values(corrections).reduce((sum, arr) => sum + arr.length, 0);
-
     return Response.json({
       success: true,
-      message: `Correção concluída. ${totalCorrected} cliente(s) corrigido(s).`,
-      corrections
+      message: `Correção concluída. ${corrected.length} cliente(s) corrigido(s).`,
+      corrected
     });
 
   } catch (error) {
-    return Response.json({ 
-      error: error.message,
-      success: false 
-    }, { status: 500 });
+    return Response.json({ error: error.message, success: false }, { status: 500 });
   }
 });
