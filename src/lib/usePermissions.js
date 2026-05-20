@@ -71,7 +71,17 @@ async function fetchPermissions() {
   const records = await base44.entities.PermissionSettings.list();
   const merged = DEFAULT_PERMISSIONS.map(def => {
     const saved = records.find(r => r.module === def.module && r.action === def.action);
-    return saved ? { ...def, ...saved } : { ...def };
+    if (saved) {
+      // Garante que sempre tem os campos de role (admin, fonoaudiologo, comercial, recepcao)
+      return {
+        ...def,
+        admin: saved.admin !== undefined ? saved.admin : def.admin,
+        fonoaudiologo: saved.fonoaudiologo !== undefined ? saved.fonoaudiologo : def.fonoaudiologo,
+        comercial: saved.comercial !== undefined ? saved.comercial : def.comercial,
+        recepcao: saved.recepcao !== undefined ? saved.recepcao : def.recepcao,
+      };
+    }
+    return { ...def };
   });
   cachedPerms = merged;
   cacheTime = now;
