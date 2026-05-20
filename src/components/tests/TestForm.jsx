@@ -23,7 +23,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { useTenant } from '@/lib/useTenant';
 
 function DeviceCombobox({ device, products, onSelect, onRemove }) {
   const [open, setOpen] = useState(false);
@@ -69,7 +68,6 @@ function DeviceCombobox({ device, products, onSelect, onRemove }) {
 }
 
 export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null, preselectedAppointmentData = null }) {
-  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
   const [clients, setClients] = useState([]);
@@ -202,7 +200,7 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       } else {
         const testsCount = await base44.entities.Test.list();
         testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
-        await base44.entities.Test.create({ ...testData, tenant_id: tenantId });
+        await base44.entities.Test.create(testData);
 
         // Atualizar status do cliente baseado no status do teste
         await updateClientStatus(formData.client_id, testData.status);

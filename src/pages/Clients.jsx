@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
@@ -40,7 +39,6 @@ import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users 
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import Pagination from '@/components/ui/Pagination';
 
 function FiltersContent({ statusFilter, setStatusFilter, statusLabels, clearFilters, setFilterOpen }) {
   return (
@@ -73,7 +71,6 @@ function FiltersContent({ statusFilter, setStatusFilter, statusLabels, clearFilt
 
 export default function Clients() {
   const navigate = useNavigate();
-  const { tenantId, loading: tenantLoading } = useTenant();
 
   const navigateToClient = (client) => {
     navigate(`/ClientDetail?id=${client.id}`);
@@ -87,26 +84,22 @@ export default function Clients() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 40;
 
   useEffect(() => {
-    if (!tenantLoading) loadData();
-  }, [tenantLoading, tenantId]);
+    loadData();
+  }, []);
 
   useEffect(() => {
     filterClients();
-    setCurrentPage(1);
   }, [clients, searchTerm, statusFilter]);
 
   const ACTIVE_TEST_STATUSES = ['teste_agendado', 'em_teste', 'teste_estendido', 'teste_pendente'];
 
   const loadData = async () => {
     try {
-      const filter = tenantFilter(tenantId);
       const [clientsData, testsData] = await Promise.all([
-        base44.entities.Client.filter(filter, '-created_date'),
-        base44.entities.Test.filter(filter, '-created_date')
+        base44.entities.Client.list('-created_date'),
+        base44.entities.Test.list('-created_date')
       ]);
       setClients(clientsData);
 
@@ -380,10 +373,7 @@ export default function Clients() {
                 </TableCell>
               </TableRow>
             ) : (
-              (() => {
-                const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-                const endIdx = startIdx + ITEMS_PER_PAGE;
-                return filteredClients.slice(startIdx, endIdx).map(client => (
+              filteredClients.map(client => (
                 <TableRow 
                   key={client.id} 
                   className="hover:bg-slate-50 cursor-pointer"
@@ -423,18 +413,10 @@ export default function Clients() {
                     )}
                   </TableCell>
                 </TableRow>
-              ));
-              })()
+              ))
             )}
           </TableBody>
         </Table>
-        <div className="p-4 border-t">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(filteredClients.length / ITEMS_PER_PAGE)}
-            onPageChange={setCurrentPage}
-          />
-        </div>
       </Card>
 
       {/* Cards - Mobile */}
@@ -444,10 +426,7 @@ export default function Clients() {
             Nenhum cliente encontrado
           </Card>
         ) : (
-          (() => {
-            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-            const endIdx = startIdx + ITEMS_PER_PAGE;
-            return filteredClients.slice(startIdx, endIdx).map(client => (
+          filteredClients.map(client => (
             <Card 
               key={client.id} 
               className="p-4 cursor-pointer hover:shadow-md transition-shadow"
@@ -486,14 +465,8 @@ export default function Clients() {
                 </div>
               </div>
             </Card>
-          ));
-          })()
+          ))
         )}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(filteredClients.length / ITEMS_PER_PAGE)}
-          onPageChange={setCurrentPage}
-        />
       </div>
 
       <ClientForm

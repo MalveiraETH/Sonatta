@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Search, Wrench, Package, Truck, CheckCircle2, Clock, AlertCircle, ExternalLink, Pencil, Trash2 } from 'lucide-react';
 import RepairForm from '@/components/repairs/RepairForm';
 import RepairTimeline from '@/components/repairs/RepairTimeline';
-import Pagination from '@/components/ui/Pagination';
 
 const STATUS_CONFIG = {
   aberto: { label: 'Aberto', color: 'bg-blue-100 text-blue-700', icon: Clock },
@@ -22,7 +20,6 @@ const STATUS_CONFIG = {
 };
 
 export default function DeviceRepairs() {
-  const { tenantId, loading: tenantLoading } = useTenant();
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -30,17 +27,15 @@ export default function DeviceRepairs() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingRepair, setEditingRepair] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 40;
 
   const loadRepairs = async () => {
     setLoading(true);
-    const data = await base44.entities.DeviceRepair.filter(tenantFilter(tenantId), '-created_date', 200);
+    const data = await base44.entities.DeviceRepair.list('-created_date', 200);
     setRepairs(data);
     setLoading(false);
   };
 
-  useEffect(() => { if (!tenantLoading) loadRepairs(); }, [tenantLoading, tenantId]);
+  useEffect(() => { loadRepairs(); }, []);
 
   const handleEdit = (repair) => { setEditingRepair(repair); setFormOpen(true); };
   const handleNew = () => { setEditingRepair(null); setFormOpen(true); };
@@ -60,12 +55,6 @@ export default function DeviceRepairs() {
     const matchSearch = !q || r.client_name?.toLowerCase().includes(q) || r.serial_number?.toLowerCase().includes(q) || r.device_name?.toLowerCase().includes(q) || r.service_order_number?.toLowerCase().includes(q) || r.shipping_tracking_code?.toLowerCase().includes(q);
     return matchStatus && matchSearch;
   });
-
-  const paginatedFiltered = (() => {
-    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIdx = startIdx + ITEMS_PER_PAGE;
-    return filtered.slice(startIdx, endIdx);
-  })();
 
   // KPIs
   const kpis = {
@@ -134,8 +123,8 @@ export default function DeviceRepairs() {
           <p>Nenhuma ordem de serviço encontrada.</p>
         </div>
       ) : (
-       <div className="space-y-3">
-         {paginatedFiltered.map(repair => {
+        <div className="space-y-3">
+          {filtered.map(repair => {
             const cfg = STATUS_CONFIG[repair.status] || STATUS_CONFIG.aberto;
             const Icon = cfg.icon;
             const isExpanded = expandedId === repair.id;
@@ -239,11 +228,6 @@ export default function DeviceRepairs() {
               </Card>
             );
           })}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(filtered.length / ITEMS_PER_PAGE)}
-            onPageChange={setCurrentPage}
-          />
         </div>
       )}
 

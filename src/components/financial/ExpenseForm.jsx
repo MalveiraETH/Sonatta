@@ -8,10 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
-import { useTenant } from '@/lib/useTenant';
 
 export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = null }) {
-  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [counterparties, setCounterparties] = useState([]);
@@ -42,8 +40,8 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
   const loadData = async () => {
     try {
       const [cats, counters] = await Promise.all([
-        tenantId ? base44.entities.ExpenseCategory.filter({ tenant_id: tenantId }) : [],
-        tenantId ? base44.entities.Counterparty.filter({ tenant_id: tenantId }) : []
+        base44.entities.ExpenseCategory.list(),
+        base44.entities.Counterparty.list()
       ]);
       setCategories(cats);
       setCounterparties(counters);
@@ -90,7 +88,6 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
             
             await base44.entities.Expense.create({
               ...baseData,
-              tenant_id: tenantId,
               amount: installmentAmount,
               due_date: format(dueDate, 'yyyy-MM-dd'),
               installment_number: i,
@@ -103,7 +100,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
           if (formData.payment_date) {
             baseData.status = 'pago';
           }
-          await base44.entities.Expense.create({ ...baseData, tenant_id: tenantId });
+          await base44.entities.Expense.create(baseData);
         }
         toast.success('Despesa cadastrada!');
       }

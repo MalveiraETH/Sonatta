@@ -19,10 +19,8 @@ import {
 '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTenant } from '@/lib/useTenant';
 
 export default function AppointmentForm({ open, onOpenChange, appointment, onSuccess, preselectedClient }) {
-  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
@@ -161,7 +159,7 @@ export default function AppointmentForm({ open, onOpenChange, appointment, onSuc
         await base44.entities.Appointment.update(appointment.id, formData);
         toast.success('Agendamento atualizado!');
       } else {
-        await base44.entities.Appointment.create({ ...formData, tenant_id: tenantId });
+        await base44.entities.Appointment.create(formData);
         toast.success('Agendamento criado com sucesso!');
       }
       await onSuccess();

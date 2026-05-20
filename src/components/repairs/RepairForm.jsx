@@ -7,12 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useTenant } from '@/lib/useTenant';
 
 const SUPPLIERS = ['Phonak', 'Widex', 'Oticon', 'Signia', 'Starkey', 'ReSound', 'Unitron', 'Outro'];
 
 export default function RepairForm({ open, onClose, repair, onSaved }) {
-  const { tenantId } = useTenant();
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [serializedProducts, setSerializedProducts] = useState([]);
@@ -105,7 +103,7 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
     if (repair?.id) {
       await base44.entities.DeviceRepair.update(repair.id, form);
     } else {
-      await base44.entities.DeviceRepair.create({ ...form, tenant_id: tenantId });
+      await base44.entities.DeviceRepair.create(form);
     }
     setLoading(false);
     onSaved();

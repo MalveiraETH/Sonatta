@@ -18,8 +18,7 @@ import {
   Ear,
   DollarSign,
   Shield,
-  Wrench,
-  Building2
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,9 +30,8 @@ import {
 import { cn } from '@/lib/utils';
 import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
 import { usePermissions } from '@/lib/usePermissions';
-import Footer from '@/components/Footer';
 
-const appMenuItems = [
+const menuItems = [
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Clientes', page: 'Clients', icon: Users },
   { name: 'Agendamentos', page: 'Appointments', icon: Calendar },
@@ -46,29 +44,15 @@ const appMenuItems = [
   { name: 'Consertos', page: 'DeviceRepairs', icon: Wrench },
   { name: 'Financeiro', page: 'Financeiro', icon: DollarSign },
   { name: 'Cadastros', page: 'Registrations', icon: FileText },
-];
-
-const saasMenuItems = [
-  { name: 'Analytics', page: 'Analytics', icon: LayoutDashboard },
   { name: 'Relatórios', page: 'Reports', icon: FileText },
-  { name: 'Webhooks', page: 'Webhooks', icon: FileText },
-  { name: 'Uso e Backup', page: 'UsageDashboard', icon: Package },
-  { name: 'API Docs', page: 'ApiDocs', icon: FileText },
   { name: 'Configurações', page: 'Settings', icon: Bell },
-  { name: 'Tenants', page: 'TenantsAdmin', icon: Building2 },
-  { name: 'SuperAdmin', page: 'SuperAdminDashboard', icon: Shield },
 ];
-
-const allMenuItems = [...appMenuItems, ...saasMenuItems];
 
 const userRoleLabels = {
-  super_admin: 'Super Administrador',
   admin: 'Administrador',
   fonoaudiologo: 'Fonoaudiólogo(a)',
   comercial: 'Consultor Comercial',
-  recepcao: 'Recepção',
-  financeiro: 'Financeiro',
-  user: 'Usuário'
+  recepcao: 'Recepção'
 };
 
 export default function Layout({ children, currentPageName }) {
@@ -82,17 +66,7 @@ export default function Layout({ children, currentPageName }) {
   // Determina a página ativa pela URL
   const activePageFromUrl = location.pathname.replace(/^\//, '') || 'Clients';
 
-  // Owner (app builder) tem acesso total automaticamente
-  const isOwner = user?.email === 'malveira.fabio@gmail.com';
-  const hasFullAccess = user?.role === 'super_admin' || isOwner;
-  
-  const allowedAppItems = hasFullAccess 
-    ? appMenuItems 
-    : appMenuItems.filter(item => canAccessPage(item.page));
-  
-  const allowedSaasItems = hasFullAccess 
-    ? saasMenuItems 
-    : saasMenuItems.filter(item => canAccessPage(item.page));
+  const allowedMenuItems = menuItems.filter(item => canAccessPage(item.page));
 
   useEffect(() => {
     loadUser();
@@ -180,69 +154,29 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto pb-4 space-y-6">
-        {/* APP Menu */}
-        <div>
-          <div className="px-2 py-2 mb-3">
-            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">App</p>
-          </div>
-          <div className="space-y-1">
-            {allowedAppItems.map((item) => {
-              const isActive = activePageFromUrl.toLowerCase() === item.page.toLowerCase()
-                || (activePageFromUrl === '' && item.page === 'Clients')
-                || currentPageName === item.page;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.page}
-                  to={createPageUrl(item.page)}
-                  onClick={() => setSidebarOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                    isActive
-                      ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
-                  )}
-                >
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  <span className="font-medium text-base flex-1">{item.name}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* SAAS Menu */}
-        {allowedSaasItems.length > 0 && (
-          <div>
-            <div className="px-2 py-2 mb-3 border-t border-white/10 pt-4">
-              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">SaaS</p>
-            </div>
-            <div className="space-y-1">
-              {allowedSaasItems.map((item) => {
-                const isActive = activePageFromUrl.toLowerCase() === item.page.toLowerCase()
-                  || currentPageName === item.page;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    onClick={() => setSidebarOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                      isActive
-                        ? "bg-blue-400/20 text-blue-200 border border-blue-400/30 font-semibold"
-                        : "text-white/80 hover:bg-blue-500/10 hover:text-white"
-                    )}
-                  >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    <span className="font-medium text-base flex-1">{item.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto pb-4">
+        {allowedMenuItems.map((item) => {
+          const isActive = activePageFromUrl.toLowerCase() === item.page.toLowerCase()
+            || (activePageFromUrl === '' && item.page === 'Clients')
+            || currentPageName === item.page;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.page}
+              to={createPageUrl(item.page)}
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                isActive
+                  ? "bg-[#A4D233] text-slate-900 shadow-lg shadow-[#A4D233]/30 font-semibold"
+                  : "text-white/80 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              <span className="font-medium text-base flex-1">{item.name}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       {/* User Info */}
@@ -365,9 +299,9 @@ export default function Layout({ children, currentPageName }) {
       <SidebarContent />
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50 flex flex-col">
-        <div className="p-4 lg:p-8 flex-1">
-          {(user?.role === 'super_admin' || isOwner || canAccessPage(currentPageName) || currentPageName === 'SeedDemo') ? children : (
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
+        <div className="p-4 lg:p-8">
+          {canAccessPage(currentPageName) ? children : (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
               <Shield className="h-10 w-10 text-slate-300" />
               <p className="text-base font-medium">Acesso não autorizado</p>
@@ -375,7 +309,6 @@ export default function Layout({ children, currentPageName }) {
             </div>
           )}
         </div>
-        <Footer />
       </main>
     </div>
   );

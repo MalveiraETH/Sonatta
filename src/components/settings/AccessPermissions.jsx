@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { invalidatePermissionCache } from '@/lib/usePermissions';
 
 const roles = [
   { key: 'admin', label: 'Administrador', color: 'bg-purple-100 text-purple-700' },
@@ -39,9 +40,6 @@ const DEFAULT_PERMISSIONS = [
   { module: 'Profissionais', action: 'Criar/Editar profissionais', admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Contratos', action: 'Visualizar contratos', admin: true, fonoaudiologo: true, comercial: true, recepcao: false },
   { module: 'Contratos', action: 'Gerar contratos', admin: true, fonoaudiologo: true, comercial: true, recepcao: false },
-  { module: 'Consertos', action: 'Visualizar consertos', admin: true, fonoaudiologo: true, comercial: true, recepcao: true },
-  { module: 'Consertos', action: 'Criar/Editar consertos', admin: true, fonoaudiologo: true, comercial: true, recepcao: false },
-  { module: 'Consertos', action: 'Excluir consertos', admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Relatórios', action: 'Visualizar relatórios', admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Configurações', action: 'Acessar configurações', admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Configurações', action: 'Gerenciar usuários', admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
@@ -105,6 +103,7 @@ export default function AccessPermissions() {
         }
       })
     );
+    invalidatePermissionCache();
     toast.success('Permissões salvas com sucesso!');
     setSaving(false);
     setDirty(false);
@@ -120,6 +119,7 @@ export default function AccessPermissions() {
     setPerms(DEFAULT_PERMISSIONS.map(d => ({ ...d })));
     setDirty(false);
     setSaving(false);
+    invalidatePermissionCache();
     toast.success('Permissões restauradas para o padrão');
   };
 

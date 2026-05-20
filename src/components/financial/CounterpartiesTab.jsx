@@ -8,10 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Users, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTenant } from '@/lib/useTenant';
 
 export default function CounterpartiesTab() {
-  const { tenantId } = useTenant();
   const [counterparties, setCounterparties] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -25,12 +23,12 @@ export default function CounterpartiesTab() {
   });
 
   useEffect(() => {
-    if (tenantId) loadCounterparties();
-  }, [tenantId]);
+    loadCounterparties();
+  }, []);
 
   const loadCounterparties = async () => {
     try {
-      const data = await base44.entities.Counterparty.filter({ tenant_id: tenantId });
+      const data = await base44.entities.Counterparty.list();
       setCounterparties(data);
     } catch (error) {
       console.error('Erro ao carregar contrapartes:', error);
@@ -44,7 +42,7 @@ export default function CounterpartiesTab() {
         await base44.entities.Counterparty.update(editing.id, formData);
         toast.success('Contraparte atualizada!');
       } else {
-        await base44.entities.Counterparty.create({ ...formData, tenant_id: tenantId });
+        await base44.entities.Counterparty.create(formData);
         toast.success('Contraparte cadastrada!');
       }
       

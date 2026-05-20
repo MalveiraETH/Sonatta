@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
@@ -55,10 +54,8 @@ import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { logDeletion } from '@/components/utils/auditLogger';
-import Pagination from '@/components/ui/Pagination';
 
 export default function Sales() {
-  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
@@ -78,14 +75,11 @@ export default function Sales() {
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [saleToCancel, setSaleToCancel] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 40;
 
   const loadData = async () => {
     try {
-      const filter = tenantFilter(tenantId);
       const [salesData, user] = await Promise.all([
-        base44.entities.Sale.filter(filter, '-sale_date'),
+        base44.entities.Sale.list('-sale_date'),
         base44.auth.me()
       ]);
       setSales(salesData);
@@ -110,12 +104,11 @@ export default function Sales() {
   const { isRefreshing, pullDistance } = usePullToRefresh(handleRefresh);
 
   useEffect(() => {
-    if (!tenantLoading) loadData().finally(() => setLoading(false));
-  }, [tenantLoading, tenantId]);
+    loadData().finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     filterSales();
-    setCurrentPage(1);
   }, [sales, searchTerm, statusFilter]);
 
   const filterSales = () => {
@@ -549,7 +542,7 @@ Obrigado pela preferência!
                   </TableCell>
                 </TableRow>
               ) : (
-               filteredSales.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(sale => (
+                filteredSales.map(sale => (
                   <TableRow key={sale.id} className="hover:bg-slate-50">
                     <TableCell className="font-medium">{sale.sale_number}</TableCell>
                     <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
@@ -783,15 +776,10 @@ Obrigado pela preferência!
                   <div className="text-2xl font-bold text-slate-900">{formatCurrency(getTotalPayments(sale))}</div>
                 </div>
               </Card>
-              ))
-              )}
-              <Pagination
-              currentPage={currentPage}
-              totalPages={Math.ceil(filteredSales.length / ITEMS_PER_PAGE)}
-              onPageChange={setCurrentPage}
-              />
-              </div>
-              </div>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Modals */}
       <NewSaleForm open={formOpen} onOpenChange={setFormOpen} onSuccess={loadData} />

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,13 +23,8 @@ import {
 } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import SalesChart from '@/components/dashboard/SalesChart';
-import ClientsChart from '@/components/dashboard/ClientsChart';
-import FinancialChart from '@/components/dashboard/FinancialChart';
-import PromoteSuperAdminButton from '@/components/PromoteSuperAdminButton';
 
 export default function Dashboard() {
-  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -41,21 +35,20 @@ export default function Dashboard() {
   const [filterMonthEnd, setFilterMonthEnd] = useState(new Date().getMonth());
 
   useEffect(() => {
-    if (!tenantLoading) loadDashboardData();
-  }, [filterYear, filterMonthStart, filterMonthEnd, tenantLoading, tenantId]);
+    loadDashboardData();
+  }, [filterYear, filterMonthStart, filterMonthEnd]);
 
   const loadDashboardData = async () => {
     try {
-      const filter = tenantFilter(tenantId);
       const [clients, appointments, sales, products, installments, expenses, tests, stockMovements] = await Promise.all([
-        base44.entities.Client.filter(filter),
-        base44.entities.Appointment.filter(filter, '-created_date'),
-        base44.entities.Sale.filter(filter, '-created_date', 100),
-        base44.entities.Product.filter(filter),
-        base44.entities.Installment.filter(filter),
-        base44.entities.Expense.filter(filter),
-        base44.entities.Test.filter(filter),
-        base44.entities.StockMovement.filter(filter)
+        base44.entities.Client.list(),
+        base44.entities.Appointment.list('-created_date'),
+        base44.entities.Sale.list('-created_date', 100),
+        base44.entities.Product.list(),
+        base44.entities.Installment.list(),
+        base44.entities.Expense.list(),
+        base44.entities.Test.list(),
+        base44.entities.StockMovement.list()
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -235,14 +228,11 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-          </p>
-        </div>
-        <PromoteSuperAdminButton />
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+        </p>
       </div>
 
       {/* Filtros de Período */}
@@ -426,14 +416,6 @@ export default function Dashboard() {
           </Card>
         </Link>
       </div>
-
-      {/* Gráficos de Análise */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SalesChart data={recentSales} />
-        <ClientsChart clients={todayAppointments} />
-      </div>
-
-      <FinancialChart sales={recentSales} expenses={lowStockProducts} />
 
       {/* Listas Operacionais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

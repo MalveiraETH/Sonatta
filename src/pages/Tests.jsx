@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
@@ -65,10 +64,8 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
-import Pagination from '@/components/ui/Pagination';
 
 export default function Tests() {
-  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
@@ -82,23 +79,19 @@ export default function Tests() {
   const [extendMode, setExtendMode] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 40;
 
   useEffect(() => {
-    if (!tenantLoading) loadData();
-  }, [tenantLoading, tenantId]);
+    loadData();
+  }, []);
 
   useEffect(() => {
     filterTests();
-    setCurrentPage(1);
   }, [tests, searchTerm, statusFilter]);
 
   const loadData = async () => {
     try {
-      const filter = tenantFilter(tenantId);
       const [testsData, user] = await Promise.all([
-        base44.entities.Test.filter(filter, '-created_date'),
+        base44.entities.Test.list('-created_date'),
         base44.auth.me()
       ]);
       
@@ -125,7 +118,7 @@ export default function Tests() {
       // Carregar dados dos clientes para exibir status
       const clientIds = [...new Set(testsData.map(t => t.client_id).filter(Boolean))];
       if (clientIds.length > 0) {
-        const clientsData = await base44.entities.Client.filter(tenantFilter(tenantId));
+        const clientsData = await base44.entities.Client.list();
         const map = {};
         clientsData.forEach(c => { map[c.id] = c; });
         setClientsMap(map);
@@ -498,17 +491,14 @@ export default function Tests() {
             </TableRow>
           </TableHeader>
           <TableBody>
-           {filteredTests.length === 0 ? (
-             <TableRow>
-               <TableCell colSpan={9} className="text-center py-12 text-slate-500">
-                 Nenhum teste encontrado
-               </TableCell>
-             </TableRow>
-           ) : (
-             (() => {
-               const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-               const endIdx = startIdx + ITEMS_PER_PAGE;
-               return filteredTests.slice(startIdx, endIdx).map(test => (
+            {filteredTests.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-12 text-slate-500">
+                  Nenhum teste encontrado
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredTests.map(test => (
                 <TableRow key={test.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{test.test_number}</TableCell>
                   <TableCell>{formatLocalDate(test.start_date)}</TableCell>
@@ -581,18 +571,10 @@ export default function Tests() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ));
-              })()
+              ))
             )}
           </TableBody>
         </Table>
-        <div className="p-4 border-t">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(filteredTests.length / ITEMS_PER_PAGE)}
-            onPageChange={setCurrentPage}
-          />
-        </div>
       </Card>
 
       {/* Cards - Mobile */}
@@ -602,10 +584,7 @@ export default function Tests() {
             Nenhum teste encontrado
           </Card>
         ) : (
-          (() => {
-            const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-            const endIdx = startIdx + ITEMS_PER_PAGE;
-            return filteredTests.slice(startIdx, endIdx).map(test => (
+          filteredTests.map(test => (
             <Card key={test.id} className="p-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
@@ -674,14 +653,8 @@ export default function Tests() {
                 </div>
               </div>
             </Card>
-          ));
-          })()
+          ))
         )}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(filteredTests.length / ITEMS_PER_PAGE)}
-          onPageChange={setCurrentPage}
-        />
       </div>
 
       {/* Detail Dialog */}

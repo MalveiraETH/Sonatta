@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
@@ -80,7 +79,6 @@ import {
 
 export default function Inventory() {
   const { openTab } = useTabs() || {};
-  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
@@ -100,8 +98,8 @@ export default function Inventory() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
-    if (!tenantLoading) loadData();
-  }, [tenantLoading, tenantId]);
+    loadData();
+  }, []);
 
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -123,10 +121,9 @@ export default function Inventory() {
 
   const loadData = async () => {
     try {
-      const filter = tenantFilter(tenantId);
       const [productsData, movementsData, user] = await Promise.all([
-        base44.entities.Product.filter(filter, '-created_date'),
-        base44.entities.StockMovement.filter(filter, '-created_date', 100),
+        base44.entities.Product.list('-created_date'),
+        base44.entities.StockMovement.list('-created_date', 100),
         base44.auth.me()
       ]);
       setProducts(productsData);

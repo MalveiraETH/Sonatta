@@ -2,10 +2,6 @@
   "name": "Product",
   "type": "object",
   "properties": {
-    "tenant_id": {
-      "type": "string",
-      "description": "ID do tenant (cl\u00ednica)"
-    },
     "stock_type": {
       "type": "string",
       "enum": [

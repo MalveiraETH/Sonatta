@@ -26,10 +26,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logCreation, logEdit } from '@/components/utils/auditLogger';
 import { createInstallmentsForSale, syncInstallmentsForSale } from '@/components/sales/syncInstallments';
-import { useTenant } from '@/lib/useTenant';
 
 export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
-  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
@@ -511,7 +509,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       };
 
       // Criar venda
-      const newSale = await base44.entities.Sale.create({ ...dataToSave, tenant_id: tenantId });
+      const newSale = await base44.entities.Sale.create(dataToSave);
       await logCreation('Venda', `${saleNumber} - ${formData.client_name}`, newSale.id);
 
       // Criar parcelas em Contas a Receber para Pix Parcelado e Cartão de Crédito

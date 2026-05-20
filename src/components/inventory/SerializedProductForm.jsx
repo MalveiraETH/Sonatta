@@ -19,7 +19,6 @@ import {
 import { Loader2, BookOpen } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { useTenant } from '@/lib/useTenant';
 
 const MARKUP_CATEGORIES = [
   { value: '90', label: 'Categoria 90' },
@@ -55,7 +54,6 @@ const BRL = (v) =>
   Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function SerializedProductForm({ open, onOpenChange, product, onSuccess }) {
-  const { tenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(emptyForm());
   const [billingCfg, setBillingCfg] = useState(null);
@@ -222,14 +220,13 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         await onSuccess();
         onOpenChange(false);
       } else {
-        const newProduct = await base44.entities.Product.create({ ...dataToSave, tenant_id: tenantId });
+        const newProduct = await base44.entities.Product.create(dataToSave);
         await base44.entities.StockMovement.create({
           product_id: newProduct.id,
           product_name: formData.name,
           type: 'entrada',
           quantity: 1,
-          reason: `Entrada NF: ${formData.nota_fiscal_entrada || 'Sem NF'}`,
-          tenant_id: tenantId
+          reason: `Entrada NF: ${formData.nota_fiscal_entrada || 'Sem NF'}`
         });
         toast.success('Produto cadastrado!');
         await onSuccess();
