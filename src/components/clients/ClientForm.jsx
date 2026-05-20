@@ -21,6 +21,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTenant } from '@/lib/useTenant';
 import { usePlanLimits } from '@/lib/usePlanLimits';
+import { isRateLimited, clearRateLimit } from '@/lib/rateLimit';
 
 export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
   const { tenantId } = useTenant();
@@ -124,6 +125,13 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       return;
     }
 
+    // Rate limiting: max 5 requests per minute
+    const rateLimitKey = `client_form_${tenantId}`;
+    if (isRateLimited(rateLimitKey, 5, 60000)) {
+      toast.error('Muitas requisições. Aguarde alguns segundos.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (client) {
@@ -132,6 +140,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       } else {
         await base44.entities.Client.create({ ...formData, tenant_id: tenantId });
         toast.success('Cliente cadastrado com sucesso!');
+        clearRateLimit(rateLimitKey);
       }
       await onSuccess();
       onOpenChange(false);
