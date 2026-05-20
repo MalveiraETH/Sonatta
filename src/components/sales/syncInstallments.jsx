@@ -5,7 +5,7 @@ import { format } from 'date-fns';
  * Generate installment records for a payment item from a sale.
  * Returns array of installment objects (not yet persisted).
  */
-function buildInstallments(payment, sale, saleDate) {
+function buildInstallments(payment, sale, saleDate, firstDueDate = null) {
   const method = payment.method;
   const numInstallments = (method === 'cartao_credito' || method === 'pix_parcelado')
     ? (payment.installments || 1)
@@ -41,10 +41,16 @@ function buildInstallments(payment, sale, saleDate) {
       d.setMonth(d.getMonth() + i);
       dueDate = d.toISOString().split('T')[0];
     } else if (method === 'pix_parcelado') {
-      // first installment 30 days from sale, then monthly
-      const d = new Date(saleDate);
-      d.setMonth(d.getMonth() + i);
-      dueDate = d.toISOString().split('T')[0];
+      // Use firstDueDate as base for 1st installment if provided, otherwise saleDate + 1 month
+      if (firstDueDate) {
+        const base = new Date(firstDueDate);
+        base.setMonth(base.getMonth() + (i - 1));
+        dueDate = base.toISOString().split('T')[0];
+      } else {
+        const d = new Date(saleDate);
+        d.setMonth(d.getMonth() + i);
+        dueDate = d.toISOString().split('T')[0];
+      }
     } else {
       // single payment: due on sale date
       dueDate = typeof saleDate === 'string' ? saleDate : format(saleDate, 'yyyy-MM-dd');
@@ -78,13 +84,16 @@ function buildInstallments(payment, sale, saleDate) {
 /**
  * Create installments for a newly created sale.
  * Only for cartao_credito and pix_parcelado.
+ * @param {object} sale
+ * @param {Date|string} saleDate
+ * @param {Date|null} firstDueDate - optional override for 1st installment due date (PIX parcelado)
  */
-export async function createInstallmentsForSale(sale, saleDate) {
+export async function createInstallmentsForSale(sale, saleDate, firstDueDate = null) {
   const payments = (sale.payment_details || []).filter(
     p => p.method === 'cartao_credito' || p.method === 'pix_parcelado'
   );
   for (const payment of payments) {
-    const records = buildInstallments(payment, sale, saleDate);
+    const records = buildInstallments(payment, sale, saleDate, firstDueDate);
     for (const rec of records) {
       await base44.entities.Installment.create(rec);
     }

@@ -64,6 +64,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   useEffect(() => {
     if (open) {
       loadData();
+      if (!sale) {
+        setFirstDueDate(null);
+        setSaleDate(new Date());
+      }
     }
   }, [open]);
 
@@ -509,7 +513,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       await logCreation('Venda', `${saleNumber} - ${formData.client_name}`, newSale.id);
 
       // Criar parcelas em Contas a Receber para Pix Parcelado e Cartão de Crédito
-      await createInstallmentsForSale(newSale, saleDate);
+      await createInstallmentsForSale(newSale, saleDate, firstDueDate);
 
       // Atualizar estoque via função backend (contorna RLS de Product.update)
       try {
@@ -650,7 +654,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                     ))
                   ) : (
-                    <SelectItem value={null} disabled>Nenhuma categoria disponível</SelectItem>
+                    <SelectItem value="__none__" disabled>Nenhuma categoria disponível</SelectItem>
                   )}
                 </SelectContent>
               </Select>
