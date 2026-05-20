@@ -58,8 +58,6 @@ const userRoleLabels = {
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
   const { canAccessPage } = usePermissions(user);
   const location = useLocation();
 
@@ -73,51 +71,8 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   useEffect(() => {
-    if (window.innerWidth >= 768) return;
-
-    let startYLocal = 0;
-
-    const handleTouchStart = (e) => {
-      // Não inicia pull-to-refresh se o toque começa dentro de um dialog/sheet/overlay
-      const target = e.target;
-      if (target.closest('[role="dialog"]') || target.closest('[data-radix-popper-content-wrapper]') || target.closest('[data-state="open"]')) return;
-      startYLocal = e.touches[0].clientY;
-    };
-
-    const handleTouchMove = (e) => {
-      if (!startYLocal) return;
-      const target = e.target;
-      if (target.closest('[role="dialog"]') || target.closest('[data-radix-popper-content-wrapper]') || target.closest('[data-state="open"]')) return;
-
-      const currentY = e.touches[0].clientY;
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      if (scrollTop === 0 && currentY > startYLocal && !isRefreshing) {
-        const distance = Math.min(currentY - startYLocal, 120);
-        setPullDistance(distance);
-        if (distance >= 120) {
-          setIsRefreshing(true);
-          setPullDistance(0);
-          startYLocal = 0;
-          setTimeout(() => window.location.reload(), 300);
-        }
-      }
-    };
-
-    const handleTouchEnd = () => {
-      startYLocal = 0;
-      if (!isRefreshing) setPullDistance(0);
-    };
-
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [isRefreshing]);
+    // Pull-to-refresh desabilitado
+  }, []);
 
   const loadUser = async () => {
     try {
@@ -212,29 +167,7 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-slate-50">
       <AppVersionMonitor />
 
-      {/* Pull to refresh indicator (mobile) */}
-      {(pullDistance > 10 || isRefreshing) && (
-        <div
-          className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center bg-[#6B3FA0] transition-all duration-200 lg:hidden"
-          style={{ height: isRefreshing ? 56 : Math.max(pullDistance * 0.5, 0) }}
-        >
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-5 h-5 border-2 border-white/40 border-t-white rounded-full ${
-                isRefreshing || pullDistance >= 120 ? 'animate-spin' : ''
-              }`}
-              style={!isRefreshing ? { transform: `rotate(${(pullDistance / 120) * 360}deg)` } : {}}
-            />
-            {isRefreshing ? (
-              <span className="text-white text-xs font-medium">Atualizando...</span>
-            ) : pullDistance >= 100 ? (
-              <span className="text-white text-xs font-medium">Solte para atualizar</span>
-            ) : (
-              <span className="text-white text-xs font-medium">Puxe para atualizar</span>
-            )}
-          </div>
-        </div>
-      )}
+
 
       <style>{`
         :root {
