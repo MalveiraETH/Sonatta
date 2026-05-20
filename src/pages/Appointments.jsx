@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -209,6 +210,7 @@ function AppointmentCard({ appointment, onEdit, onDelete, onStatusChange, onTest
 }
 
 export default function Appointments() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -225,18 +227,20 @@ export default function Appointments() {
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
 
   useEffect(() => {
+    if (tenantLoading) return;
     loadData();
     const unsubscribe = base44.entities.Appointment.subscribe(() => {
-      base44.entities.Appointment.list().then(setAppointments);
+      base44.entities.Appointment.filter(tenantFilter(tenantId)).then(setAppointments);
     });
     return () => unsubscribe();
-  }, []);
+  }, [tenantLoading, tenantId]);
 
   const loadData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [appointmentsData, profsData] = await Promise.all([
-        base44.entities.Appointment.list(),
-        base44.entities.Professional.list(),
+        base44.entities.Appointment.filter(filter),
+        base44.entities.Professional.filter(filter),
       ]);
       setAppointments(appointmentsData);
       setProfessionals(profsData);

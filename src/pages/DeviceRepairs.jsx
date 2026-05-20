@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ const STATUS_CONFIG = {
 };
 
 export default function DeviceRepairs() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -30,12 +32,12 @@ export default function DeviceRepairs() {
 
   const loadRepairs = async () => {
     setLoading(true);
-    const data = await base44.entities.DeviceRepair.list('-created_date', 200);
+    const data = await base44.entities.DeviceRepair.filter(tenantFilter(tenantId), '-created_date', 200);
     setRepairs(data);
     setLoading(false);
   };
 
-  useEffect(() => { loadRepairs(); }, []);
+  useEffect(() => { if (!tenantLoading) loadRepairs(); }, [tenantLoading, tenantId]);
 
   const handleEdit = (repair) => { setEditingRepair(repair); setFormOpen(true); };
   const handleNew = () => { setEditingRepair(null); setFormOpen(true); };

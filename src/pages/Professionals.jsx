@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ import { Search, MoreHorizontal, Edit, Trash2, MessageCircle, Stethoscope } from
 import { toast } from 'sonner';
 
 export default function Professionals() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [professionals, setProfessionals] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,13 +33,14 @@ export default function Professionals() {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!tenantLoading) loadData();
+  }, [tenantLoading, tenantId]);
 
   const loadData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [profData, user] = await Promise.all([
-        base44.entities.Professional.list(),
+        base44.entities.Professional.filter(filter),
         base44.auth.me()
       ]);
       setProfessionals(profData);

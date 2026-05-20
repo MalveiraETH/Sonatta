@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,7 @@ import { openWhatsApp } from '@/utils/whatsapp';
 import QuotePDFButton from '@/components/quotes/QuotePDFButton';
 
 export default function Quotes() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState([]);
   const [filteredQuotes, setFilteredQuotes] = useState([]);
@@ -52,8 +54,8 @@ export default function Quotes() {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!tenantLoading) loadData();
+  }, [tenantLoading, tenantId]);
 
   useEffect(() => {
     filterQuotes();
@@ -61,8 +63,9 @@ export default function Quotes() {
 
   const loadData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [quotesData, user] = await Promise.all([
-        base44.entities.Quote.list('-created_date'),
+        base44.entities.Quote.filter(filter, '-created_date'),
         base44.auth.me()
       ]);
       setQuotes(quotesData);

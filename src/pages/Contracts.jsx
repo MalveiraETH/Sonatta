@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 
 export default function Contracts() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [contracts, setContracts] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
@@ -60,8 +62,8 @@ export default function Contracts() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!tenantLoading) loadData();
+  }, [tenantLoading, tenantId]);
 
   useEffect(() => {
     filterContracts();
@@ -69,8 +71,9 @@ export default function Contracts() {
 
   const loadData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [contractsData, user] = await Promise.all([
-        base44.entities.Contract.list('-created_date'),
+        base44.entities.Contract.filter(filter, '-created_date'),
         base44.auth.me()
       ]);
       setContracts(contractsData);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
@@ -66,6 +67,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 
 export default function Tests() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
@@ -81,8 +83,8 @@ export default function Tests() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!tenantLoading) loadData();
+  }, [tenantLoading, tenantId]);
 
   useEffect(() => {
     filterTests();
@@ -90,8 +92,9 @@ export default function Tests() {
 
   const loadData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [testsData, user] = await Promise.all([
-        base44.entities.Test.list('-created_date'),
+        base44.entities.Test.filter(filter, '-created_date'),
         base44.auth.me()
       ]);
       
@@ -118,7 +121,7 @@ export default function Tests() {
       // Carregar dados dos clientes para exibir status
       const clientIds = [...new Set(testsData.map(t => t.client_id).filter(Boolean))];
       if (clientIds.length > 0) {
-        const clientsData = await base44.entities.Client.list();
+        const clientsData = await base44.entities.Client.filter(tenantFilter(tenantId));
         const map = {};
         clientsData.forEach(c => { map[c.id] = c; });
         setClientsMap(map);

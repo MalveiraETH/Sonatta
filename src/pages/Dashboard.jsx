@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Dashboard() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -35,20 +37,21 @@ export default function Dashboard() {
   const [filterMonthEnd, setFilterMonthEnd] = useState(new Date().getMonth());
 
   useEffect(() => {
-    loadDashboardData();
-  }, [filterYear, filterMonthStart, filterMonthEnd]);
+    if (!tenantLoading) loadDashboardData();
+  }, [filterYear, filterMonthStart, filterMonthEnd, tenantLoading, tenantId]);
 
   const loadDashboardData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [clients, appointments, sales, products, installments, expenses, tests, stockMovements] = await Promise.all([
-        base44.entities.Client.list(),
-        base44.entities.Appointment.list('-created_date'),
-        base44.entities.Sale.list('-created_date', 100),
-        base44.entities.Product.list(),
-        base44.entities.Installment.list(),
-        base44.entities.Expense.list(),
-        base44.entities.Test.list(),
-        base44.entities.StockMovement.list()
+        base44.entities.Client.filter(filter),
+        base44.entities.Appointment.filter(filter, '-created_date'),
+        base44.entities.Sale.filter(filter, '-created_date', 100),
+        base44.entities.Product.filter(filter),
+        base44.entities.Installment.filter(filter),
+        base44.entities.Expense.filter(filter),
+        base44.entities.Test.filter(filter),
+        base44.entities.StockMovement.filter(filter)
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');

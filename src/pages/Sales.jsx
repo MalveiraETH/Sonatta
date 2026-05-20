@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useTenant, tenantFilter } from '@/lib/useTenant';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
@@ -56,6 +57,7 @@ import { openWhatsApp } from '@/utils/whatsapp';
 import { logDeletion } from '@/components/utils/auditLogger';
 
 export default function Sales() {
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
@@ -78,8 +80,9 @@ export default function Sales() {
 
   const loadData = async () => {
     try {
+      const filter = tenantFilter(tenantId);
       const [salesData, user] = await Promise.all([
-        base44.entities.Sale.list('-sale_date'),
+        base44.entities.Sale.filter(filter, '-sale_date'),
         base44.auth.me()
       ]);
       setSales(salesData);
@@ -104,8 +107,8 @@ export default function Sales() {
   const { isRefreshing, pullDistance } = usePullToRefresh(handleRefresh);
 
   useEffect(() => {
-    loadData().finally(() => setLoading(false));
-  }, []);
+    if (!tenantLoading) loadData().finally(() => setLoading(false));
+  }, [tenantLoading, tenantId]);
 
   useEffect(() => {
     filterSales();
