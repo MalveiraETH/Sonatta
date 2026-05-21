@@ -94,17 +94,15 @@ export default function Layout({ children, currentPageName }) {
         : "hidden lg:flex fixed top-0 left-0 h-full w-64 z-40 overflow-hidden"
     )}>
       {/* Logo */}
-      <div className="h-28 flex items-center justify-center border-b border-white/10 px-4 flex-shrink-0">
-        <div className="flex flex-col items-center gap-3">
-          <img
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png"
-            alt="Sonatta"
-            className="w-14 h-14 object-contain"
-          />
-          <div className="text-center">
-            <h1 className="text-white font-bold text-lg tracking-wide">SONATTA</h1>
-            <p className="text-white/50 text-xs leading-tight">Soluções Auditivas</p>
-          </div>
+      <div className="h-20 flex items-center gap-3 border-b border-white/10 px-4 flex-shrink-0">
+        <img
+          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png"
+          alt="Sonatta"
+          className="w-12 h-12 object-contain flex-shrink-0"
+        />
+        <div className="min-w-0">
+          <h1 className="text-white font-bold text-base tracking-wide leading-tight">SONATTA</h1>
+          <p className="text-white/50 text-xs leading-tight">Soluções Auditivas</p>
         </div>
       </div>
 
