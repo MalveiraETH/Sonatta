@@ -39,6 +39,9 @@ import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users 
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import PaginationControls from '@/components/ui/PaginationControls';
+
+const PAGE_SIZE = 50;
 
 function FiltersContent({ statusFilter, setStatusFilter, statusLabels, clearFilters, setFilterOpen }) {
   return (
@@ -84,6 +87,7 @@ export default function Clients() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadData();
@@ -138,6 +142,7 @@ export default function Clients() {
     }
 
     setFilteredClients(filtered);
+    setCurrentPage(1);
   };
 
   const sendWhatsApp = (client) => {
@@ -174,6 +179,9 @@ export default function Clients() {
   };
 
   const mainStatusLabel = (status) => statusLabels[status] || status;
+
+  const totalPages = Math.ceil(filteredClients.length / PAGE_SIZE);
+  const pagedClients = filteredClients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const stats = {
     total: clients.length,
@@ -366,14 +374,14 @@ export default function Clients() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredClients.length === 0 ? (
+            {pagedClients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-12 text-slate-500">
                   Nenhum cliente encontrado
                 </TableCell>
               </TableRow>
             ) : (
-              filteredClients.map(client => (
+              pagedClients.map(client => (
                 <TableRow 
                   key={client.id} 
                   className="hover:bg-slate-50 cursor-pointer"
@@ -421,12 +429,12 @@ export default function Clients() {
 
       {/* Cards - Mobile */}
       <div className="lg:hidden space-y-3">
-        {filteredClients.length === 0 ? (
+        {pagedClients.length === 0 ? (
           <Card className="p-8 text-center text-slate-500">
             Nenhum cliente encontrado
           </Card>
         ) : (
-          filteredClients.map(client => (
+          pagedClients.map(client => (
             <Card 
               key={client.id} 
               className="p-4 cursor-pointer hover:shadow-md transition-shadow"
@@ -468,6 +476,8 @@ export default function Clients() {
           ))
         )}
       </div>
+
+      <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
       <ClientForm
         open={formOpen}

@@ -54,6 +54,9 @@ import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { logDeletion } from '@/components/utils/auditLogger';
+import PaginationControls from '@/components/ui/PaginationControls';
+
+const PAGE_SIZE = 50;
 
 export default function Sales() {
   const [loading, setLoading] = useState(true);
@@ -75,6 +78,7 @@ export default function Sales() {
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [saleToCancel, setSaleToCancel] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadData = async () => {
     try {
@@ -130,6 +134,7 @@ export default function Sales() {
     }
 
     setFilteredSales(filtered);
+    setCurrentPage(1);
   };
 
   const formatCurrency = (value) => {
@@ -324,6 +329,9 @@ Obrigado pela preferência!
     setSearchTerm('');
     setStatusFilter('all');
   };
+
+  const totalPages = Math.ceil(filteredSales.length / PAGE_SIZE);
+  const pagedSales = filteredSales.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const stats = {
     total: sales.length,
@@ -535,14 +543,14 @@ Obrigado pela preferência!
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSales.length === 0 ? (
+              {pagedSales.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={12} className="text-center py-12 text-slate-500">
                     Nenhuma venda encontrada
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredSales.map(sale => (
+                pagedSales.map(sale => (
                   <TableRow key={sale.id} className="hover:bg-slate-50">
                     <TableCell className="font-medium">{sale.sale_number}</TableCell>
                     <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
@@ -668,12 +676,12 @@ Obrigado pela preferência!
 
         {/* Cards - Mobile */}
         <div className="lg:hidden space-y-3 mt-6">
-          {filteredSales.length === 0 ? (
+          {pagedSales.length === 0 ? (
             <Card className="p-8 text-center text-slate-500">
               Nenhuma venda encontrada
             </Card>
           ) : (
-            filteredSales.map(sale => (
+            pagedSales.map(sale => (
               <Card key={sale.id} className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
@@ -780,6 +788,8 @@ Obrigado pela preferência!
           )}
         </div>
       </div>
+
+      <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
       {/* Modals */}
       <NewSaleForm open={formOpen} onOpenChange={setFormOpen} onSuccess={loadData} />

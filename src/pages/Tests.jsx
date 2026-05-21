@@ -62,6 +62,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import PaginationControls from '@/components/ui/PaginationControls';
+
+const PAGE_SIZE = 50;
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 
@@ -79,6 +82,7 @@ export default function Tests() {
   const [extendMode, setExtendMode] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadData();
@@ -147,6 +151,7 @@ export default function Tests() {
     }
 
     setFilteredTests(filtered);
+    setCurrentPage(1);
   };
 
   const handleFinalize = async (test) => {
@@ -247,6 +252,9 @@ export default function Tests() {
     if (status === 'lead') return 'bg-slate-100 text-slate-700';
     return 'bg-gray-100 text-gray-600';
   };
+
+  const totalPages = Math.ceil(filteredTests.length / PAGE_SIZE);
+  const pagedTests = filteredTests.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const stats = {
     total: tests.length,
@@ -491,14 +499,14 @@ export default function Tests() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTests.length === 0 ? (
+            {pagedTests.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-12 text-slate-500">
                   Nenhum teste encontrado
                 </TableCell>
               </TableRow>
             ) : (
-              filteredTests.map(test => (
+              pagedTests.map(test => (
                 <TableRow key={test.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{test.test_number}</TableCell>
                   <TableCell>{formatLocalDate(test.start_date)}</TableCell>
@@ -579,12 +587,12 @@ export default function Tests() {
 
       {/* Cards - Mobile */}
       <div className="lg:hidden space-y-3">
-        {filteredTests.length === 0 ? (
+        {pagedTests.length === 0 ? (
           <Card className="p-8 text-center text-slate-500">
             Nenhum teste encontrado
           </Card>
         ) : (
-          filteredTests.map(test => (
+          pagedTests.map(test => (
             <Card key={test.id} className="p-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
@@ -656,6 +664,8 @@ export default function Tests() {
           ))
         )}
       </div>
+
+      <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>

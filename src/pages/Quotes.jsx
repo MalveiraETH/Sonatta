@@ -39,6 +39,9 @@ import { ptBR } from 'date-fns/locale';
 import { logDeletion, logWhatsApp } from '@/components/utils/auditLogger';
 import { openWhatsApp } from '@/utils/whatsapp';
 import QuotePDFButton from '@/components/quotes/QuotePDFButton';
+import PaginationControls from '@/components/ui/PaginationControls';
+
+const PAGE_SIZE = 50;
 
 export default function Quotes() {
   const [loading, setLoading] = useState(true);
@@ -50,6 +53,7 @@ export default function Quotes() {
   const [saleFormOpen, setSaleFormOpen] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadData();
@@ -90,6 +94,7 @@ export default function Quotes() {
     }
 
     setFilteredQuotes(filtered);
+    setCurrentPage(1);
   };
 
   const handleEdit = (quote) => {
@@ -251,6 +256,9 @@ Equipe Sonatta Soluções Auditivas
     }
   };
 
+  const totalPages = Math.ceil(filteredQuotes.length / PAGE_SIZE);
+  const pagedQuotes = filteredQuotes.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -305,9 +313,9 @@ Equipe Sonatta Soluções Auditivas
       </Card>
 
       {/* Cards Grid */}
-      {filteredQuotes.length > 0 ? (
+      {pagedQuotes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredQuotes.map((quote) => (
+          {pagedQuotes.map((quote) => (
             <Card key={quote.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -409,6 +417,8 @@ Equipe Sonatta Soluções Auditivas
           </div>
         </Card>
       )}
+
+      <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
       <QuoteForm
         open={formOpen}
