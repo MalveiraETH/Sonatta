@@ -123,7 +123,7 @@ export default function AccessPermissions() {
     );
     setSavedIds({});
     setPerms(DEFAULT_PERMISSIONS.map(d => ({ ...d })));
-    setDirty(false);
+    setDirty(true);
     setSaving(false);
     invalidatePermissionCache();
     toast.success('Permissões restauradas para o padrão');
