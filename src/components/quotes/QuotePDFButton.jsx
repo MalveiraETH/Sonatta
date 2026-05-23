@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -375,7 +375,7 @@ async function buildPDF(quote, cfg) {
 export default function QuotePDFButton({ quote, onStatusChange }) {
   const [loading, setLoading] = useState(false);
 
-  const handle = async () => {
+  const handleDownload = async () => {
     if (!quote.client_phone) { toast.error('Cliente sem telefone cadastrado'); return; }
     setLoading(true);
     try {
@@ -383,7 +383,7 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
       const doc = await buildPDF(quote, cfg);
       const name = 'Orcamento_' + (quote.quote_number || 'Sonatta') + '.pdf';
       doc.save(name);
-      toast.success('PDF gerado com sucesso!');
+      toast.success('PDF baixado com sucesso!');
     } catch (e) {
       console.error(e); toast.error('Erro ao gerar PDF');
     } finally {
@@ -391,14 +391,40 @@ export default function QuotePDFButton({ quote, onStatusChange }) {
     }
   };
 
+  const handleOpen = async () => {
+    if (!quote.client_phone) { toast.error('Cliente sem telefone cadastrado'); return; }
+    setLoading(true);
+    try {
+      const cfg = await loadCfg();
+      const doc = await buildPDF(quote, cfg);
+      const url = doc.output('bloburi');
+      window.open(url, '_blank');
+      toast.success('PDF aberto em nova aba!');
+    } catch (e) {
+      console.error(e); toast.error('Erro ao abrir PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Button
-      size="sm" variant="outline"
-      className="border-[#622A7E] text-[#622A7E] hover:bg-[#622A7E] hover:text-white"
-      onClick={handle} disabled={loading}
-      title="Gerar PDF do orçamento"
-    >
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-    </Button>
+    <div className="flex gap-2">
+      <Button
+        size="sm" variant="outline"
+        className="border-[#622A7E] text-[#622A7E] hover:bg-[#622A7E] hover:text-white"
+        onClick={handleOpen} disabled={loading}
+        title="Abrir PDF do orçamento"
+      >
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+      </Button>
+      <Button
+        size="sm" variant="outline"
+        className="border-[#622A7E] text-[#622A7E] hover:bg-[#622A7E] hover:text-white"
+        onClick={handleDownload} disabled={loading}
+        title="Baixar PDF do orçamento"
+      >
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+      </Button>
+    </div>
   );
 }
