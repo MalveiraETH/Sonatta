@@ -187,7 +187,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         newItems[index].product_name = product.name;
         newItems[index].reference = product.reference || '';
         const priceType = newItems[index].price_type || 'sale';
-        const price = priceType === 'cost' ? product.cost : product.finalPrice;
+        const price = priceType === 'cost' ? product.cost : product.final_sale_price;
         newItems[index].unit_price = price;
         newItems[index].total = price * newItems[index].quantity;
       }
@@ -196,7 +196,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     if (field === 'price_type') {
       const product = referenceProducts.find(p => p.id === newItems[index].product_id);
       if (product) {
-        const price = value === 'cost' ? product.cost : product.finalPrice;
+        const price = value === 'cost' ? product.cost : product.final_sale_price;
         newItems[index].unit_price = price;
         newItems[index].total = price * newItems[index].quantity;
       }
@@ -395,7 +395,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                       <datalist id={`product-list-${index}`}>
                         {referenceProducts.map((product) => (
                           <option key={product.id} value={`${product.reference ? product.reference + ' — ' : ''}${product.name}`}>
-                            Venda: {formatCurrency(product.finalPrice)} | Custo: {formatCurrency(product.cost)}
+                            Venda: {formatCurrency(product.final_sale_price)} | Custo: {formatCurrency(product.cost)}
                           </option>
                         ))}
                       </datalist>
