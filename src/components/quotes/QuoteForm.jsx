@@ -168,7 +168,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { product_id: '', product_name: '', reference: '', price_type: 'sale', quantity: 1, unit_price: 0, total: 0 }]
+      items: [...formData.items, { product_id: '', product_name: '', quantity: 1, unit_price: 0, total: 0 }]
     });
   };
 
@@ -185,20 +185,8 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
       const product = referenceProducts.find(p => p.id === value);
       if (product) {
         newItems[index].product_name = product.name;
-        newItems[index].reference = product.reference || '';
-        const priceType = newItems[index].price_type || 'sale';
-        const price = priceType === 'cost' ? product.cost : product.final_sale_price;
-        newItems[index].unit_price = price;
-        newItems[index].total = price * newItems[index].quantity;
-      }
-    }
-
-    if (field === 'price_type') {
-      const product = referenceProducts.find(p => p.id === newItems[index].product_id);
-      if (product) {
-        const price = value === 'cost' ? product.cost : product.final_sale_price;
-        newItems[index].unit_price = price;
-        newItems[index].total = price * newItems[index].quantity;
+        newItems[index].unit_price = product.finalPrice;
+        newItems[index].total = product.finalPrice * newItems[index].quantity;
       }
     }
 
@@ -365,92 +353,68 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
 
             {formData.items.map((item, index) => (
               <Card key={index} className="p-4">
-                <div className="space-y-3">
-                  {/* Linha 1: Produto + Tipo de Preço */}
-                  <div className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-8">
-                      <Label className="text-xs">Produto (Referência / Nome)</Label>
-                      <Input
-                        placeholder="Digite a referência ou nome do produto..."
-                        value={item.product_name ? `${item.reference ? item.reference + ' — ' : ''}${item.product_name}` : ''}
-                        onChange={(e) => {
-                          const searchValue = e.target.value;
-                          const newItems = [...formData.items];
-                          newItems[index].product_name = searchValue;
-                          newItems[index].product_id = '';
-                          setFormData({ ...formData, items: newItems });
-
-                          const searchTerm = searchValue.toLowerCase().replace(/.*—\s*/, '');
-                          const foundProduct = referenceProducts.find(p =>
-                            p.name?.toLowerCase() === searchTerm ||
-                            p.reference?.toLowerCase() === searchTerm ||
-                            `${p.reference} — ${p.name}`.toLowerCase() === searchValue.toLowerCase()
-                          );
-                          if (foundProduct) {
-                            updateItem(index, 'product_id', foundProduct.id);
-                          }
-                        }}
-                        list={`product-list-${index}`}
-                      />
-                      <datalist id={`product-list-${index}`}>
-                        {referenceProducts.map((product) => (
-                          <option key={product.id} value={`${product.reference ? product.reference + ' — ' : ''}${product.name}`}>
-                            Venda: {formatCurrency(product.final_sale_price)} | Custo: {formatCurrency(product.cost)}
-                          </option>
-                        ))}
-                      </datalist>
-                    </div>
-                    <div className="col-span-3">
-                      <Label className="text-xs">Usar Preço</Label>
-                      <Select
-                        value={item.price_type || 'sale'}
-                        onValueChange={(val) => updateItem(index, 'price_type', val)}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sale">Preço de Venda</SelectItem>
-                          <SelectItem value="cost">Preço de Custo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-1 flex justify-end">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(index)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                <div className="grid grid-cols-12 gap-3 items-end">
+                  <div className="col-span-5">
+                    <Label className="text-xs">Nome do Aparelho</Label>
+                    <Input
+                      placeholder="Digite o nome do aparelho..."
+                      value={item.product_name || ''}
+                      onChange={(e) => {
+                        const searchValue = e.target.value;
+                        const newItems = [...formData.items];
+                        newItems[index].product_name = searchValue;
+                        setFormData({ ...formData, items: newItems });
+                        
+                        const searchTerm = searchValue.toLowerCase();
+                        const foundProduct = referenceProducts.find(p => 
+                          p.name?.toLowerCase() === searchTerm
+                        );
+                        if (foundProduct) {
+                          updateItem(index, 'product_id', foundProduct.id);
+                        }
+                      }}
+                      list={`product-list-${index}`}
+                    />
+                    <datalist id={`product-list-${index}`}>
+                      {referenceProducts.map((product) => (
+                        <option key={product.id} value={product.name}>
+                          {product.name} - Cat. {product.category} - {formatCurrency(product.finalPrice)}
+                        </option>
+                      ))}
+                    </datalist>
                   </div>
-                  {/* Linha 2: Qtd + Valor + Total */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <Label className="text-xs">Qtd</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Valor Unit.</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">Total</Label>
-                      <Input value={formatCurrency(item.total)} readOnly className="bg-slate-50" />
-                    </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">Qtd</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">Valor Unit.</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={item.unit_price}
+                      onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">Total</Label>
+                    <Input value={formatCurrency(item.total)} readOnly className="bg-slate-50" />
+                  </div>
+                  <div className="col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </Card>
