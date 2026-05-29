@@ -18,10 +18,11 @@ export const PAGE_PERMISSION_MAP = {
   PixReport:        'Financeiro',
   Professionals:    'Profissionais',
   Contracts:        'Contratos',
-  DeviceRepairs:    'Consertos',
-  Reports:          'Relatórios',
-  Registrations:    'Cadastros',
-  Settings:         'Configurações',
+  DeviceRepairs:        'Consertos',
+  AssistenteSonatta:    'Assistente IA',
+  Reports:              'Relatórios',
+  Registrations:        'Cadastros',
+  Settings:             'Configurações',
 };
 
 // Defaults caso não haja registros salvos
@@ -55,6 +56,7 @@ const DEFAULT_PERMISSIONS = [
   { module: 'Consertos',      action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Consertos',      action: 'Criar/Editar consertos',   admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
   { module: 'Consertos',      action: 'Excluir consertos',        admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Assistente IA',  action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Relatórios',     action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Cadastros',      action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Configurações',  action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
