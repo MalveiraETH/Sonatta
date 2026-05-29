@@ -368,11 +368,10 @@ export default function AssistenteSonatta() {
         });
         setSettingsId(created.id);
       }
-      toast.success(value ? 'Alerta ativado' : 'Alerta desativado');
+      // toast silencioso para toggles individuais — só mostra erro
     } catch (e) {
-      // Reverte em caso de erro
-      setConfig(config);
-      toast.error('Erro ao salvar configuração');
+      setConfig(config); // reverte
+      toast.error(`Erro ao salvar: ${e?.message || 'Tente novamente'}`);
     } finally {
       setSaving(false);
     }
@@ -396,8 +395,8 @@ export default function AssistenteSonatta() {
       }
       toast.success(enable ? 'Todos os alertas ativados' : 'Todos os alertas desativados');
     } catch (e) {
-      loadConfig();
-      toast.error('Erro ao salvar configuração');
+      toast.error(`Erro ao salvar: ${e?.message || 'Tente novamente'}`);
+      loadConfig(); // recarrega estado real do banco
     } finally {
       setSaving(false);
     }
