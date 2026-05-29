@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Bot, MessageCircle, Shield, Bell, BellOff,
   Clock, Zap, Users, Package, Wrench, CreditCard,
-  FileText, CalendarClock, CheckCircle2, Loader2
+  FileText, CalendarClock, CheckCircle2, Loader2, Pencil, Save, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -156,6 +157,134 @@ function AlertGroup({ group, config, onToggle, saving }) {
   );
 }
 
+const ALL_OPS = ['read', 'create', 'update', 'delete'];
+const OP_LABELS = { read: 'Ler', create: 'Criar', update: 'Editar', delete: 'Excluir' };
+
+// ── Editor de Permissões ──────────────────────────────────────────────────────
+function PermissionsEditor() {
+  const [permissions, setPermissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState([]);
+
+  useEffect(() => { loadPermissions(); }, []);
+
+  const loadPermissions = async () => {
+    setLoading(true);
+    const res = await base44.functions.invoke('getAgentPermissions', {});
+    setPermissions(res.data.tool_configs || []);
+    setLoading(false);
+  };
+
+  const startEdit = () => {
+    setDraft(permissions.map(p => ({ ...p, allowed_operations: [...p.allowed_operations] })));
+    setEditing(true);
+  };
+
+  const cancelEdit = () => { setEditing(false); setDraft([]); };
+
+  const toggleOp = (entityName, op) => {
+    setDraft(prev => prev.map(p => {
+      if (p.entity_name !== entityName) return p;
+      const ops = p.allowed_operations.includes(op)
+        ? p.allowed_operations.filter(o => o !== op)
+        : [...p.allowed_operations, op];
+      return { ...p, allowed_operations: ops };
+    }));
+  };
+
+  const savePermissions = async () => {
+    setSaving(true);
+    const tool_configs = draft.map(p => ({
+      entity_name: p.entity_name,
+      allowed_operations: p.allowed_operations,
+    }));
+    await base44.functions.invoke('saveAgentPermissions', { tool_configs });
+    setPermissions(draft);
+    setEditing(false);
+    setSaving(false);
+    toast.success('Permissões salvas com sucesso');
+  };
+
+  const displayList = editing ? draft : permissions;
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3 bg-slate-50 rounded-t-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800">
+              <Shield className="h-4 w-4 text-[#6B3FA0]" />
+              Permissões de Acesso
+            </CardTitle>
+            <CardDescription className="text-xs">Operações que o agente pode realizar em cada entidade</CardDescription>
+          </div>
+          {!editing ? (
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={startEdit}>
+              <Pencil className="h-3 w-3" /> Editar
+            </Button>
+          ) : (
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-slate-500" onClick={cancelEdit} disabled={saving}>
+                <X className="h-3 w-3" /> Cancelar
+              </Button>
+              <Button size="sm" className="h-7 text-xs gap-1 bg-[#6B3FA0] hover:bg-[#5a3488]" onClick={savePermissions} disabled={saving}>
+                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Salvar
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-3 px-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-8 gap-2 text-slate-400">
+            <Loader2 className="h-4 w-4 animate-spin" /> <span className="text-xs">Carregando...</span>
+          </div>
+        ) : (
+          <div className="space-y-0">
+            {editing && (
+              <div className="flex items-center justify-end gap-3 pb-2 mb-1 border-b border-slate-100">
+                {ALL_OPS.map(op => (
+                  <span key={op} className="text-xs font-medium text-slate-500 w-10 text-center">{OP_LABELS[op]}</span>
+                ))}
+              </div>
+            )}
+            {displayList.map(p => (
+              <div key={p.entity_name} className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0 gap-2">
+                <span className="text-xs font-medium text-slate-700 flex-1">{p.label || p.entity_name}</span>
+                {editing ? (
+                  <div className="flex items-center gap-3">
+                    {ALL_OPS.map(op => (
+                      <div key={op} className="w-10 flex justify-center">
+                        <Checkbox
+                          checked={p.allowed_operations.includes(op)}
+                          onCheckedChange={() => toggleOp(p.entity_name, op)}
+                          className="data-[state=checked]:bg-[#6B3FA0] data-[state=checked]:border-[#6B3FA0]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex gap-1 flex-wrap justify-end">
+                    {p.allowed_operations.length === 0 ? (
+                      <Badge variant="outline" className="text-xs px-1.5 py-0 text-slate-400">Nenhuma</Badge>
+                    ) : p.allowed_operations.map(op => (
+                      <Badge key={op} variant="outline" className="text-xs px-1.5 py-0 text-[#6B3FA0] border-[#6B3FA0]/30 bg-[#6B3FA0]/5">
+                        {OP_LABELS[op]}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Página Principal ──────────────────────────────────────────────────────────
 export default function AssistenteSonatta() {
   const [config, setConfig] = useState({});
@@ -240,20 +369,6 @@ export default function AssistenteSonatta() {
       setSaving(false);
     }
   };
-
-  const permissions = [
-    { entity: 'Clientes', ops: 'Ler, Editar' },
-    { entity: 'Agendamentos', ops: 'Ler, Criar, Editar' },
-    { entity: 'Testes', ops: 'Ler, Editar' },
-    { entity: 'Produtos / Estoque', ops: 'Ler' },
-    { entity: 'Orçamentos', ops: 'Ler, Editar' },
-    { entity: 'Vendas', ops: 'Ler' },
-    { entity: 'Contratos', ops: 'Ler' },
-    { entity: 'Parcelas', ops: 'Ler, Editar' },
-    { entity: 'Histórico de Serviços', ops: 'Ler, Criar' },
-    { entity: 'Profissionais', ops: 'Ler' },
-    { entity: 'Despesas', ops: 'Ler' },
-  ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -378,27 +493,7 @@ export default function AssistenteSonatta() {
         </Card>
 
         {/* Permissões */}
-        <Card className="border-slate-200">
-          <CardHeader className="pb-3 bg-slate-50 rounded-t-lg">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800">
-              <Shield className="h-4 w-4 text-[#6B3FA0]" />
-              Permissões de Acesso
-            </CardTitle>
-            <CardDescription className="text-xs">Entidades que o agente pode consultar</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-3 px-4">
-            <div className="space-y-0 max-h-56 overflow-y-auto">
-              {permissions.map(p => (
-                <div key={p.entity} className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
-                  <span className="text-xs font-medium text-slate-700">{p.entity}</span>
-                  <Badge variant="outline" className="text-xs px-1.5 py-0 text-[#6B3FA0] border-[#6B3FA0]/30 bg-[#6B3FA0]/5">
-                    {p.ops}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <PermissionsEditor />
       </div>
     </div>
   );
