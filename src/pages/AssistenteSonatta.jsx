@@ -85,16 +85,17 @@ function AlertRow({ alert, enabled, onToggle, saving }) {
 
   const handleTest = async (e) => {
     e.stopPropagation();
+    e.preventDefault();
     setTesting(true);
     try {
       const res = await base44.functions.invoke('testarAlerta', { alert_key: alert.key });
       if (res.data?.ok) {
         toast.success(`Teste enviado: ${alert.label}`, { description: 'Verifique o WhatsApp do assistente.' });
       } else {
-        toast.error('Erro ao enviar teste');
+        toast.error(`Erro: ${res.data?.error || 'Falha ao enviar teste'}`);
       }
-    } catch {
-      toast.error('Erro ao enviar teste');
+    } catch (err) {
+      toast.error(`Erro ao enviar teste: ${err?.response?.data?.error || err?.message || 'Erro desconhecido'}`);
     } finally {
       setTesting(false);
     }
