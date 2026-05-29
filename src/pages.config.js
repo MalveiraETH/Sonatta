@@ -66,6 +66,7 @@ import Sales from './pages/Sales';
 import Settings from './pages/Settings';
 import Tests from './pages/Tests';
 import DeviceRepairs from './pages/DeviceRepairs';
+import AssistenteSonatta from './pages/AssistenteSonatta';
 import __Layout from './Layout.jsx';
 
 
@@ -89,6 +90,7 @@ export const PAGES = {
     "Settings": Settings,
     "Tests": Tests,
     "DeviceRepairs": DeviceRepairs,
+    "AssistenteSonatta": AssistenteSonatta,
 }
 
 export const pagesConfig = {
