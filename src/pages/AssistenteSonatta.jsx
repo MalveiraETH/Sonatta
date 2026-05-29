@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Bot, MessageCircle, Shield, Bell, BellOff,
   Clock, Zap, Users, Package, Wrench, CreditCard,
-  FileText, CalendarClock, CheckCircle2, Loader2, Pencil, Save, X, FlaskConical
+  FileText, CalendarClock, CheckCircle2, Loader2, Pencil, Save, X, FlaskConical, Database
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -318,6 +318,64 @@ function PermissionsEditor() {
   );
 }
 
+// ── Card de Migração de Categorias ───────────────────────────────────────────
+function MigrarCategoriasCard() {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleMigrar = async () => {
+    setRunning(true);
+    setResult(null);
+    try {
+      const res = await base44.functions.invoke('migrarCategoriasVendas', {});
+      setResult(res.data);
+      if (res.data?.success) {
+        toast.success(`Migração concluída! ${res.data.atualizadas} vendas atualizadas.`);
+      } else {
+        toast.error('Erro na migração. Verifique os detalhes.');
+      }
+    } catch (err) {
+      toast.error(`Erro: ${err?.message || 'Tente novamente'}`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <Card className="border-amber-100">
+      <CardHeader className="pb-3 bg-amber-50 rounded-t-lg">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800">
+          <Database className="h-4 w-4 text-amber-600" />
+          Migração de Dados — Categorias de Vendas Antigas
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Atualiza vendas anteriores adicionando a categoria de cada produto, permitindo que o agente filtre corretamente por tipo de produto.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-3">
+        {result && (
+          <div className="text-xs bg-slate-50 rounded-lg p-3 space-y-1 border border-slate-200">
+            <p className="font-semibold text-slate-700">Resultado da migração:</p>
+            <p>📦 Total de vendas: <span className="font-medium">{result.total_vendas}</span></p>
+            <p>✅ Atualizadas: <span className="font-medium text-green-700">{result.atualizadas}</span></p>
+            <p>⏭️ Já corretas: <span className="font-medium text-slate-500">{result.ja_corretas}</span></p>
+            {result.erros > 0 && <p>❌ Erros: <span className="font-medium text-red-600">{result.erros}</span></p>}
+          </div>
+        )}
+        <Button
+          className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+          onClick={handleMigrar}
+          disabled={running}
+        >
+          {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Database className="h-4 w-4 mr-2" />}
+          {running ? 'Migrando...' : 'Migrar Categorias das Vendas Antigas'}
+        </Button>
+        <p className="text-xs text-slate-400 text-center">Esta operação é segura e pode ser executada mais de uma vez.</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Página Principal ──────────────────────────────────────────────────────────
 export default function AssistenteSonatta() {
   const [config, setConfig] = useState({});
@@ -500,6 +558,11 @@ export default function AssistenteSonatta() {
           </div>
         )}
       </div>
+
+      <Separator />
+
+      {/* Migração de Dados */}
+      <MigrarCategoriasCard />
 
       <Separator />
 
