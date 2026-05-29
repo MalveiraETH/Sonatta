@@ -234,7 +234,12 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
         <div className="p-4 lg:p-8">
-          {canAccessPage(currentPageName) ? children : (
+          {!user ? (
+            // Aguarda o user carregar antes de verificar permissões (evita flash de "acesso negado" para admin)
+            <div className="flex items-center justify-center h-64">
+              <div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" />
+            </div>
+          ) : canAccessPage(currentPageName) ? children : (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-400">
               <Shield className="h-10 w-10 text-slate-300" />
               <p className="text-base font-medium">Acesso não autorizado</p>

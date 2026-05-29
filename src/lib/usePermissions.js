@@ -106,9 +106,8 @@ export function usePermissions(user) {
 
   const can = useCallback((module, action) => {
     if (!user) return false;
-    if (user.role === 'admin') return true;
-    // Enquanto carrega, negar acesso para evitar flash de conteúdo não autorizado
-    if (loading) return false;
+    if (user.role === 'admin') return true; // admin sempre tem acesso total, independente de loading
+    if (loading) return false; // outros roles aguardam o carregamento
     const p = perms.find(p => p.module === module && p.action === action);
     if (!p) return false;
     return !!p[user.role];
@@ -116,11 +115,10 @@ export function usePermissions(user) {
 
   const canAccessPage = useCallback((pageName) => {
     if (!user) return false;
-    if (user.role === 'admin') return true;
-    // Enquanto carrega, negar acesso para evitar flash de conteúdo não autorizado
-    if (loading) return false;
+    if (user.role === 'admin') return true; // admin sempre tem acesso total, independente de loading
+    if (loading) return false; // outros roles aguardam o carregamento
     const module = PAGE_PERMISSION_MAP[pageName];
-    if (!module) return true; // página sem restrição
+    if (!module) return true; // página sem restrição mapeada
     return can(module, 'Ver página');
   }, [can, user, loading]);
 
