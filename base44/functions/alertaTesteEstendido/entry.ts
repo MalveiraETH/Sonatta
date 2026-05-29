@@ -5,9 +5,12 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { data, event } = await req.json();
 
-    const testId = event?.entity_id || data?.id;
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'alertas_config' });
+    const cfg = settings[0]?.setting_value || {};
+    if (cfg['teste_estendido'] === false) return Response.json({ ok: true, skipped: true });
+
     const clientName = data?.client_name || 'Cliente';
-    const testNumber = data?.test_number || testId;
+    const testNumber = data?.test_number || event?.entity_id;
     const newEndDate = data?.end_date ? new Date(data.end_date).toLocaleDateString('pt-BR') : '—';
 
     const msg = `🔄 *TESTE ESTENDIDO*\n\nO teste *${testNumber}* do cliente *${clientName}* foi *estendido*.\n\n📅 Nova data de término: ${newEndDate}\n\nAcompanhe o andamento do teste.`;
@@ -16,11 +19,7 @@ Deno.serve(async (req) => {
       agent_name: 'assistente_sonatta',
       metadata: { name: `Alerta: Teste Estendido — ${clientName}` }
     });
-
-    await base44.asServiceRole.agents.addMessage(conv, {
-      role: 'user',
-      content: msg
-    });
+    await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });
 
     return Response.json({ ok: true });
   } catch (error) {

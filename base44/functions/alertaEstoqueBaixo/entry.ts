@@ -5,6 +5,10 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { data, event } = await req.json();
 
+    const settings = await base44.asServiceRole.entities.AppSettings.filter({ setting_key: 'alertas_config' });
+    const cfg = settings[0]?.setting_value || {};
+    if (cfg['estoque_baixo'] === false) return Response.json({ ok: true, skipped: true });
+
     const productName = data?.name || 'Produto';
     const quantity = data?.quantity ?? 0;
     const minStock = data?.min_stock ?? 5;
@@ -16,11 +20,7 @@ Deno.serve(async (req) => {
       agent_name: 'assistente_sonatta',
       metadata: { name: `Alerta: Estoque Baixo — ${productName}` }
     });
-
-    await base44.asServiceRole.agents.addMessage(conv, {
-      role: 'user',
-      content: msg
-    });
+    await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });
 
     return Response.json({ ok: true });
   } catch (error) {
