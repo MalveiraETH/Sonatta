@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Bot, MessageCircle, Shield, Bell, BellOff,
   Clock, Zap, Users, Package, Wrench, CreditCard,
-  FileText, CalendarClock, CheckCircle2, Loader2, Pencil, Save, X
+  FileText, CalendarClock, CheckCircle2, Loader2, Pencil, Save, X, FlaskConical
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -81,6 +81,25 @@ const ALL_KEYS = ALERT_GROUPS.flatMap(g => g.alerts.map(a => a.key));
 
 // ── Componente de Toggle de Alerta ────────────────────────────────────────────
 function AlertRow({ alert, enabled, onToggle, saving }) {
+  const [testing, setTesting] = useState(false);
+
+  const handleTest = async (e) => {
+    e.stopPropagation();
+    setTesting(true);
+    try {
+      const res = await base44.functions.invoke('testarAlerta', { alert_key: alert.key });
+      if (res.data?.ok) {
+        toast.success(`Teste enviado: ${alert.label}`, { description: 'Verifique o WhatsApp do assistente.' });
+      } else {
+        toast.error('Erro ao enviar teste');
+      }
+    } catch {
+      toast.error('Erro ao enviar teste');
+    } finally {
+      setTesting(false);
+    }
+  };
+
   return (
     <div className="flex items-start justify-between gap-4 py-3">
       <div className="flex-1 min-w-0">
@@ -96,12 +115,25 @@ function AlertRow({ alert, enabled, onToggle, saving }) {
         </div>
         <p className="text-xs text-slate-500 mt-0.5">{alert.desc}</p>
       </div>
-      <Switch
-        checked={enabled}
-        onCheckedChange={onToggle}
-        disabled={saving}
-        className="flex-shrink-0 mt-0.5 data-[state=checked]:bg-[#6B3FA0]"
-      />
+      <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs text-slate-400 hover:text-[#6B3FA0] hover:bg-[#6B3FA0]/10 gap-1"
+          onClick={handleTest}
+          disabled={testing || saving}
+          title="Enviar mensagem de teste"
+        >
+          {testing ? <Loader2 className="h-3 w-3 animate-spin" /> : <FlaskConical className="h-3 w-3" />}
+          <span className="hidden sm:inline">Testar</span>
+        </Button>
+        <Switch
+          checked={enabled}
+          onCheckedChange={onToggle}
+          disabled={saving}
+          className="data-[state=checked]:bg-[#6B3FA0]"
+        />
+      </div>
     </div>
   );
 }
