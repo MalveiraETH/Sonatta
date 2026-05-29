@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const ADMIN_EMAIL = 'malveira.fabio@gmail.com';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -21,6 +23,9 @@ Deno.serve(async (req) => {
       porCliente[inst.client_id].parcelas.push(inst);
     }
 
+    const adminUsers = await base44.asServiceRole.entities.User.filter({ email: ADMIN_EMAIL });
+    const adminUserId = adminUsers[0]?.id;
+
     for (const [clientId, info] of Object.entries(porCliente)) {
       const totalAtrasado = info.parcelas.reduce((acc, p) => acc + (p.gross_amount || p.original_amount || 0), 0);
       const metodoPagamento = info.parcelas[0]?.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão de Crédito';
@@ -33,6 +38,7 @@ Deno.serve(async (req) => {
 
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: 'assistente_sonatta',
+        app_user_id: adminUserId,
         metadata: { name: `Alerta: Parcela Atrasada — ${info.client_name}` }
       });
       await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });

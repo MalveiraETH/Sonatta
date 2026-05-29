@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const ADMIN_EMAIL = 'malveira.fabio@gmail.com';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -31,11 +33,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    const adminUsers = await base44.asServiceRole.entities.User.filter({ email: ADMIN_EMAIL });
+    const adminUserId = adminUsers[0]?.id;
+
     for (const { quote, dias } of alertas) {
       const valor = quote.total ? `R$ ${Number(quote.total).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}` : '—';
       const msg = `💰 *ORÇAMENTO SEM VENDA — ${dias} DIAS*\n\nO orçamento *${quote.quote_number || quote.id}* do cliente *${quote.client_name}* foi gerado há *${dias} dias* e ainda *não resultou em venda*.\n\n💵 Valor: ${valor}\n📅 Gerado em: ${new Date(quote.created_date).toLocaleDateString('pt-BR')}\n\nEntre em contato com o cliente para dar continuidade ao processo.`;
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: 'assistente_sonatta',
+        app_user_id: adminUserId,
         metadata: { name: `Alerta: Orçamento ${dias}d sem venda — ${quote.client_name}` }
       });
       await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });

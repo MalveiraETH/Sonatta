@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const ADMIN_EMAIL = 'malveira.fabio@gmail.com';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -30,10 +32,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    const adminUsers = await base44.asServiceRole.entities.User.filter({ email: ADMIN_EMAIL });
+    const adminUserId = adminUsers[0]?.id;
+
     for (const { lead, dias } of alertas) {
       const msg = `🕐 *LEAD SEM MOVIMENTAÇÃO — ${dias} DIAS*\n\nO cliente *${lead.full_name}* está como *Lead* há *${dias} dias* sem nenhum agendamento, teste ou orçamento registrado.\n\n📞 Telefone: ${lead.phone || '—'}\n📅 Cadastrado em: ${new Date(lead.created_date).toLocaleDateString('pt-BR')}\n\nEntre em contato e avance o funil de vendas.`;
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: 'assistente_sonatta',
+        app_user_id: adminUserId,
         metadata: { name: `Alerta: Lead ${dias}d sem movimentação — ${lead.full_name}` }
       });
       await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });

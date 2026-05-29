@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const ADMIN_EMAIL = 'malveira.fabio@gmail.com';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -34,10 +36,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    const adminUsers = await base44.asServiceRole.entities.User.filter({ email: ADMIN_EMAIL });
+    const adminUserId = adminUsers[0]?.id;
+
     for (const { sale, item, warrantyEnd, diffDays, warrantyYears } of alertas) {
       const msg = `🛡️ *GARANTIA VENCENDO EM ${diffDays} DIAS*\n\nA garantia do aparelho do cliente *${sale.client_name}* vence em *${diffDays} dias*.\n\n📱 Aparelho: ${item.product_name || '—'}\n🔢 Série: ${item.serial_number}\n📅 Data da venda: ${new Date(sale.sale_date).toLocaleDateString('pt-BR')}\n⏳ Garantia: ${warrantyYears} anos\n🗓️ Vencimento: ${warrantyEnd.toLocaleDateString('pt-BR')}\n📞 Telefone: ${sale.client_phone || '—'}\n\nEntre em contato com o cliente para informar sobre o vencimento da garantia.`;
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: 'assistente_sonatta',
+        app_user_id: adminUserId,
         metadata: { name: `Alerta: Garantia ${diffDays}d — ${sale.client_name}` }
       });
       await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });

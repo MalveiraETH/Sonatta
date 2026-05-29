@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const ADMIN_EMAIL = 'malveira.fabio@gmail.com';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -26,11 +28,15 @@ Deno.serve(async (req) => {
       if (!hasSale) alertas.push({ test, dias: diffDays });
     }
 
+    const adminUsers = await base44.asServiceRole.entities.User.filter({ email: ADMIN_EMAIL });
+    const adminUserId = adminUsers[0]?.id;
+
     for (const { test, dias } of alertas) {
       const aparelhos = (test.devices || []).map(d => `• ${d.product_name || '—'} (S/N: ${d.serial_number || '—'})`).join('\n');
       const msg = `📦 *APARELHO EM TESTE HÁ ${dias} DIAS SEM VENDA*\n\nO cliente *${test.client_name}* está com aparelhos em teste há *${dias} dias* e nenhuma venda foi registrada.\n\n🎧 Aparelhos:\n${aparelhos}\n\n📅 Início do teste: ${new Date(test.start_date).toLocaleDateString('pt-BR')}\n\nVerifique a intenção de compra do cliente e registre o próximo passo.`;
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: 'assistente_sonatta',
+        app_user_id: adminUserId,
         metadata: { name: `Alerta: Aparelho em Teste ${dias}d — ${test.client_name}` }
       });
       await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });

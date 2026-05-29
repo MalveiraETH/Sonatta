@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const ADMIN_EMAIL = 'malveira.fabio@gmail.com';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -23,10 +25,14 @@ Deno.serve(async (req) => {
 
     const statusLabels = { aberto: 'Aberto', enviado_ao_fornecedor: 'Enviado ao Fornecedor', em_reparo: 'Em Reparo', reparado: 'Reparado' };
 
+    const adminUsers = await base44.asServiceRole.entities.User.filter({ email: ADMIN_EMAIL });
+    const adminUserId = adminUsers[0]?.id;
+
     for (const { repair, dias } of alertas) {
       const msg = `🔧 *CONSERTO PARADO — ${dias} DIAS SEM ATUALIZAÇÃO*\n\nA OS *${repair.service_order_number || repair.id}* do cliente *${repair.client_name}* está parada há *${dias} dias*.\n\n📱 Aparelho: ${repair.device_name}\n🔢 Série: ${repair.serial_number}\n🏭 Fornecedor: ${repair.supplier_name || '—'}\n📊 Status atual: ${statusLabels[repair.status] || repair.status}\n📅 Última atualização: ${new Date(repair.updated_date).toLocaleDateString('pt-BR')}\n\nVerifique o andamento do reparo e atualize o status.`;
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: 'assistente_sonatta',
+        app_user_id: adminUserId,
         metadata: { name: `Alerta: Conserto Parado ${dias}d — ${repair.client_name}` }
       });
       await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });

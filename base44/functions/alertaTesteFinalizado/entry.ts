@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const ADMIN_EMAIL = 'malveira.fabio@gmail.com';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -25,10 +27,14 @@ Deno.serve(async (req) => {
       if (!hasQuote) alertas.push(test);
     }
 
+    const adminUsers = await base44.asServiceRole.entities.User.filter({ email: ADMIN_EMAIL });
+    const adminUserId = adminUsers[0]?.id;
+
     for (const test of alertas) {
       const msg = `📋 *ORÇAMENTO PENDENTE APÓS TESTE*\n\nO teste *${test.test_number || test.id}* do cliente *${test.client_name}* foi finalizado há 2 dias, mas *nenhum orçamento foi registrado*.\n\n📅 Finalizado em: ${new Date(test.end_date).toLocaleDateString('pt-BR')}\n\nContate o cliente e registre o orçamento o quanto antes.`;
       const conv = await base44.asServiceRole.agents.createConversation({
         agent_name: 'assistente_sonatta',
+        app_user_id: adminUserId,
         metadata: { name: `Alerta: Orçamento Pendente — ${test.client_name}` }
       });
       await base44.asServiceRole.agents.addMessage(conv, { role: 'user', content: msg });
