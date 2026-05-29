@@ -285,6 +285,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         }
         
         newItems[index].product_name = product.name;
+        newItems[index].product_category = product.category || '';
         newItems[index].brand = product.brand || '';
         newItems[index].model = product.model || '';
         newItems[index].unit_price = product.sale_price;
