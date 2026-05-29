@@ -76,22 +76,38 @@ export default function UsersManagement() {
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
-    await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
-    toast.success(`Convite enviado para ${inviteEmail}`);
-    setInviteEmail('');
-    setInviteRole('user');
-    setInviteOpen(false);
-    setInviting(false);
-    loadData();
+    try {
+      await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
+      // Notifica o admin por e-mail sobre o novo usuário convidado
+      await base44.integrations.Core.SendEmail({
+        to: currentUser.email,
+        subject: 'Novo usuário convidado - Sonatta',
+        body: `Olá ${currentUser.full_name},\n\nVocê convidou um novo usuário para o sistema Sonatta:\n\nE-mail: ${inviteEmail.trim()}\nPapel: ${roleLabels[inviteRole] || inviteRole}\n\nO usuário receberá um e-mail com as instruções de acesso.\n\nSonatta - Soluções Auditivas`,
+      });
+      toast.success(`Convite enviado para ${inviteEmail}`);
+      setInviteEmail('');
+      setInviteRole('user');
+      setInviteOpen(false);
+      loadData();
+    } catch (e) {
+      toast.error(`Erro ao enviar convite: ${e?.message || 'Tente novamente'}`);
+    } finally {
+      setInviting(false);
+    }
   };
 
   const handleSaveRole = async () => {
     setSaving(true);
-    await base44.entities.User.update(editUser.id, { role: editRole });
-    toast.success('Papel atualizado com sucesso');
-    setEditUser(null);
-    setSaving(false);
-    loadData();
+    try {
+      await base44.entities.User.update(editUser.id, { role: editRole });
+      toast.success('Papel atualizado com sucesso');
+      setEditUser(null);
+      loadData();
+    } catch (e) {
+      toast.error(`Erro ao atualizar papel: ${e?.message || 'Tente novamente'}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
