@@ -1,0 +1,73 @@
+{
+  "name": "ServiceHistory",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nome do cliente"
+    },
+    "professional_id": {
+      "type": "string",
+      "description": "ID do profissional"
+    },
+    "professional_name": {
+      "type": "string",
+      "description": "Nome do profissional"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "avaliacao",
+        "teste",
+        "ajuste",
+        "manutencao",
+        "retorno",
+        "venda"
+      ],
+      "description": "Tipo de atendimento"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do atendimento"
+    },
+    "products_tested": {
+      "type": "array",
+      "description": "Produtos testados/utilizados",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_name": {
+            "type": "string"
+          },
+          "serial_number": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "observations": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es cl\u00ednicas"
+    },
+    "next_steps": {
+      "type": "string",
+      "description": "Pr\u00f3ximos passos"
+    }
+  },
+  "required": [
+    "client_id",
+    "type",
+    "description"
+  ],
+  "rls": {
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

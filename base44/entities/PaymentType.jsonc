@@ -1,0 +1,87 @@
+{
+  "name": "PaymentType",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "dinheiro",
+        "pix",
+        "pix_parcelado",
+        "cartao_debito",
+        "cartao_credito"
+      ],
+      "description": "Tipo de pagamento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "inativo"
+      ],
+      "default": "ativo",
+      "description": "Status"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    },
+    "pix_parcelado_rate": {
+      "type": "number",
+      "description": "Taxa (%) para PIX Parcelado"
+    },
+    "pix_parcelado_max_installments": {
+      "type": "number",
+      "description": "M\u00e1ximo de parcelas para PIX Parcelado"
+    },
+    "card_brands": {
+      "type": "array",
+      "description": "Bandeiras (para d\u00e9bito e cr\u00e9dito)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "number"
+          },
+          "installment_rates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "installments": {
+                  "type": "number"
+                },
+                "rate": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "rls": {
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "name": "ExpenseCategory",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da categoria"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "despesa",
+        "receita"
+      ],
+      "default": "despesa",
+      "description": "Tipo de categoria"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da categoria"
+    }
+  },
+  "required": [
+    "name",
+    "type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

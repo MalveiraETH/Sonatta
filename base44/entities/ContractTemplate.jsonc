@@ -1,0 +1,70 @@
+{
+  "name": "ContractTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do template (ex: PIX Parcelado)"
+    },
+    "template_text": {
+      "type": "string",
+      "description": "Texto do template com vari\u00e1veis"
+    },
+    "header_info": {
+      "type": "object",
+      "description": "Informa\u00e7\u00f5es do cabe\u00e7alho",
+      "properties": {
+        "company_name": {
+          "type": "string",
+          "default": "Sonatta - Aparelhos Auditivos Manaus"
+        },
+        "cnpj": {
+          "type": "string",
+          "default": "33.457.952/0001-98"
+        },
+        "address": {
+          "type": "string",
+          "default": "Edif\u00edcio Corporate Trade Center, Rod. \u00c1lvaro Maia, 2357 \u2013 10\u00ba Andar, Sala 1007, Adrian\u00f3polis, Manaus \u2013 AM, 69057-035"
+        }
+      }
+    },
+    "footer_info": {
+      "type": "object",
+      "description": "Informa\u00e7\u00f5es do rodap\u00e9",
+      "properties": {
+        "phone": {
+          "type": "string",
+          "default": "(92) 99169-2102"
+        },
+        "email": {
+          "type": "string",
+          "default": "contato@sonatta.com.br"
+        },
+        "website": {
+          "type": "string",
+          "default": "www.sonatta.com.br"
+        },
+        "instagram": {
+          "type": "string",
+          "default": "@sonatta.manaus"
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o template est\u00e1 ativo"
+    }
+  },
+  "required": [
+    "name",
+    "template_text"
+  ],
+  "rls": {
+    "delete": {
+      "user_condition": {
+        "role": "user"
+      }
+    }
+  }
+}

@@ -33,7 +33,8 @@
         "oliva",
         "outros",
         "receptor",
-        "tubo_molde"
+        "tubo_molde",
+        "sem_categoria"
       ],
       "description": "Categoria do produto"
     },
