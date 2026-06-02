@@ -21,6 +21,7 @@ export default function Billing() {
     markup_category_50: 0,
     markup_category_30: 0,
     markup_category_10: 0,
+    markup_category_5: 0,
     credit_card_fee: 0,
     tax_percentage: 0,
     referral_percentage: 10
@@ -195,8 +196,8 @@ export default function Billing() {
             <p className="text-sm text-slate-500 mt-1">Defina o markup padrão aplicado sobre o custo em cada categoria</p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-4">
-              {['90', '70', '50', '30', '10'].map((cat) => (
+            <div className="grid grid-cols-6 gap-4">
+              {['90', '70', '50', '30', '10', '5'].map((cat) => (
                 <div key={cat} className="space-y-2">
                   <Label htmlFor={`markup_${cat}`} className="text-sm font-semibold text-slate-700">
                     Categoria {cat}
@@ -350,6 +351,7 @@ export default function Billing() {
                     <SelectItem value="50">Categoria 50</SelectItem>
                     <SelectItem value="30">Categoria 30</SelectItem>
                     <SelectItem value="10">Categoria 10</SelectItem>
+                    <SelectItem value="5">Categoria 5</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -412,7 +414,7 @@ export default function Billing() {
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
               <div className="space-y-3">
-                {['90', '70', '50', '30', '10'].map((cat) => (
+                {['90', '70', '50', '30', '10', '5'].map((cat) => (
                   <Card key={cat} className="border border-slate-200">
                     <CardContent className="p-3">
                       <Label className="text-sm font-medium mb-2 block">Categoria {cat}</Label>
@@ -536,6 +538,7 @@ export default function Billing() {
                       <SelectItem value="50">Categoria 50</SelectItem>
                       <SelectItem value="30">Categoria 30</SelectItem>
                       <SelectItem value="10">Categoria 10</SelectItem>
+                      <SelectItem value="5">Categoria 5</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

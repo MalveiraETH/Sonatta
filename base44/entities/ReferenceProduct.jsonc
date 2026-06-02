@@ -1,0 +1,64 @@
+{
+  "name": "ReferenceProduct",
+  "type": "object",
+  "properties": {
+    "reference": {
+      "type": "string",
+      "description": "C\u00f3digo de refer\u00eancia do produto"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do aparelho"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "90",
+        "70",
+        "50",
+        "30",
+        "10",
+        "5"
+      ],
+      "description": "Categoria do aparelho"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Custo do aparelho"
+    },
+    "include_fixed_cost": {
+      "type": "boolean",
+      "default": true,
+      "description": "Incluir custo fixo mensal no c\u00e1lculo"
+    }
+  },
+  "required": [
+    "reference",
+    "name",
+    "category",
+    "cost"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": true,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

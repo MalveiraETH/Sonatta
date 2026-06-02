@@ -182,7 +182,8 @@ export default function ReferenceProducts() {
       '70': 'Categoria 70',
       '50': 'Categoria 50',
       '30': 'Categoria 30',
-      '10': 'Categoria 10'
+      '10': 'Categoria 10',
+      '5': 'Categoria 5'
     };
     return labels[category] || category;
   };
@@ -194,11 +195,12 @@ export default function ReferenceProducts() {
       '50': 'bg-emerald-100 text-emerald-800',
       '30': 'bg-amber-100 text-amber-800',
       '10': 'bg-slate-100 text-slate-700',
+      '5': 'bg-rose-100 text-rose-700',
     };
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
 
-  const CATEGORY_ORDER = { '90': 1, '70': 2, '50': 3, '30': 4, '10': 5 };
+  const CATEGORY_ORDER = { '90': 1, '70': 2, '50': 3, '30': 4, '10': 5, '5': 6 };
   const sortedProducts = [...products].sort((a, b) => {
     const catDiff = (CATEGORY_ORDER[a.category] || 99) - (CATEGORY_ORDER[b.category] || 99);
     if (catDiff !== 0) return catDiff;
@@ -319,6 +321,7 @@ export default function ReferenceProducts() {
                           <SelectItem value="50">Categoria 50</SelectItem>
                           <SelectItem value="30">Categoria 30</SelectItem>
                           <SelectItem value="10">Categoria 10</SelectItem>
+                          <SelectItem value="5">Categoria 5</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

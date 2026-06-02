@@ -26,6 +26,7 @@ const MARKUP_CATEGORIES = [
   { value: '50', label: 'Categoria 50' },
   { value: '30', label: 'Categoria 30' },
   { value: '10', label: 'Categoria 10' },
+  { value: '5', label: 'Categoria 5' },
 ];
 
 const emptyForm = () => ({

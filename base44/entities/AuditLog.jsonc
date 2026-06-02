@@ -1,0 +1,54 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "entity_type": {
+      "type": "string",
+      "description": "Tipo de entidade (Cliente, Venda, etc.)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID do registro afetado"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "criacao",
+        "edicao",
+        "exclusao",
+        "whatsapp"
+      ],
+      "description": "A\u00e7\u00e3o realizada"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da a\u00e7\u00e3o"
+    },
+    "details": {
+      "type": "object",
+      "description": "Dados adicionais da a\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "entity_type",
+    "action",
+    "description"
+  ],
+  "rls": {
+    "update": {
+      "user_condition": {
+        "role": "user"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "user"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "user"
+      }
+    }
+  }
+}
