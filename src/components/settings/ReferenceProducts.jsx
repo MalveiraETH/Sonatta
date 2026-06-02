@@ -142,7 +142,7 @@ export default function ReferenceProducts() {
   };
 
   const calculateFinalPrice = (cost, category, includeFixedCost = true) => {
-    if (!billingConfig) return cost;
+    if (!billingConfig || category === 'sem_categoria') return cost;
 
     const totalCost = calculateTotalCost(cost, includeFixedCost);
     const markup = billingConfig[`markup_category_${category}`] || 0;
@@ -153,7 +153,7 @@ export default function ReferenceProducts() {
   };
 
   const calculateDiscounts = (cost, category, includeFixedCost = true) => {
-    if (!billingConfig) return 0;
+    if (!billingConfig || category === 'sem_categoria') return 0;
 
     const finalPrice = calculateFinalPrice(cost, category, includeFixedCost);
     const creditCardFee = billingConfig.credit_card_fee || 0;
@@ -166,7 +166,7 @@ export default function ReferenceProducts() {
   };
 
   const calculateNetRevenue = (cost, category, includeFixedCost = true) => {
-    if (!billingConfig) return 0;
+    if (!billingConfig || category === 'sem_categoria') return 0;
 
     const finalPrice = calculateFinalPrice(cost, category, includeFixedCost);
     const totalCost = calculateTotalCost(cost, includeFixedCost);
@@ -182,7 +182,8 @@ export default function ReferenceProducts() {
       '70': 'Categoria 70',
       '50': 'Categoria 50',
       '30': 'Categoria 30',
-      '10': 'Categoria 10'
+      '10': 'Categoria 10',
+      'sem_categoria': 'Sem Categoria'
     };
     return labels[category] || category;
   };
@@ -194,6 +195,7 @@ export default function ReferenceProducts() {
       '50': 'bg-emerald-100 text-emerald-800',
       '30': 'bg-amber-100 text-amber-800',
       '10': 'bg-slate-100 text-slate-700',
+      'sem_categoria': 'bg-gray-100 text-gray-500',
     };
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
@@ -319,6 +321,7 @@ export default function ReferenceProducts() {
                           <SelectItem value="50">Categoria 50</SelectItem>
                           <SelectItem value="30">Categoria 30</SelectItem>
                           <SelectItem value="10">Categoria 10</SelectItem>
+                          <SelectItem value="sem_categoria">Sem Categoria</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
