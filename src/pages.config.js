@@ -67,6 +67,7 @@ import Settings from './pages/Settings';
 import Tests from './pages/Tests';
 import DeviceRepairs from './pages/DeviceRepairs';
 import AssistenteSonatta from './pages/AssistenteSonatta';
+import MoldOrders from './pages/MoldOrders';
 import __Layout from './Layout.jsx';
 
 
@@ -91,6 +92,7 @@ export const PAGES = {
     "Tests": Tests,
     "DeviceRepairs": DeviceRepairs,
     "AssistenteSonatta": AssistenteSonatta,
+    "MoldOrders": MoldOrders,
 }
 
 export const pagesConfig = {

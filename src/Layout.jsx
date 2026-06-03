@@ -19,7 +19,8 @@ import {
   DollarSign,
   Shield,
   Wrench,
-  Bot
+  Bot,
+  Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +44,7 @@ const menuItems = [
   { name: 'Vendas', page: 'Sales', icon: ShoppingCart },
   { name: 'Contratos', page: 'Contracts', icon: FileSignature },
   { name: 'Consertos', page: 'DeviceRepairs', icon: Wrench },
+  { name: 'Moldes & Tampões', page: 'MoldOrders', icon: Layers },
   { name: 'Assistente IA', page: 'AssistenteSonatta', icon: Bot },
   { name: 'Financeiro', page: 'Financeiro', icon: DollarSign },
   { name: 'Cadastros', page: 'Registrations', icon: FileText },

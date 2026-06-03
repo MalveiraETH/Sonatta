@@ -13,6 +13,8 @@ import NewSaleForm from '@/components/sales/NewSaleForm';
 import InstallmentsControl from '@/components/clients/InstallmentsControl';
 import TestForm from '@/components/tests/TestForm';
 import ClientForm from '@/components/clients/ClientForm';
+import MoldOrderForm from '@/components/molds/MoldOrderForm';
+import MoldStatusBadge from '@/components/molds/MoldStatusBadge';
 import {
   Table,
   TableBody,
@@ -36,7 +38,8 @@ import {
   Trash2,
   BeakerIcon,
   Package,
-  Edit
+  Edit,
+  Layers
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -64,6 +67,8 @@ export default function ClientDetail() {
   const [history, setHistory] = useState([]);
   const [clientDevices, setClientDevices] = useState([]);
   const [tests, setTests] = useState([]);
+  const [moldOrders, setMoldOrders] = useState([]);
+  const [moldFormOpen, setMoldFormOpen] = useState(false);
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
   const [saleFormOpen, setSaleFormOpen] = useState(false);
@@ -87,13 +92,14 @@ export default function ClientDetail() {
     }
 
     try {
-      const [clientData, appointmentsData, quotesData, salesData, historyData, testsData, user] = await Promise.all([
+      const [clientData, appointmentsData, quotesData, salesData, historyData, testsData, moldOrdersData, user] = await Promise.all([
         base44.entities.Client.filter({ id: clientId }),
         base44.entities.Appointment.filter({ client_id: clientId }, '-date'),
         base44.entities.Quote.filter({ client_id: clientId }, '-created_date'),
         base44.entities.Sale.filter({ client_id: clientId }, '-created_date'),
         base44.entities.ServiceHistory.filter({ client_id: clientId }, '-created_date'),
         base44.entities.Test.filter({ client_id: clientId }, '-created_date'),
+        base44.entities.MoldOrder.filter({ client_id: clientId }, '-created_date'),
         base44.auth.me()
       ]);
 
@@ -103,6 +109,7 @@ export default function ClientDetail() {
       setSales(salesData);
       setHistory(historyData);
       setTests(testsData);
+      setMoldOrders(moldOrdersData);
       setCurrentUser(user);
 
       // Extrair aparelhos comprados pelo cliente
@@ -368,6 +375,7 @@ export default function ClientDetail() {
           <TabsTrigger value="quotes">Orçamentos</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="products">Produtos</TabsTrigger>
+          <TabsTrigger value="molds">Moldes & Tampões</TabsTrigger>
         </TabsList>
 
         <TabsContent value="devices">
@@ -714,6 +722,53 @@ export default function ClientDetail() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="molds">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5" />
+                Moldes & Tampões
+              </CardTitle>
+              <Button size="sm" onClick={() => setMoldFormOpen(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+                <Plus className="h-4 w-4 mr-1" />
+                Nova Ordem
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {moldOrders.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">Nenhuma ordem de molde registrada</p>
+              ) : (
+                <div className="space-y-3">
+                  {moldOrders.map(order => (
+                    <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center flex-shrink-0">
+                          <Layers className="h-5 w-5 text-[#6B3FA0]" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-sm">{order.order_number}</span>
+                            <span className="text-xs text-slate-500">
+                              {order.product_type === 'molde' ? 'Molde' : order.product_type === 'tampao_silicone' ? 'Tampão' : 'Molde + Tampão'}
+                              {' — '}
+                              {order.ear_side === 'bilateral' ? 'Bilateral' : order.ear_side === 'direito' ? 'Direita' : 'Esquerda'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {order.date_impression ? format(new Date(order.date_impression + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : ''}
+                            {order.supplier_name ? ` · ${order.supplier_name}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <MoldStatusBadge status={order.status} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
 
       <AppointmentForm
@@ -755,6 +810,13 @@ export default function ClientDetail() {
         open={editFormOpen}
         onOpenChange={setEditFormOpen}
         client={client}
+        onSuccess={loadData}
+      />
+
+      <MoldOrderForm
+        open={moldFormOpen}
+        onOpenChange={setMoldFormOpen}
+        preselectedClient={client}
         onSuccess={loadData}
       />
 
