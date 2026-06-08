@@ -255,6 +255,7 @@ export default function Reports() {
             'Parcelas': pd.installments > 1 ? pd.installments : '',
             'Status': status,
             'Data Pagamento': isPixAVista ? toExcelDate(s.sale_date || s.created_date) : (s.status === 'pago' ? toExcelDate(s.updated_date) : ''),
+            'Cód. Comprovante': pd.voucher_code || '',
             'NF': s.nota_fiscal || '',
             'Data': toExcelDate(s.sale_date || s.created_date)
           });
@@ -287,6 +288,7 @@ export default function Reports() {
           'Parcelas': s.installments > 1 ? s.installments : '',
           'Status': status,
           'Data Pagamento': isPixAVista ? toExcelDate(s.sale_date || s.created_date) : (s.status === 'pago' ? toExcelDate(s.updated_date) : ''),
+          'Cód. Comprovante': '',
           'NF': s.nota_fiscal || '',
           'Data': toExcelDate(s.sale_date || s.created_date)
         });
@@ -951,11 +953,12 @@ export default function Reports() {
                       <TableHead>Data Pagamento</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Método</TableHead>
+                      <TableHead>Cód. Comprovante</TableHead>
                       <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSales
+                      </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                      {filteredSales
                       .filter(() => true)
                       .map(sale => {
                         const client = clients.find(c => c.id === sale.client_id);
@@ -1003,18 +1006,26 @@ export default function Reports() {
                                 <span>{sale.payment_method} {sale.installments > 1 && `(${sale.installments}x)`}</span>
                               )}
                             </TableCell>
+                            <TableCell className="text-sm text-slate-600">
+                              {sale.payment_details
+                                ?.filter(pd => ['cartao_credito', 'cartao_debito'].includes(pd.method) && pd.voucher_code)
+                                .map((pd, idx) => (
+                                  <div key={idx}>{pd.voucher_code}</div>
+                                )) || '-'}
+                              {!sale.payment_details?.some(pd => ['cartao_credito', 'cartao_debito'].includes(pd.method) && pd.voucher_code) && '-'}
+                            </TableCell>
                             <TableCell><StatusBadge status={sale.status} /></TableCell>
-                          </TableRow>
-                        );
-                      })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                            </TableRow>
+                            );
+                            })}
+                            </TableBody>
+                            </Table>
+                            </div>
+                            </CardContent>
+                            </Card>
+                            </TabsContent>
 
-        {/* PERFORMANCE */}
+                            {/* PERFORMANCE */}
         <TabsContent value="performance" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard
