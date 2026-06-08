@@ -151,6 +151,10 @@
           "net_amount": {
             "type": "number",
             "default": 0
+          },
+          "voucher_code": {
+            "type": "string",
+            "description": "C\u00f3digo do comprovante de venda (cart\u00e3o)"
           }
         }
       }

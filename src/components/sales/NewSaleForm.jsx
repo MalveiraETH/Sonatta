@@ -383,6 +383,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       updated.card_brand = '';
       updated.fee_rate = 0;
       updated.installments = 1;
+      updated.voucher_code = '';
     }
     // Auto-calc fee for debit when brand changes
     if (field === 'card_brand' && updated.method === 'cartao_debito') {
@@ -969,6 +970,19 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           </div>
                         )}
                       </div>
+
+                      {/* Código do comprovante para cartão */}
+                      {(payment.method === 'cartao_credito' || payment.method === 'cartao_debito') && (
+                        <div>
+                          <Label className="text-xs">Código do Comprovante</Label>
+                          <Input
+                            placeholder="Digite o código do comprovante..."
+                            value={payment.voucher_code || ''}
+                            onChange={(e) => updatePayment(index, 'voucher_code', e.target.value)}
+                            className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
+                          />
+                        </div>
+                      )}
 
                       {/* Fee info for debit - taxa é descontada do valor recebido */}
                       {payment.method === 'cartao_debito' && payment.card_brand && payment.fee_rate > 0 && (
