@@ -271,95 +271,41 @@ export default function ClientDetail() {
         </CardHeader>
         <CardContent className="p-4 pt-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Phone className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400">Telefone (WhatsApp)</p>
-                <p className="font-medium text-sm">{client.phone || '-'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Mail className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400">E-mail</p>
-                <p className="font-medium text-sm break-all">{client.email || '-'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <User className="h-4 w-4 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400">CPF</p>
-                <p className="font-medium text-sm">{client.cpf || '-'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Calendar className="h-4 w-4 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-400">Data de Nascimento</p>
-                <p className="font-medium text-sm">
-                  {client.birth_date ? format(new Date(client.birth_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR }) : '-'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 sm:col-span-2">
+            <div className="flex items-start gap-3 sm:col-span-2 lg:col-span-3">
               <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <MapPin className="h-4 w-4 text-emerald-600" />
               </div>
               <div>
                 <p className="text-xs text-slate-400">Endereço</p>
-                <p className="font-medium text-sm">{client.address || '-'}</p>
+                <p className="font-medium text-sm">
+                  {[client.address, client.address_number, client.address_neighborhood, client.address_cep]
+                    .filter(Boolean)
+                    .join(', ') || '-'}
+                </p>
               </div>
             </div>
 
-            {(client.payer_name || client.payer_document) && (
-              <>
-                <div className="sm:col-span-full border-t pt-3 mt-1">
-                  <p className="text-xs font-semibold text-[#6B3FA0] mb-3">Responsável pelo Pagamento</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <User className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Nome do Responsável</p>
-                    <p className="font-medium text-sm">{client.payer_name || '-'}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <FileText className="h-4 w-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">CPF ou CNPJ do Responsável</p>
-                    <p className="font-medium text-sm">{client.payer_document || '-'}</p>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {client.notes && (
-              <div className="sm:col-span-full flex items-start gap-3 border-t pt-3 mt-1">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <FileText className="h-4 w-4 text-slate-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Observações</p>
-                  <p className="text-sm text-slate-700">{client.notes}</p>
-                </div>
+            <div className="sm:col-span-full border-t pt-3 mt-1">
+              <p className="text-xs font-semibold text-[#6B3FA0] mb-3">Responsável pelo Pagamento</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <User className="h-4 w-4 text-purple-600" />
               </div>
-            )}
+              <div>
+                <p className="text-xs text-slate-400">Nome do Responsável</p>
+                <p className="font-medium text-sm">{client.payer_name || '-'}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <FileText className="h-4 w-4 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">CPF ou CNPJ do Responsável</p>
+                <p className="font-medium text-sm">{client.payer_document || '-'}</p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
