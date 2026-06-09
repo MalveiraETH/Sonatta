@@ -317,9 +317,19 @@ export default function ClientDetail() {
               <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <MapPin className="h-4 w-4 text-emerald-600" />
               </div>
-              <div>
-                <p className="text-xs text-slate-400">Endereço</p>
-                <p className="font-medium text-sm">{client.address || '-'}</p>
+              <div className="flex-1">
+                <p className="text-xs text-slate-400">Endereço Completo</p>
+                <p className="font-medium text-sm">
+                  {(() => {
+                    const parts = [
+                      client.address,
+                      client.address_number && `Nº ${client.address_number}`,
+                      client.address_neighborhood && `${client.address_neighborhood}`,
+                      client.address_cep && `CEP ${client.address_cep}`
+                    ].filter(Boolean);
+                    return parts.length > 0 ? parts.join(', ') : '-';
+                  })()}
+                </p>
               </div>
             </div>
 
