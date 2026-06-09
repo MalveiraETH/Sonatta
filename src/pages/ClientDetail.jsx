@@ -486,7 +486,7 @@ export default function ClientDetail() {
                 {tests.map((test) => (
                   <Link
                     key={test.id}
-                    to={`/Tests?search=${test.test_number}`}
+                    to={`/Tests?search=${test.test_number}&client_id=${client.id}`}
                     className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
                   >
                     <div className="flex items-center gap-3">
@@ -550,7 +550,7 @@ export default function ClientDetail() {
                   {appointments.map((appt) => (
                     <Link
                       key={appt.id}
-                      to={`/Appointments?search=${client.full_name}`}
+                      to={`/Appointments?search=${client.full_name}&client_id=${client.id}`}
                       className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
                     >
                       <div className="flex items-center gap-3">
@@ -594,7 +594,7 @@ export default function ClientDetail() {
                   {quotes.map((quote) => (
                     <Link
                       key={quote.id}
-                      to={`/Quotes?search=${quote.quote_number}`}
+                      to={`/Quotes?search=${quote.quote_number}&client_id=${client.id}`}
                       className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
                     >
                       <div className="flex items-center gap-3">
@@ -640,7 +640,7 @@ export default function ClientDetail() {
                   {sales.map((sale) => (
                     <Link
                       key={sale.id}
-                      to={`/Sales?search=${sale.sale_number}`}
+                      to={`/Sales?search=${sale.sale_number}&client_id=${client.id}`}
                       className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
                     >
                       <div className="flex items-center gap-3">
@@ -744,7 +744,7 @@ export default function ClientDetail() {
               ) : (
                 <div className="space-y-3">
                   {moldOrders.map(order => (
-                    <Link key={order.id} to={`/MoldOrders?search=${order.order_number}`} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200 gap-3">
+                    <Link key={order.id} to={`/MoldOrders?search=${order.order_number}&client_id=${client.id}`} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200 gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center flex-shrink-0">
                           <Layers className="h-5 w-5 text-[#6B3FA0]" />
