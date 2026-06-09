@@ -43,8 +43,8 @@ const DEFAULT_PERMISSIONS = [
   { module: 'Orçamentos',     action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Orçamentos',     action: 'Criar/Editar orçamentos',  admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Orçamentos',     action: 'Excluir orçamentos',       admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
-  { module: 'Vendas',         action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
-  { module: 'Vendas',         action: 'Criar vendas',             admin: true, fonoaudiologo: false, comercial: true,  recepcao: false },
+  { module: 'Vendas',         action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
+  { module: 'Vendas',         action: 'Criar vendas',             admin: true, fonoaudiologo: false, comercial: true,  recepcao: true },
   { module: 'Vendas',         action: 'Excluir vendas',           admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Financeiro',     action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Financeiro',     action: 'Criar/Editar despesas',    admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
@@ -70,7 +70,13 @@ const CACHE_TTL = 60000; // 1 minuto
 async function fetchPermissions() {
   const now = Date.now();
   if (cachedPerms && now - cacheTime < CACHE_TTL) return cachedPerms;
-  const records = await base44.entities.PermissionSettings.list();
+  let records = [];
+  try {
+    records = await base44.entities.PermissionSettings.list();
+  } catch (e) {
+    // Usuário sem acesso ao PermissionSettings (RLS) — usa defaults
+    records = [];
+  }
   const merged = DEFAULT_PERMISSIONS.map(def => {
     const saved = records.find(r => r.module === def.module && r.action === def.action);
     if (saved) {
