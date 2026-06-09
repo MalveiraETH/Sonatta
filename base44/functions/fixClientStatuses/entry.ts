@@ -10,10 +10,13 @@ Deno.serve(async (req) => {
     }
 
     // Buscar tudo de uma vez
-    const [allClients, allSales] = await Promise.all([
+    // Considera vendas pago OU pendente (qualquer venda não cancelada = cliente ativo)
+    const [allClients, allSalesPago, allSalesPendente] = await Promise.all([
       base44.asServiceRole.entities.Client.list('-created_date', 1000),
-      base44.asServiceRole.entities.Sale.filter({ status: 'pago' }, '-sale_date', 2000)
+      base44.asServiceRole.entities.Sale.filter({ status: 'pago' }, '-sale_date', 2000),
+      base44.asServiceRole.entities.Sale.filter({ status: 'pendente' }, '-sale_date', 2000)
     ]);
+    const allSales = [...allSalesPago, ...allSalesPendente];
 
     // Agrupar vendas por cliente
     const salesByClient = {};
