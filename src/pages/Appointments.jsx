@@ -215,7 +215,7 @@ export default function Appointments() {
   const [view, setView] = useState('day');
   const [statusFilter, setStatusFilter] = useState('all');
   const [professionalFilter, setProfessionalFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [professionals, setProfessionals] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);

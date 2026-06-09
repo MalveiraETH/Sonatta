@@ -46,7 +46,7 @@ const EAR_LABELS = {
 export default function MoldOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);

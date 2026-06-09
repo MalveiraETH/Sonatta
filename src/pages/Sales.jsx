@@ -62,7 +62,7 @@ export default function Sales() {
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);

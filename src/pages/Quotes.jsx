@@ -47,7 +47,7 @@ export default function Quotes() {
   const [loading, setLoading] = useState(true);
   const [quotes, setQuotes] = useState([]);
   const [filteredQuotes, setFilteredQuotes] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [saleFormOpen, setSaleFormOpen] = useState(false);

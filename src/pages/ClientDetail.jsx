@@ -482,26 +482,27 @@ export default function ClientDetail() {
             </CardHeader>
             <CardContent>
               {tests.length > 0 ? (
-                <div className="space-y-3">
-                  {tests.map((test) => (
-                    <div
-                      key={test.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
-                          <BeakerIcon className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{test.test_number}</p>
-                          <p className="text-sm text-slate-500">
-                            {format(new Date(test.start_date), "dd/MM/yyyy", { locale: ptBR })} - {format(new Date(test.end_date), "dd/MM/yyyy", { locale: ptBR })}
-                          </p>
-                        </div>
+              <div className="space-y-3">
+                {tests.map((test) => (
+                  <Link
+                    key={test.id}
+                    to={`/Tests?search=${test.test_number}`}
+                    className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
+                        <BeakerIcon className="h-5 w-5 text-purple-600" />
                       </div>
-                      <StatusBadge status={test.status} />
+                      <div>
+                        <p className="font-medium">{test.test_number}</p>
+                        <p className="text-sm text-slate-500">
+                          {format(new Date(test.start_date), "dd/MM/yyyy", { locale: ptBR })} - {format(new Date(test.end_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
                     </div>
-                  ))}
+                    <StatusBadge status={test.status} />
+                  </Link>
+                ))}
                 </div>
               ) : (
                 <p className="text-center text-slate-500 py-4">Nenhum teste realizado</p>
@@ -547,9 +548,10 @@ export default function ClientDetail() {
               {appointments.length > 0 ? (
                 <div className="space-y-3">
                   {appointments.map((appt) => (
-                    <div
+                    <Link
                       key={appt.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50"
+                      to={`/Appointments?search=${client.full_name}`}
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
@@ -563,7 +565,7 @@ export default function ClientDetail() {
                         </div>
                       </div>
                       <StatusBadge status={appt.status} />
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (
@@ -590,9 +592,10 @@ export default function ClientDetail() {
               {quotes.length > 0 ? (
                 <div className="space-y-3">
                   {quotes.map((quote) => (
-                    <div
+                    <Link
                       key={quote.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50"
+                      to={`/Quotes?search=${quote.quote_number}`}
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
@@ -609,7 +612,7 @@ export default function ClientDetail() {
                         <p className="font-semibold">{formatCurrency(quote.total)}</p>
                         <StatusBadge status={quote.status} />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (
@@ -635,9 +638,10 @@ export default function ClientDetail() {
               {sales.length > 0 ? (
                 <div className="space-y-3">
                   {sales.map((sale) => (
-                    <div
+                    <Link
                       key={sale.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50"
+                      to={`/Sales?search=${sale.sale_number}`}
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
@@ -654,7 +658,7 @@ export default function ClientDetail() {
                         <p className="font-semibold">{formatCurrency(calculateSaleTotal(sale))}</p>
                         <StatusBadge status={sale.status} />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (
@@ -740,7 +744,7 @@ export default function ClientDetail() {
               ) : (
                 <div className="space-y-3">
                   {moldOrders.map(order => (
-                    <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 gap-3">
+                    <Link key={order.id} to={`/MoldOrders?search=${order.order_number}`} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200 gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center flex-shrink-0">
                           <Layers className="h-5 w-5 text-[#6B3FA0]" />
@@ -761,7 +765,7 @@ export default function ClientDetail() {
                         </div>
                       </div>
                       <MoldStatusBadge status={order.status} />
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

@@ -73,7 +73,7 @@ export default function Tests() {
   const [tests, setTests] = useState([]);
   const [filteredTests, setFilteredTests] = useState([]);
   const [clientsMap, setClientsMap] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(window.location.search).get('search') || '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState(null);
