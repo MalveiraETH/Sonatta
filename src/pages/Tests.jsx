@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,6 +83,8 @@ export default function Tests() {
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
+  const clientId = new URLSearchParams(window.location.search).get('client_id');
 
   useEffect(() => {
     loadData();
@@ -308,6 +310,11 @@ export default function Tests() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {clientId && (
+        <Button variant="ghost" size="sm" onClick={() => navigate(createPageUrl(`ClientDetail?id=${clientId}`))} className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
+          ← Voltar para Cliente
+        </Button>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +52,8 @@ export default function MoldOrders() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
+  const navigate = useNavigate();
+  const clientId = new URLSearchParams(window.location.search).get('client_id');
 
   useEffect(() => { loadData(); }, []);
 
@@ -117,6 +121,11 @@ export default function MoldOrders() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {clientId && (
+        <Button variant="ghost" size="sm" onClick={() => navigate(createPageUrl(`ClientDetail?id=${clientId}`))} className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
+          ← Voltar para Cliente
+        </Button>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

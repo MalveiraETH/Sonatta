@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +56,8 @@ export default function Quotes() {
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
+  const clientId = new URLSearchParams(window.location.search).get('client_id');
 
   useEffect(() => {
     loadData();
@@ -276,6 +280,11 @@ Equipe Sonatta Soluções Auditivas
 
   return (
     <div className="space-y-6">
+      {clientId && (
+        <Button variant="ghost" size="sm" onClick={() => navigate(createPageUrl(`ClientDetail?id=${clientId}`))} className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
+          ← Voltar para Cliente
+        </Button>
+      )}
       <PageHeader
         title="Orçamentos"
         description={`${quotes.length} orçamentos registrados`}

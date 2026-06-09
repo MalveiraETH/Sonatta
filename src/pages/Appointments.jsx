@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -223,6 +225,8 @@ export default function Appointments() {
   const [preselectedAppointmentForTest, setPreselectedAppointmentForTest] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState(null);
+  const navigate = useNavigate();
+  const clientId = new URLSearchParams(window.location.search).get('client_id');
 
   useEffect(() => {
     loadData();
@@ -350,6 +354,11 @@ export default function Appointments() {
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto">
+      {clientId && (
+        <Button variant="ghost" size="sm" onClick={() => navigate(createPageUrl(`ClientDetail?id=${clientId}`))} className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
+          ← Voltar para Cliente
+        </Button>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Agendamentos</h1>
