@@ -35,17 +35,13 @@
     "description"
   ],
   "rls": {
-    "update": {
-      "user_condition": {
-        "role": "user"
-      }
-    },
-    "create": {
-      "user_condition": {
-        "role": "user"
-      }
-    },
     "read": {
+      "user_condition": {
+        "role": "user"
+      }
+    },
+    "create": true,
+    "update": {
       "user_condition": {
         "role": "user"
       }
