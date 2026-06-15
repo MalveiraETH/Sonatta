@@ -10,9 +10,7 @@ const entityLabels = {
   Product: 'Produto',
   DeviceRepair: 'Conserto',
   Professional: 'Profissional',
-  Contract: 'Contrato',
-  Expense: 'Despesa',
-  Installment: 'Parcela'
+  Contract: 'Contrato'
 };
 
 const actionLabels = {
@@ -34,7 +32,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { event, data, changed_fields, payload_too_large } = body;
+    const { event, data, changed_fields } = body;
 
     if (!event || !event.entity_name) {
       return Response.json({ error: 'Missing entity event data' }, { status: 400 });
@@ -58,7 +56,7 @@ Deno.serve(async (req) => {
       description = `${entityLabel} "${nameField}" excluído por ${userName}`;
     }
 
-    await base44.asServiceRole.entities.AuditLog.create({
+    const result = await base44.entities.AuditLog.create({
       entity_type: entityLabel,
       entity_id: entityId,
       action,
@@ -70,9 +68,8 @@ Deno.serve(async (req) => {
       }
     });
 
-    return Response.json({ success: true, description });
+    return Response.json({ success: true, description, id: result.id });
   } catch (error) {
-    console.error('logEntityAction error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
