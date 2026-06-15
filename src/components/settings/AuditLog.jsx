@@ -27,15 +27,23 @@ export default function AuditLog() {
   const loadAuditLogs = async () => {
     setLoading(true);
     try {
-      const auditLogsData = await base44.entities.AuditLog.list('-created_date', 200);
-      
+      const [auditLogsData, users] = await Promise.all([
+        base44.entities.AuditLog.list('-created_date', 200),
+        base44.entities.User.list()
+      ]);
+
+      const userMap = {};
+      for (const u of users) {
+        userMap[u.id] = u.full_name || u.email || 'Sistema';
+      }
+
       const logs = auditLogsData.map(log => ({
         entity: log.entity_type,
         action: log.action === 'criacao' ? 'Criação' : 
                 log.action === 'edicao' ? 'Edição' : 
                 log.action === 'exclusao' ? 'Exclusão' : 'WhatsApp',
         description: log.description,
-        user: log.created_by,
+        user: userMap[log.created_by_id] || 'Sistema',
         date: log.created_date
       }));
 
