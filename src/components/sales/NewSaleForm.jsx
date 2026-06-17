@@ -849,7 +849,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <p className="text-sm sm:text-lg font-semibold truncate">{formatCurrency(formData.subtotal)}</p>
               </div>
               <div>
-                <Label className="text-xs">Ajuste (%)</Label>
+                <Label className="text-xs">Desconto (%)</Label>
                 <div className="relative">
                   <Input
                     type="number"

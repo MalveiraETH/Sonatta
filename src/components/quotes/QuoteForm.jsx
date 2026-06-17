@@ -429,7 +429,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                 <p className="text-lg font-semibold">{formatCurrency(formData.subtotal)}</p>
               </div>
               <div>
-                <Label className="text-xs">Ajuste (%)</Label>
+                <Label className="text-xs">Desconto (%)</Label>
                 <div className="relative">
                   <Input
                     type="number"
