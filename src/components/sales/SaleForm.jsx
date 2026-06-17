@@ -524,17 +524,30 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
                 <p className="text-lg font-semibold">{formatCurrency(formData.subtotal)}</p>
               </div>
               <div>
-                <Label className="text-xs">Desconto (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={discountPercent}
-                  onChange={(e) => updateDiscount(Number(e.target.value))}
-                  disabled={!!quote}
-                  placeholder="0"
-                />
+                <Label className="text-xs">Ajuste (%)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="-100"
+                    max="100"
+                    value={discountPercent}
+                    onChange={(e) => updateDiscount(Number(e.target.value))}
+                    disabled={!!quote}
+                    placeholder="0"
+                    className="pr-6"
+                  />
+                  {discountPercent !== 0 && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium pointer-events-none">
+                      {discountPercent > 0 ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
+                {discountPercent !== 0 && (
+                  <p className={`text-xs ${discountPercent > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {discountPercent > 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(discountPercent).toFixed(2)}%
+                  </p>
+                )}
               </div>
               <div>
                 <Label className="text-xs text-slate-500">Total</Label>

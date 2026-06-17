@@ -849,19 +849,31 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <p className="text-sm sm:text-lg font-semibold truncate">{formatCurrency(formData.subtotal)}</p>
               </div>
               <div>
-                <Label className="text-xs">Desconto (%)</Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.0000001"
-                  min="0"
-                  max="100"
-                  value={discountPercent === 0 ? '' : discountPercent}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => updateDiscount(e.target.value === '' ? 0 : Number(e.target.value))}
-                  placeholder="0"
-                  className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
-                />
+                <Label className="text-xs">Ajuste (%)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.0000001"
+                    min="-100"
+                    max="100"
+                    value={discountPercent === 0 ? '' : discountPercent}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => updateDiscount(e.target.value === '' ? 0 : Number(e.target.value))}
+                    placeholder="0"
+                    className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow pr-6"
+                  />
+                  {discountPercent !== 0 && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium pointer-events-none">
+                      {discountPercent > 0 ? '↓' : '↑'}
+                    </span>
+                  )}
+                </div>
+                {discountPercent !== 0 && (
+                  <p className={`text-xs ${discountPercent > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {discountPercent > 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(discountPercent).toFixed(2)}%
+                  </p>
+                )}
               </div>
               <div>
                 <Label className="text-xs text-slate-500">Total</Label>
