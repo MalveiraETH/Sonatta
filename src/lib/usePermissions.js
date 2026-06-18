@@ -72,9 +72,10 @@ async function fetchPermissions() {
   if (cachedPerms && now - cacheTime < CACHE_TTL) return cachedPerms;
   let records = [];
   try {
-    records = await base44.entities.PermissionSettings.list();
+    const res = await base44.functions.invoke('getEffectivePermissions', {});
+    records = res?.data?.permissions || [];
   } catch (e) {
-    // Usuário sem acesso ao PermissionSettings (RLS) — usa defaults
+    // Falha ao buscar permissões — usa defaults
     records = [];
   }
   const merged = DEFAULT_PERMISSIONS.map(def => {
