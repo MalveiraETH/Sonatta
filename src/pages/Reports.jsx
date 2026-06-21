@@ -319,9 +319,14 @@ export default function Reports() {
     return null;
   };
 
+  const hasSerializedItem = (sale) => {
+    return sale.items?.some(item => item.serial_number);
+  };
+
   const exportReferralReport = () => {
     const referralData = [];
     filteredSales.forEach(sale => {
+      if (!hasSerializedItem(sale)) return;
       const prof = getReferralProfForSale(sale);
       if (prof) {
         referralData.push({
@@ -1705,6 +1710,7 @@ export default function Reports() {
                   </TableHeader>
                   <TableBody>
                     {filteredSales.map(sale => {
+                      if (!hasSerializedItem(sale)) return null;
                       const prof = getReferralProfForSale(sale);
                       if (!prof) return null;
 
