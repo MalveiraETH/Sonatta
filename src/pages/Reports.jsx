@@ -47,6 +47,9 @@ export default function Reports() {
   const [stockMovements, setStockMovements] = useState([]);
   const [testStatusFilter, setTestStatusFilter] = useState('todos');
   const [referralProfFilter, setReferralProfFilter] = useState('todos');
+  const [testDateStart, setTestDateStart] = useState('');
+  const [testDateEnd, setTestDateEnd] = useState('');
+  const [testProfFilter, setTestProfFilter] = useState('todos');
 
   useEffect(() => {
     loadData();
@@ -532,20 +535,65 @@ export default function Reports() {
           </div>
 
           <Card className="p-4 border-0 shadow-sm">
-            <div className="flex items-center gap-4">
-              <Label className="shrink-0">Filtrar por Status</Label>
-              <Select value={testStatusFilter} onValueChange={setTestStatusFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="em_teste">Em Teste</SelectItem>
-                  <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
-                  <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
-                  <SelectItem value="teste_pendente">Teste Pendente</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input
+                  type="date"
+                  value={testDateStart}
+                  onChange={(e) => setTestDateStart(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data Fim</Label>
+                <Input
+                  type="date"
+                  value={testDateEnd}
+                  onChange={(e) => setTestDateEnd(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={testStatusFilter} onValueChange={setTestStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="em_teste">Em Teste</SelectItem>
+                    <SelectItem value="teste_estendido">Teste Estendido</SelectItem>
+                    <SelectItem value="teste_finalizado">Teste Finalizado</SelectItem>
+                    <SelectItem value="teste_pendente">Teste Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Profissional Indicação</Label>
+                <Select value={testProfFilter} onValueChange={setTestProfFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {professionals.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '')).map(prof => (
+                      <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setTestDateStart('');
+                    setTestDateEnd('');
+                    setTestStatusFilter('todos');
+                    setTestProfFilter('todos');
+                  }}
+                >
+                  Limpar Filtro
+                </Button>
+              </div>
             </div>
           </Card>
 
@@ -553,7 +601,16 @@ export default function Reports() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Testes Cadastrados</CardTitle>
               <Button onClick={() => {
-                const filteredForExport = testStatusFilter === 'todos' ? tests : tests.filter(t => t.status === testStatusFilter);
+                const filteredForExport = tests.filter(t => {
+                  if (testStatusFilter !== 'todos' && t.status !== testStatusFilter) return false;
+                  if (testDateStart || testDateEnd) {
+                    const testDate = new Date(t.start_date);
+                    if (testDateStart && testDate < new Date(testDateStart)) return false;
+                    if (testDateEnd && testDate > new Date(testDateEnd)) return false;
+                  }
+                  if (testProfFilter !== 'todos' && t.referral_professional_id !== testProfFilter && t.referral_professional_name !== professionals.find(p => p.id === testProfFilter)?.full_name) return false;
+                  return true;
+                });
                 const data = filteredForExport.map(t => ({
                   'Número': t.test_number,
                   'Cliente': t.client_name,
@@ -589,7 +646,16 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(testStatusFilter === 'todos' ? tests : tests.filter(t => t.status === testStatusFilter)).map(test => (
+                    {tests.filter(t => {
+                      if (testStatusFilter !== 'todos' && t.status !== testStatusFilter) return false;
+                      if (testDateStart || testDateEnd) {
+                        const testDate = new Date(t.start_date);
+                        if (testDateStart && testDate < new Date(testDateStart)) return false;
+                        if (testDateEnd && testDate > new Date(testDateEnd)) return false;
+                      }
+                      if (testProfFilter !== 'todos' && t.referral_professional_id !== testProfFilter && t.referral_professional_name !== professionals.find(p => p.id === testProfFilter)?.full_name) return false;
+                      return true;
+                    }).map(test => (
                       <TableRow key={test.id}>
                         <TableCell className="font-medium">{test.test_number}</TableCell>
                         <TableCell>{test.client_name}</TableCell>
