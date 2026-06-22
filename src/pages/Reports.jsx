@@ -46,6 +46,7 @@ export default function Reports() {
   const [tests, setTests] = useState([]);
   const [stockMovements, setStockMovements] = useState([]);
   const [testStatusFilter, setTestStatusFilter] = useState('todos');
+  const [referralProfFilter, setReferralProfFilter] = useState('todos');
 
   useEffect(() => {
     loadData();
@@ -328,16 +329,16 @@ export default function Reports() {
     filteredSales.forEach(sale => {
       if (!hasSerializedItem(sale)) return;
       const prof = getReferralProfForSale(sale);
-      if (prof) {
-        referralData.push({
-          'Profissional': prof.full_name,
-          'Especialidade': prof.specialty || '-',
-          'Paciente': sale.client_name,
-          'Data Venda': toExcelDate(sale.sale_date || sale.created_date),
-          'Valor Total': toExcelNum(getTotalPayments(sale)),
-          'Repasse 10%': toExcelNum(getTotalPayments(sale) * 0.10)
-        });
-      }
+      if (!prof) return;
+      if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return;
+      referralData.push({
+        'Profissional': prof.full_name,
+        'Especialidade': prof.specialty || '-',
+        'Paciente': sale.client_name,
+        'Data Venda': toExcelDate(sale.sale_date || sale.created_date),
+        'Valor Total': toExcelNum(getTotalPayments(sale)),
+        'Repasse 10%': toExcelNum(getTotalPayments(sale) * 0.10)
+      });
     });
     exportToExcel(referralData, 'relatorio_repasse_indicacao');
   };
@@ -1656,7 +1657,7 @@ export default function Reports() {
         {/* REPASSE INDICAÇÃO */}
         <TabsContent value="referral" className="space-y-6">
           <Card className="p-4 border-0 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Data Início</Label>
                 <Input
@@ -1673,12 +1674,27 @@ export default function Reports() {
                   onChange={(e) => setDateEnd(e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label>Profissional Indicação</Label>
+                <Select value={referralProfFilter} onValueChange={setReferralProfFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {professionals.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '')).map(prof => (
+                      <SelectItem key={prof.id} value={prof.id}>{prof.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-end">
                 <Button 
                   variant="outline"
                   onClick={() => {
                     setDateStart('');
                     setDateEnd('');
+                    setReferralProfFilter('todos');
                   }}
                 >
                   Limpar Filtro
@@ -1713,6 +1729,7 @@ export default function Reports() {
                       if (!hasSerializedItem(sale)) return null;
                       const prof = getReferralProfForSale(sale);
                       if (!prof) return null;
+                      if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return null;
 
                       return (
                         <TableRow key={sale.id}>
