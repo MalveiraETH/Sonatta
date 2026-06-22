@@ -603,10 +603,13 @@ export default function Reports() {
               <Button onClick={() => {
                 const filteredForExport = tests.filter(t => {
                   if (testStatusFilter !== 'todos' && t.status !== testStatusFilter) return false;
-                  if (testDateStart || testDateEnd) {
-                    const testDate = new Date(t.start_date);
-                    if (testDateStart && testDate < new Date(testDateStart)) return false;
-                    if (testDateEnd && testDate > new Date(testDateEnd)) return false;
+                  if (testDateStart) {
+                    const startDate = new Date(t.start_date);
+                    if (startDate < new Date(testDateStart)) return false;
+                  }
+                  if (testDateEnd) {
+                    const endDate = new Date(t.end_date);
+                    if (endDate > new Date(testDateEnd)) return false;
                   }
                   if (testProfFilter !== 'todos' && t.referral_professional_id !== testProfFilter && t.referral_professional_name !== professionals.find(p => p.id === testProfFilter)?.full_name) return false;
                   return true;
@@ -648,10 +651,13 @@ export default function Reports() {
                   <TableBody>
                     {tests.filter(t => {
                       if (testStatusFilter !== 'todos' && t.status !== testStatusFilter) return false;
-                      if (testDateStart || testDateEnd) {
-                        const testDate = new Date(t.start_date);
-                        if (testDateStart && testDate < new Date(testDateStart)) return false;
-                        if (testDateEnd && testDate > new Date(testDateEnd)) return false;
+                      if (testDateStart) {
+                        const startDate = new Date(t.start_date);
+                        if (startDate < new Date(testDateStart)) return false;
+                      }
+                      if (testDateEnd) {
+                        const endDate = new Date(t.end_date);
+                        if (endDate > new Date(testDateEnd)) return false;
                       }
                       if (testProfFilter !== 'todos' && t.referral_professional_id !== testProfFilter && t.referral_professional_name !== professionals.find(p => p.id === testProfFilter)?.full_name) return false;
                       return true;
