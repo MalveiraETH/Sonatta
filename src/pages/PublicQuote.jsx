@@ -19,11 +19,15 @@ export default function PublicQuote() {
 
   const loadQuote = async () => {
     try {
-      const data = await base44.entities.Quote.get(quoteId);
-      if (!data) {
-        setError('Orçamento não encontrado.');
+      const response = await base44.functions.invoke('getPublicQuote', { quoteId });
+      if (response.data?.quote) {
+        setQuote(response.data.quote);
+      } else if (response.data?.error) {
+        setError(response.data.error === 'Orçamento não encontrado'
+          ? 'Orçamento não encontrado.'
+          : 'Não foi possível carregar o orçamento. Verifique o link ou entre em contato.');
       } else {
-        setQuote(data);
+        setError('Orçamento não encontrado.');
       }
     } catch (e) {
       setError('Não foi possível carregar o orçamento. Verifique o link ou entre em contato.');
