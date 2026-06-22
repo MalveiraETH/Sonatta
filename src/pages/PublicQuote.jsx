@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, MessageCircle, Calendar, Clock, CheckCircle, DollarSign, Tag, Phone, User } from 'lucide-react';
@@ -19,11 +18,17 @@ export default function PublicQuote() {
 
   const loadQuote = async () => {
     try {
-      const response = await base44.functions.invoke('getPublicQuote', { quoteId });
-      if (response.data?.quote) {
-        setQuote(response.data.quote);
-      } else if (response.data?.error) {
-        setError(response.data.error === 'Orçamento não encontrado'
+      // Endpoint público da função — não passa pelo gateway autenticado
+      const res = await fetch(`/functions/getPublicQuote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quoteId })
+      });
+      const data = await res.json();
+      if (data?.quote) {
+        setQuote(data.quote);
+      } else if (data?.error) {
+        setError(data.error === 'Orçamento não encontrado'
           ? 'Orçamento não encontrado.'
           : 'Não foi possível carregar o orçamento. Verifique o link ou entre em contato.');
       } else {
