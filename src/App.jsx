@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
 import SplashScreen from '@/components/SplashScreen';
+import PublicQuote from '@/pages/PublicQuote';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/orcamento/:quoteId" element={<PublicQuote />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
