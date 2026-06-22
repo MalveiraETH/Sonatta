@@ -12,6 +12,8 @@ Temos uma ótima notícia para você: seu orçamento personalizado para redescob
 
 *Orçamento Nº: {{quote_number}}*
 
+🔗 *Veja os detalhes completos do seu orçamento:* {{public_link}}
+
 *O que preparamos para você:*
 {{product_list}}
 
@@ -155,7 +157,7 @@ export default function WhatsAppTemplate() {
               />
               <p className="text-xs text-slate-500 mt-2">
                 <strong>Variáveis disponíveis:</strong> {'{{'} client_name {'}}'}, {'{{'} quote_number {'}}'}, 
-                {'{{'} product_list {'}}'}, {'{{'} subtotal {'}}'}, {'{{'} total {'}}'}, 
+                {'{{'} public_link {'}}'}, {'{{'} product_list {'}}'}, {'{{'} subtotal {'}}'}, {'{{'} total {'}}'}, 
                 {'{{'} installment_value {'}}'}, {'{{'} warranty {'}}'}, {'{{'} contact_phone {'}}'}
               </p>
             </div>
@@ -190,6 +192,7 @@ export default function WhatsAppTemplate() {
         <div className="space-y-2 text-sm text-slate-700">
           <p><strong>{'{{'} client_name {'}}'}</strong> - Nome do cliente</p>
           <p><strong>{'{{'} quote_number {'}}'}</strong> - Número do orçamento</p>
+          <p><strong>{'{{'} public_link {'}}'}</strong> - Link público para visualizar o orçamento online</p>
           <p><strong>{'{{'} product_list {'}}'}</strong> - Lista de produtos do orçamento</p>
           <p><strong>{'{{'} subtotal {'}}'}</strong> - Valor subtotal (antes do desconto)</p>
           <p><strong>{'{{'} total {'}}'}</strong> - Valor total (com desconto aplicado)</p>
