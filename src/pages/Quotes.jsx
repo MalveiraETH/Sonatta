@@ -182,8 +182,6 @@ Temos uma ótima notícia para você: seu orçamento personalizado para redescob
 
 *Orçamento Nº: {{quote_number}}*
 
-🔗 *Veja os detalhes completos do seu orçamento:* {{public_link}}
-
 *O que preparamos para você:*
 {{product_list}}
 
@@ -217,9 +215,6 @@ Equipe Sonatta Soluções Auditivas
       console.log('Usando template padrão');
     }
 
-    // Gerar link público
-    const publicLink = `${window.location.origin}/orcamento/${quote.id}`;
-
     // Substituir variáveis
     const message = template
       .replace(/{{client_name}}/g, quote.client_name)
@@ -231,8 +226,7 @@ Equipe Sonatta Soluções Auditivas
       .replace(/{{discount_value}}/g, formatCurrency(discountValue))
       .replace(/{{installment_value}}/g, formatCurrency(installmentValue))
       .replace(/{{warranty}}/g, warrantyText)
-      .replace(/{{contact_phone}}/g, contactPhone)
-      .replace(/{{public_link}}/g, publicLink);
+      .replace(/{{contact_phone}}/g, contactPhone);
     
     return { phone, message };
   };
@@ -244,19 +238,16 @@ Equipe Sonatta Soluções Auditivas
     }
 
     try {
-      const publicLink = `${window.location.origin}/orcamento/${quote.id}`;
       await base44.integrations.Core.SendEmail({
         to: quote.client_email,
         subject: `Orçamento ${quote.quote_number} - Sonatta Soluções Auditivas`,
         body: `
           <h2>Olá ${quote.client_name}!</h2>
-          <p>Segue seu orçamento personalizado:</p>
+          <p>Segue seu orçamento:</p>
           <p><strong>Nº:</strong> ${quote.quote_number}</p>
           <p><strong>Valor Total:</strong> ${formatCurrency(quote.total)}</p>
           ${quote.installments > 1 ? `<p><strong>Parcelamento:</strong> ${quote.installments}x de ${formatCurrency(quote.installment_value)}</p>` : ''}
           <p><strong>Validade:</strong> ${quote.validity_days} dias</p>
-          <br>
-          <p><a href="${publicLink}" style="display:inline-block;padding:12px 24px;background-color:#6B3FA0;color:white;text-decoration:none;border-radius:8px;font-weight:bold;">Ver Detalhes do Orçamento</a></p>
           <br>
           <p>Atenciosamente,</p>
           <p><strong>Sonatta Soluções Auditivas</strong></p>
