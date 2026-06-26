@@ -33,6 +33,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [paymentTypes, setPaymentTypes] = useState([]);
+  const [referenceProducts, setReferenceProducts] = useState([]);
+  const [billingCfg, setBillingCfg] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [saleDate, setSaleDate] = useState(new Date());
@@ -173,14 +175,19 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   const loadData = async () => {
     try {
-      const [clientsData, productsData, user] = await Promise.all([
+      const [clientsData, productsData, user, refProds, allSettings] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Product.list(),
-        base44.auth.me()
+        base44.auth.me(),
+        base44.entities.ReferenceProduct.list(),
+        base44.entities.AppSettings.list()
       ]);
       setClients(clientsData);
       setProducts(productsData);
       setCurrentUser(user);
+      setReferenceProducts(refProds);
+      const billingRec = allSettings.find(r => r.setting_key === 'billing_config');
+      if (billingRec?.setting_value) setBillingCfg(billingRec.setting_value);
 
       if (!sale && !quote) {
         setFormData(prev => ({
@@ -557,6 +564,27 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     }).format(value || 0);
   };
 
+  const getRefPriceInfo = (productId) => {
+    const product = products.find(p => p.id === productId);
+    if (!product?.reference || !billingCfg) return null;
+    const refProd = referenceProducts.find(
+      rp => rp.reference.trim().toLowerCase() === product.reference.trim().toLowerCase()
+    );
+    if (!refProd) return null;
+    const inclFixed = refProd.include_fixed_cost !== false;
+    const fcost = inclFixed ? (billingCfg.fixed_cost || 0) : 0;
+    const tc = (refProd.cost || 0) + fcost;
+    const markupPct = billingCfg[`markup_category_${refProd.category}`] || 0;
+    const refFinalPrice = tc + tc * (markupPct / 100);
+
+    // Preço calculado do produto no estoque (suggestedSalePrice)
+    const prodCost = (product.product_cost || 0) + (product.icms || 0) + (product.ipi || 0) + (product.include_fixed_cost !== false ? (billingCfg.fixed_cost || 0) : 0);
+    const prodMarkupPct = billingCfg[`markup_category_${product.markup_category}`] || 0;
+    const suggestedSalePrice = prodCost + prodCost * (prodMarkupPct / 100);
+
+    return { refProd, refFinalPrice, suggestedSalePrice };
+  };
+
   // Build payment methods list from active payment types ONLY
   const paymentMethodLabels = {
     dinheiro: 'Dinheiro',
@@ -803,6 +831,29 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           <p className="font-bold text-[#1e3a5f]">{formatCurrency(item.unit_price)}</p>
                         </div>
                       </div>
+                      {(() => {
+                        const refInfo = getRefPriceInfo(item.product_id);
+                        if (!refInfo) return null;
+                        return (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-xs font-semibold text-amber-800">📖 Produto de Referência: </span>
+                              <span className="text-xs text-slate-600">{refInfo.refProd.reference} — {refInfo.refProd.name}</span>
+                              <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Cat. {refInfo.refProd.category}</span>
+                            </div>
+                            <div className="flex gap-4">
+                              <div>
+                                <p className="text-xs text-slate-500">Valor Final (Referência)</p>
+                                <p className="text-sm font-bold text-amber-700">{formatCurrency(refInfo.refFinalPrice)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-500">Preço Calculado (Form)</p>
+                                <p className="text-sm font-bold text-purple-700">{formatCurrency(refInfo.suggestedSalePrice)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                       {item.stock_type === 'nao_serializado' && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
