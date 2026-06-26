@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,6 +79,7 @@ import {
 
 export default function Inventory() {
   const { openTab } = useTabs() || {};
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
@@ -681,7 +682,7 @@ export default function Inventory() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : (window.location.href = `${createPageUrl('ProductDetail')}?id=${product.id}`)}>
+                            <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`)}>
                               <Eye className="h-4 w-4 mr-2" />
                               Ver Detalhes
                             </DropdownMenuItem>
@@ -736,7 +737,7 @@ export default function Inventory() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : (window.location.href = `${createPageUrl('ProductDetail')}?id=${product.id}`)}>
+                          <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`)}>
                               <Eye className="h-4 w-4 mr-2" />
                               Detalhes
                           </DropdownMenuItem>
