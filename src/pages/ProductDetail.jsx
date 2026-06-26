@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,14 @@ import {
 export default function ProductDetail() {
   const tabsContext = useTabs();
   const navigate = useNavigate();
+  const location = useLocation();
+  const inventoryState = location.state?.fromInventory ? {
+    fromProductDetail: true,
+    activeTab: location.state.activeTab,
+    searchTerm: location.state.searchTerm,
+    categoryFilter: location.state.categoryFilter,
+    statusFilter: location.state.statusFilter,
+  } : {};
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
   const [movements, setMovements] = useState([]);
@@ -90,7 +98,7 @@ export default function ProductDetail() {
       const tab = product.stock_type === 'serializado' ? 'serialized' : 'non-serialized';
       await base44.entities.Product.delete(product.id);
       toast.success('Produto excluído com sucesso');
-      navigate(createPageUrl('Inventory') + `?tab=${tab}`);
+      navigate(createPageUrl('Inventory'), { state: { fromProductDetail: true, activeTab: tab } });
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
@@ -158,7 +166,7 @@ export default function ProductDetail() {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => tabsContext?.closeTab ? tabsContext.closeTab('ProductDetail') : navigate(createPageUrl('Inventory'))}
+            onClick={() => tabsContext?.closeTab ? tabsContext.closeTab('ProductDetail') : navigate(createPageUrl('Inventory'), { state: inventoryState })}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

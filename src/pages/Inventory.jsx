@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,7 @@ import {
 export default function Inventory() {
   const { openTab } = useTabs() || {};
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
@@ -105,6 +106,14 @@ export default function Inventory() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
+    // Restaurar estado ao voltar de ProductDetail
+    if (location.state?.fromProductDetail) {
+      if (location.state.activeTab) setActiveTab(location.state.activeTab);
+      if (location.state.searchTerm) setSearchTerm(location.state.searchTerm);
+      if (location.state.categoryFilter) setCategoryFilter(location.state.categoryFilter);
+      if (location.state.statusFilter) setStatusFilter(location.state.statusFilter);
+      return;
+    }
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
     if (tab) {
@@ -682,7 +691,7 @@ export default function Inventory() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`)}>
+                            <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab, searchTerm, categoryFilter, statusFilter } })}>
                               <Eye className="h-4 w-4 mr-2" />
                               Ver Detalhes
                             </DropdownMenuItem>
@@ -737,7 +746,7 @@ export default function Inventory() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`)}>
+                          <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab, searchTerm, categoryFilter, statusFilter } })}>
                               <Eye className="h-4 w-4 mr-2" />
                               Detalhes
                           </DropdownMenuItem>
