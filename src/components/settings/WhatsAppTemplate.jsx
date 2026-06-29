@@ -19,7 +19,7 @@ Temos uma ótima notícia para você: seu orçamento personalizado para redescob
 
 *Pensamos nas melhores formas para você realizar esse investimento na sua saúde:*
 * Parcelamento Super Facilitado:* Leve seus aparelhos em até *18X SEM JUROS no cartão!* São parcelas pequenas de apenas *{{installment_value}}* que cabem no seu bolso.
-* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de 10%*! Valor à vista: *{{total}}*
+* Descontão à Vista:* Prefere pagar em dinheiro ou Pix? Aproveite um *desconto especial de {{discount_percent}}%*! Valor à vista: *{{total}}*
 
 *Sua tranquilidade é nossa prioridade:*
 Todos os aparelhos vêm com *{{warranty}}* de garantia, garantindo sua segurança e nosso suporte total.
@@ -156,7 +156,7 @@ export default function WhatsAppTemplate() {
               <p className="text-xs text-slate-500 mt-2">
                 <strong>Variáveis disponíveis:</strong> {'{{'} client_name {'}}'}, {'{{'} quote_number {'}}'}, 
                 {'{{'} product_list {'}}'}, {'{{'} subtotal {'}}'}, {'{{'} total {'}}'}, 
-                {'{{'} installment_value {'}}'}, {'{{'} warranty {'}}'}, {'{{'} contact_phone {'}}'}
+                {'{{'} installment_value {'}}'}, {'{{'} discount_percent {'}}'}, {'{{'} warranty {'}}'}, {'{{'} contact_phone {'}}'}
               </p>
             </div>
           </div>
@@ -194,6 +194,7 @@ export default function WhatsAppTemplate() {
           <p><strong>{'{{'} subtotal {'}}'}</strong> - Valor subtotal (antes do desconto)</p>
           <p><strong>{'{{'} total {'}}'}</strong> - Valor total (com desconto aplicado)</p>
           <p><strong>{'{{'} installment_value {'}}'}</strong> - Valor de cada parcela (18x)</p>
+          <p><strong>{'{{'} discount_percent {'}}'}</strong> - Percentual de desconto aplicado</p>
           <p><strong>{'{{'} warranty {'}}'}</strong> - Período de garantia dos produtos</p>
           <p><strong>{'{{'} contact_phone {'}}'}</strong> - Telefone de contato configurado</p>
         </div>
