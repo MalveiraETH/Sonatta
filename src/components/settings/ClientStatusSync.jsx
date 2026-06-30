@@ -31,6 +31,24 @@ export default function ClientStatusSync() {
     }
   };
 
+  const fixProductStatuses = async () => {
+    setLoading(true);
+    setResult(null);
+    try {
+      const response = await base44.functions.invoke('fixSoldProductStatus', {});
+      if (response.data.fixed !== undefined) {
+        toast.success(`${response.data.fixed} produto(s) corrigido(s) para "Vendido"`);
+      } else {
+        toast.error('Erro ao corrigir status dos produtos');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao executar correção');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const checkPostSale = async () => {
     setLoading(true);
     
@@ -88,6 +106,19 @@ export default function ClientStatusSync() {
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Corrigir Status de Todos os Clientes
               </>
+            )}
+          </Button>
+
+          <Button
+            onClick={fixProductStatuses}
+            disabled={loading}
+            variant="outline"
+            className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+          >
+            {loading ? (
+              <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Processando...</>
+            ) : (
+              <><CheckCircle className="h-4 w-4 mr-2" />Corrigir Produtos Vendidos com Status Errado</>
             )}
           </Button>
 
