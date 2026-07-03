@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Calendar, MessageCircle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import InstallmentsPDFButton from '@/components/clients/InstallmentsPDFButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -163,9 +164,16 @@ Sonatta Soluções Auditivas`;
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>
-              {paymentMethod === 'pix_parcelado' ? 'Controle de Parcelas PIX' : 'Controle de Parcelas Cartão'}
-            </CardTitle>
+            <div className="flex items-center gap-3 flex-wrap">
+              <CardTitle>
+                {paymentMethod === 'pix_parcelado' ? 'Controle de Parcelas PIX' : 'Controle de Parcelas Cartão'}
+              </CardTitle>
+              <InstallmentsPDFButton
+                installments={installments}
+                clientName={clientName}
+                paymentMethod={paymentMethod}
+              />
+            </div>
             {totalPending > 0 && (
               <div className="text-right">
                 <p className="text-sm text-slate-500">Saldo Total Devedor</p>
