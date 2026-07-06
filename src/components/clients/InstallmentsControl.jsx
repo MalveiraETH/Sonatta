@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Calendar, MessageCircle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Calendar, MessageCircle, CheckCircle, Clock, AlertCircle, Undo2 } from 'lucide-react';
 import InstallmentsPDFButton from '@/components/clients/InstallmentsPDFButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -151,6 +151,35 @@ Sonatta Soluções Auditivas`;
     }
   };
 
+  const undoLastPayment = async (installment) => {
+    const history = installment.payment_history || [];
+    if (history.length === 0) {
+      toast.error('Nenhum pagamento para desfazer');
+      return;
+    }
+    const lastPayment = history[history.length - 1];
+    const newHistory = history.slice(0, -1);
+    const newPaidAmount = Math.max(0, (installment.paid_amount || 0) - lastPayment.amount);
+    const newRemainingAmount = (installment.original_amount || 0) - newPaidAmount;
+    const newStatus = newPaidAmount <= 0 ? 'pendente' : 'parcialmente_pago';
+
+    try {
+      await base44.entities.Installment.update(installment.id, {
+        paid_amount: newPaidAmount,
+        remaining_amount: newRemainingAmount,
+        payment_status: newStatus,
+        last_payment_date: newHistory.length > 0 ? newHistory[newHistory.length - 1].date : null,
+        payment_history: newHistory
+      });
+      toast.success('Último pagamento desfeito com sucesso');
+      await loadInstallments();
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao desfazer pagamento');
+    }
+  };
+
   const pendingInstallments = installments.filter(i => i.payment_status !== 'pago');
   const totalPending = pendingInstallments.reduce((sum, i) => sum + i.remaining_amount, 0);
 
@@ -258,7 +287,18 @@ Sonatta Soluções Auditivas`;
 
                     {installment.payment_history && installment.payment_history.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-200">
-                        <p className="text-xs font-medium text-slate-500 mb-2">Histórico de Pagamentos:</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-medium text-slate-500">Histórico de Pagamentos:</p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => undoLastPayment(installment)}
+                            className="h-6 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Undo2 className="h-3 w-3 mr-1" />
+                            Desfazer último
+                          </Button>
+                        </div>
                         <div className="space-y-1">
                           {installment.payment_history.map((payment, idx) => (
                             <div key={idx} className="text-xs bg-white p-2 rounded flex items-center justify-between">
