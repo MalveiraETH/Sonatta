@@ -23,6 +23,7 @@ export default function InstallmentsControl({ clientId, clientName, clientPhone,
   const [selectedInstallment, setSelectedInstallment] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [submitting, setSubmitting] = useState(false);
 
   React.useEffect(() => {
     loadInstallments();
@@ -46,6 +47,7 @@ export default function InstallmentsControl({ clientId, clientName, clientPhone,
   };
 
   const handlePayment = async () => {
+    if (submitting) return;
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
       toast.error('Informe um valor válido');
       return;
@@ -57,6 +59,7 @@ export default function InstallmentsControl({ clientId, clientName, clientPhone,
       return;
     }
 
+    setSubmitting(true);
     try {
       const newPaidAmount = selectedInstallment.paid_amount + amount;
       const newRemainingAmount = selectedInstallment.original_amount - newPaidAmount;
@@ -86,6 +89,8 @@ export default function InstallmentsControl({ clientId, clientName, clientPhone,
     } catch (error) {
       console.error(error);
       toast.error('Erro ao registrar pagamento');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -324,8 +329,8 @@ Sonatta Soluções Auditivas`;
                 <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handlePayment} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-                  Confirmar Pagamento
+                <Button onClick={handlePayment} disabled={submitting} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+                  {submitting ? 'Salvando...' : 'Confirmar Pagamento'}
                 </Button>
               </div>
             </div>
