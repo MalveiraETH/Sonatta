@@ -15,6 +15,7 @@ import TestForm from '@/components/tests/TestForm';
 import ClientForm from '@/components/clients/ClientForm';
 import MoldOrderForm from '@/components/molds/MoldOrderForm';
 import MoldStatusBadge from '@/components/molds/MoldStatusBadge';
+import MedicalRecordsTimeline from '@/components/clients/MedicalRecordsTimeline';
 import {
   Table,
   TableBody,
@@ -386,6 +387,7 @@ export default function ClientDetail() {
           <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="products">Produtos</TabsTrigger>
           <TabsTrigger value="molds">Moldes & Tampões</TabsTrigger>
+          <TabsTrigger value="records">Prontuários</TabsTrigger>
         </TabsList>
 
         <TabsContent value="devices">
@@ -781,6 +783,10 @@ export default function ClientDetail() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="records">
+          <MedicalRecordsTimeline clientId={client.id} clientName={client.full_name} />
         </TabsContent>
 
       </Tabs>
