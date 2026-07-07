@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import CommandPalette from '@/components/ui/CommandPalette';
 import { createPageUrl } from './utils';
 import { base44 } from '@/api/base44Client';
 import {
@@ -20,7 +21,8 @@ import {
   Shield,
   Wrench,
   Bot,
-  Layers
+  Layers,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,9 +63,22 @@ const userRoleLabels = {
 
 export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [user, setUser] = useState(null);
   const { canAccessPage } = usePermissions(user);
   const location = useLocation();
+
+  // Atalho Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Determina a página ativa pela URL
   const activePageFromUrl = location.pathname.replace(/^\//, '') || 'Clients';
@@ -108,6 +123,18 @@ export default function Layout({ children, currentPageName }) {
           <h1 className="text-white font-bold text-base tracking-wide leading-tight">SONATTA</h1>
           <p className="text-white/50 text-xs leading-tight">Soluções Auditivas</p>
         </div>
+      </div>
+
+      {/* Command search button */}
+      <div className="px-4 py-3 border-b border-white/10 flex-shrink-0">
+        <button
+          onClick={() => setCmdOpen(true)}
+          className="w-full flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-white/60 hover:text-white/80 text-sm transition-colors"
+        >
+          <Search className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1 text-left">Buscar...</span>
+          <kbd className="hidden lg:inline text-xs bg-white/10 px-1.5 py-0.5 rounded">⌘K</kbd>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -168,6 +195,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-slate-50">
       <AppVersionMonitor />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
 
 
@@ -205,22 +233,32 @@ export default function Layout({ children, currentPageName }) {
             <span className="text-[#6B3FA0] font-semibold">Sonatta</span>
           </div>
         </div>
-        {user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
-                <span className="text-sm">{user.full_name?.split(' ')[0]}</span>
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => base44.auth.logout()}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCmdOpen(true)}
+            className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
+                  <span className="text-sm">{user.full_name?.split(' ')[0]}</span>
+                  <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => base44.auth.logout()}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </header>
 
       {/* Mobile Sidebar */}

@@ -40,6 +40,9 @@ import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import PaginationControls from '@/components/ui/PaginationControls';
+import { ClientsTableSkeleton } from '@/components/ui/ClientsTableSkeleton';
+
+const FILTERS_STORAGE_KEY = 'sonatta_clients_filters';
 
 const PAGE_SIZE = 50;
 const FETCH_LIMIT = 500; // busca em lotes do banco — nunca carrega tudo de uma vez
@@ -83,12 +86,15 @@ export default function Clients() {
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
   const [activeTestsByClient, setActiveTestsByClient] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Filtros persistentes via localStorage
+  const savedFilters = (() => { try { return JSON.parse(localStorage.getItem(FILTERS_STORAGE_KEY)) || {}; } catch { return {}; } })();
+  const [searchTerm, setSearchTerm] = useState(savedFilters.searchTerm || '');
+  const [statusFilter, setStatusFilter] = useState(savedFilters.statusFilter || 'all');
 
   useEffect(() => {
     loadData();
@@ -96,6 +102,8 @@ export default function Clients() {
 
   useEffect(() => {
     filterClients();
+    // Persiste filtros
+    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ searchTerm, statusFilter }));
   }, [clients, searchTerm, statusFilter]);
 
   const ACTIVE_TEST_STATUSES = ['teste_agendado', 'em_teste', 'teste_estendido', 'teste_pendente'];
@@ -197,11 +205,7 @@ export default function Clients() {
 
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B3FA0]"></div>
-      </div>
-    );
+    return <ClientsTableSkeleton />;
   }
 
   return (
