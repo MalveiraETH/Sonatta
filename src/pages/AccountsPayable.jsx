@@ -64,7 +64,8 @@ export default function AccountsPayable() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [counterparties, setCounterparties] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 40;
 
   useEffect(() => {
     loadExpenses();
@@ -215,16 +216,16 @@ export default function AccountsPayable() {
     setFilterCounterparty('todos');
     setDateStart('');
     setDateEnd('');
-    setVisibleCount(25);
+    setCurrentPage(1);
   };
 
   // Reset pagination when filters change
   useEffect(() => {
-    setVisibleCount(25);
+    setCurrentPage(1);
   }, [searchTerm, filterStatus, filterCategory, filterCounterparty, dateStart, dateEnd]);
 
-  const visibleExpenses = filteredExpenses.slice(0, visibleCount);
-  const hasMore = filteredExpenses.length > visibleCount;
+  const totalPages = Math.max(1, Math.ceil(filteredExpenses.length / PAGE_SIZE));
+  const pagedExpenses = filteredExpenses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const FiltersContent = () => (
     <div className="space-y-4">
@@ -521,7 +522,7 @@ export default function AccountsPayable() {
                 </TableCell>
               </TableRow>
             ) : (
-              visibleExpenses.map(exp => {
+              pagedExpenses.map(exp => {
                 const badge = getStatusBadge(exp);
                 const Icon = badge.icon;
                 return (
@@ -573,11 +574,15 @@ export default function AccountsPayable() {
             )}
           </TableBody>
         </Table>
-        {hasMore && (
-          <div className="p-4 text-center border-t">
-            <Button variant="outline" onClick={() => setVisibleCount(v => v + 25)}>
-              Carregar mais ({filteredExpenses.length - visibleCount} restantes)
-            </Button>
+        {totalPages > 1 && (
+          <div className="p-4 flex items-center justify-between border-t">
+            <span className="text-sm text-slate-500">
+              Página {currentPage} de {totalPages} · {filteredExpenses.length} registros
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>Anterior</Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>Próxima</Button>
+            </div>
           </div>
         )}
       </Card>
@@ -589,7 +594,7 @@ export default function AccountsPayable() {
             Nenhuma despesa encontrada
           </Card>
         ) : (
-          visibleExpenses.map(exp => {
+          pagedExpenses.map(exp => {
             const badge = getStatusBadge(exp);
             const Icon = badge.icon;
             return (
@@ -642,11 +647,13 @@ export default function AccountsPayable() {
             );
           })
         )}
-        {hasMore && (
-          <div className="text-center pt-2">
-            <Button variant="outline" onClick={() => setVisibleCount(v => v + 25)}>
-              Carregar mais ({filteredExpenses.length - visibleCount} restantes)
-            </Button>
+        {totalPages > 1 && (
+          <div className="pt-2 flex items-center justify-between">
+            <span className="text-sm text-slate-500">{currentPage}/{totalPages}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>Anterior</Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>Próxima</Button>
+            </div>
           </div>
         )}
       </div>

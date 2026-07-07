@@ -67,6 +67,8 @@ export default function AccountsReceivable() {
   const [liquidateDate, setLiquidateDate] = useState('');
   const [liquidateExtraFee, setLiquidateExtraFee] = useState('0');
   const [liquidating, setLiquidating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 40;
 
   useEffect(() => {
     loadInstallments();
@@ -296,6 +298,14 @@ export default function AccountsReceivable() {
     setDateStart('');
     setDateEnd('');
   };
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterMethod, dateStart, dateEnd]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredInstallments.length / PAGE_SIZE));
+  const pagedInstallments = filteredInstallments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const FiltersContent = () => (
     <div className="space-y-4">
@@ -572,7 +582,7 @@ export default function AccountsReceivable() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredInstallments.map(inst => {
+              pagedInstallments.map(inst => {
                 const badge = getStatusBadge(inst);
                 const Icon = badge.icon;
                 return (
@@ -641,6 +651,17 @@ export default function AccountsReceivable() {
             )}
           </TableBody>
         </Table>
+        {totalPages > 1 && (
+          <div className="p-4 flex items-center justify-between border-t">
+            <span className="text-sm text-slate-500">
+              Página {currentPage} de {totalPages} · {filteredInstallments.length} registros
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>Anterior</Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>Próxima</Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Cards - Mobile */}
@@ -650,7 +671,7 @@ export default function AccountsReceivable() {
             Nenhuma parcela encontrada
           </Card>
         ) : (
-          filteredInstallments.map(inst => {
+          pagedInstallments.map(inst => {
             const badge = getStatusBadge(inst);
             const Icon = badge.icon;
             return (
@@ -714,6 +735,15 @@ export default function AccountsReceivable() {
               </Card>
             );
           })
+        )}
+        {totalPages > 1 && (
+          <div className="pt-2 flex items-center justify-between">
+            <span className="text-sm text-slate-500">{currentPage}/{totalPages}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>Anterior</Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>Próxima</Button>
+            </div>
+          </div>
         )}
       </div>
 
