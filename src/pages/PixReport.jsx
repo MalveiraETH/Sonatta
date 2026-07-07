@@ -456,7 +456,7 @@ export default function PixReport() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link to={createPageUrl(`ClientDetail?id=${clientData.client.id}`)} className="flex items-center">
+                            <Link to={createPageUrl(`ClientDetail?id=${clientData.client.id}&tab=installments`)} className="flex items-center">
                               <Eye className="h-4 w-4 mr-2" />
                               Detalhes
                             </Link>
@@ -511,7 +511,7 @@ export default function PixReport() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link to={createPageUrl(`ClientDetail?id=${clientData.client.id}`)} className="flex items-center">
+                          <Link to={createPageUrl(`ClientDetail?id=${clientData.client.id}&tab=installments`)} className="flex items-center">
                             <Eye className="h-4 w-4 mr-2" />
                             Detalhes
                           </Link>

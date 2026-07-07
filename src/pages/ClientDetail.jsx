@@ -377,7 +377,7 @@ export default function ClientDetail() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="devices" className="space-y-4">
+      <Tabs defaultValue={new URLSearchParams(window.location.search).get('tab') || 'devices'} className="space-y-4">
         <TabsList className="bg-slate-100 flex-wrap h-auto">
           <TabsTrigger value="devices">Aparelhos</TabsTrigger>
           <TabsTrigger value="tests">Testes</TabsTrigger>
