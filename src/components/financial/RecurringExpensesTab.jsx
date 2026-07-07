@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { RotateCw, Plus, Pencil, Trash2, Zap } from 'lucide-react';
+import { RotateCw, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
 
 export default function RecurringExpensesTab() {
   const [expenses, setExpenses] = useState([]);
@@ -46,69 +45,6 @@ export default function RecurringExpensesTab() {
       setCounterparties(counters);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-    }
-  };
-
-  const [generating, setGenerating] = useState(false);
-
-  const generateMonthlyExpenses = async () => {
-    const activeExpenses = expenses.filter(e => e.is_active !== false);
-    if (activeExpenses.length === 0) {
-      toast.error('Nenhuma despesa recorrente ativa cadastrada');
-      return;
-    }
-
-    setGenerating(true);
-    try {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth(); // 0-indexed
-      const monthNames = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-      const competencyMonth = monthNames[month];
-
-      // Busca lançamentos já existentes para este mês
-      const existingExpenses = await base44.entities.Expense.filter({
-        competency_month: competencyMonth,
-        competency_year: year
-      });
-      const existingRecurringIds = new Set(existingExpenses.map(e => e.recurring_expense_id).filter(Boolean));
-
-      const toCreate = activeExpenses.filter(e => !existingRecurringIds.has(e.id));
-
-      if (toCreate.length === 0) {
-        toast.info(`Todos os lançamentos de ${competencyMonth}/${year} já foram gerados`);
-        return;
-      }
-
-      for (const rec of toCreate) {
-        const day = Math.min(rec.due_day, new Date(year, month + 1, 0).getDate());
-        const dueDate = format(new Date(year, month, day), 'yyyy-MM-dd');
-
-        await base44.entities.Expense.create({
-          competency_month: competencyMonth,
-          competency_year: year,
-          due_date: dueDate,
-          event_date: dueDate,
-          amount: rec.amount,
-          category_id: rec.category_id,
-          category_name: rec.category_name,
-          counterparty_id: rec.counterparty_id,
-          counterparty_name: rec.counterparty_name,
-          type: rec.type,
-          payment_method: rec.payment_method,
-          invoice_number: rec.invoice_number,
-          notes: rec.notes,
-          status: 'a_pagar',
-          recurring_expense_id: rec.id
-        });
-      }
-
-      toast.success(`${toCreate.length} lançamento(s) gerado(s) em Contas a Pagar!`);
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao gerar lançamentos');
-    } finally {
-      setGenerating(false);
     }
   };
 
@@ -188,16 +124,10 @@ export default function RecurringExpensesTab() {
             <CardTitle>Despesas Recorrentes</CardTitle>
             <p className="text-sm text-slate-500 mt-1">Lançamentos automáticos todo dia 1º do mês</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={generateMonthlyExpenses} disabled={generating}>
-              <Zap className="h-4 w-4 mr-2" />
-              {generating ? 'Gerando...' : 'Gerar lançamentos do mês'}
-            </Button>
-            <Button onClick={() => setShowForm(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Despesa Recorrente
-            </Button>
-          </div>
+          <Button onClick={() => setShowForm(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Despesa Recorrente
+          </Button>
         </CardHeader>
         <CardContent>
           {expenses.length === 0 ? (
