@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -6,16 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
-import AppointmentForm from '@/components/appointments/AppointmentForm';
-import QuoteForm from '@/components/quotes/QuoteForm';
-import SaleForm from '@/components/sales/SaleForm';
-import NewSaleForm from '@/components/sales/NewSaleForm';
-import InstallmentsControl from '@/components/clients/InstallmentsControl';
-import TestForm from '@/components/tests/TestForm';
-import ClientForm from '@/components/clients/ClientForm';
-import MoldOrderForm from '@/components/molds/MoldOrderForm';
-import MoldStatusBadge from '@/components/molds/MoldStatusBadge';
-import MedicalRecordsTimeline from '@/components/clients/MedicalRecordsTimeline';
+// Lazy loading — carregados apenas quando necessário, reduz bundle inicial
+const AppointmentForm = lazy(() => import('@/components/appointments/AppointmentForm'));
+const QuoteForm = lazy(() => import('@/components/quotes/QuoteForm'));
+const SaleForm = lazy(() => import('@/components/sales/SaleForm'));
+const NewSaleForm = lazy(() => import('@/components/sales/NewSaleForm'));
+const InstallmentsControl = lazy(() => import('@/components/clients/InstallmentsControl'));
+const TestForm = lazy(() => import('@/components/tests/TestForm'));
+const ClientForm = lazy(() => import('@/components/clients/ClientForm'));
+const MoldOrderForm = lazy(() => import('@/components/molds/MoldOrderForm'));
+const MoldStatusBadge = lazy(() => import('@/components/molds/MoldStatusBadge'));
+const MedicalRecordsTimeline = lazy(() => import('@/components/clients/MedicalRecordsTimeline'));
 import {
   Table,
   TableBody,
@@ -524,23 +525,27 @@ export default function ClientDetail() {
         </TabsContent>
 
         <TabsContent value="installments">
-          <InstallmentsControl 
-            clientId={client.id}
-            clientName={client.full_name}
-            clientPhone={client.phone}
-            paymentMethod="pix_parcelado"
-            onUpdate={loadData}
-          />
+          <Suspense fallback={<div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" /></div>}>
+            <InstallmentsControl 
+              clientId={client.id}
+              clientName={client.full_name}
+              clientPhone={client.phone}
+              paymentMethod="pix_parcelado"
+              onUpdate={loadData}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="card-installments">
-          <InstallmentsControl 
-            clientId={client.id}
-            clientName={client.full_name}
-            clientPhone={client.phone}
-            paymentMethod="cartao_credito"
-            onUpdate={loadData}
-          />
+          <Suspense fallback={<div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" /></div>}>
+            <InstallmentsControl 
+              clientId={client.id}
+              clientName={client.full_name}
+              clientPhone={client.phone}
+              paymentMethod="cartao_credito"
+              onUpdate={loadData}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="appointments">
@@ -786,59 +791,63 @@ export default function ClientDetail() {
         </TabsContent>
 
         <TabsContent value="records">
-          <MedicalRecordsTimeline clientId={client.id} clientName={client.full_name} />
+          <Suspense fallback={<div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" /></div>}>
+            <MedicalRecordsTimeline clientId={client.id} clientName={client.full_name} />
+          </Suspense>
         </TabsContent>
 
       </Tabs>
 
-      <AppointmentForm
-        open={appointmentFormOpen}
-        onOpenChange={setAppointmentFormOpen}
-        preselectedClient={client}
-        onSuccess={loadData}
-      />
+      <Suspense fallback={null}>
+        <AppointmentForm
+          open={appointmentFormOpen}
+          onOpenChange={setAppointmentFormOpen}
+          preselectedClient={client}
+          onSuccess={loadData}
+        />
 
-      <QuoteForm
-        open={quoteFormOpen}
-        onOpenChange={setQuoteFormOpen}
-        preselectedClient={client}
-        onSuccess={loadData}
-      />
+        <QuoteForm
+          open={quoteFormOpen}
+          onOpenChange={setQuoteFormOpen}
+          preselectedClient={client}
+          onSuccess={loadData}
+        />
 
-      <SaleForm
-        open={saleFormOpen}
-        onOpenChange={setSaleFormOpen}
-        preselectedClient={client}
-        onSuccess={loadData}
-      />
+        <SaleForm
+          open={saleFormOpen}
+          onOpenChange={setSaleFormOpen}
+          preselectedClient={client}
+          onSuccess={loadData}
+        />
 
-      <NewSaleForm
-        open={newSaleFormOpen}
-        onOpenChange={setNewSaleFormOpen}
-        preselectedClient={client}
-        onSuccess={loadData}
-      />
+        <NewSaleForm
+          open={newSaleFormOpen}
+          onOpenChange={setNewSaleFormOpen}
+          preselectedClient={client}
+          onSuccess={loadData}
+        />
 
-      <TestForm
-        open={testFormOpen}
-        onClose={() => setTestFormOpen(false)}
-        onSuccess={loadData}
-        preselectedClientId={client.id}
-      />
+        <TestForm
+          open={testFormOpen}
+          onClose={() => setTestFormOpen(false)}
+          onSuccess={loadData}
+          preselectedClientId={client.id}
+        />
 
-      <ClientForm
-        open={editFormOpen}
-        onOpenChange={setEditFormOpen}
-        client={client}
-        onSuccess={loadData}
-      />
+        <ClientForm
+          open={editFormOpen}
+          onOpenChange={setEditFormOpen}
+          client={client}
+          onSuccess={loadData}
+        />
 
-      <MoldOrderForm
-        open={moldFormOpen}
-        onOpenChange={setMoldFormOpen}
-        preselectedClient={client}
-        onSuccess={loadData}
-      />
+        <MoldOrderForm
+          open={moldFormOpen}
+          onOpenChange={setMoldFormOpen}
+          preselectedClient={client}
+          onSuccess={loadData}
+        />
+      </Suspense>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

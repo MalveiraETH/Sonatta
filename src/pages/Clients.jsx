@@ -42,6 +42,7 @@ import { useNavigate } from 'react-router-dom';
 import PaginationControls from '@/components/ui/PaginationControls';
 
 const PAGE_SIZE = 50;
+const FETCH_LIMIT = 500; // busca em lotes do banco — nunca carrega tudo de uma vez
 
 function FiltersContent({ statusFilter, setStatusFilter, statusLabels, clearFilters, setFilterOpen }) {
   return (
@@ -102,18 +103,20 @@ export default function Clients() {
   const loadData = async () => {
     try {
       const [clientsData, testsData] = await Promise.all([
-        base44.entities.Client.list('-created_date'),
-        base44.entities.Test.list('-created_date')
+        base44.entities.Client.list('-created_date', FETCH_LIMIT),
+        base44.entities.Test.filter(
+          { status: { $in: ['teste_agendado', 'em_teste', 'teste_estendido', 'teste_pendente'] } },
+          '-created_date',
+          200
+        )
       ]);
       setClients(clientsData);
 
-      // Mapear o teste ativo mais recente por cliente
+      // Mapear o teste ativo mais recente por cliente (já filtrado no banco)
       const testsMap = {};
       testsData.forEach(test => {
-        if (ACTIVE_TEST_STATUSES.includes(test.status) && test.client_id) {
-          if (!testsMap[test.client_id]) {
-            testsMap[test.client_id] = test;
-          }
+        if (test.client_id && !testsMap[test.client_id]) {
+          testsMap[test.client_id] = test;
         }
       });
       setActiveTestsByClient(testsMap);
