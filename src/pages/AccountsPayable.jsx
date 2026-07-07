@@ -60,10 +60,11 @@ export default function AccountsPayable() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
-  const [paymentData, setPaymentData] = useState({ date: '', fees: 0 });
+  const [paymentData, setPaymentData] = useState({ date: '', fees: 0, amount: '' });
   const [filterOpen, setFilterOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [counterparties, setCounterparties] = useState([]);
+  const [recurringMap, setRecurringMap] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 40;
 
@@ -86,15 +87,26 @@ export default function AccountsPayable() {
 
   const loadFilters = async () => {
     try {
-      const [cats, counters] = await Promise.all([
+      const [cats, counters, recurring] = await Promise.all([
         base44.entities.ExpenseCategory.filter({ type: 'despesa' }),
-        base44.entities.Counterparty.list()
+        base44.entities.Counterparty.list(),
+        base44.entities.RecurringExpense.list()
       ]);
       setCategories(cats);
       setCounterparties(counters);
+      const map = {};
+      recurring.forEach(r => { map[r.id] = r; });
+      setRecurringMap(map);
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const getExpenseDisplayName = (exp) => {
+    if (exp.recurring_expense_id && recurringMap[exp.recurring_expense_id]) {
+      return recurringMap[exp.recurring_expense_id].name;
+    }
+    return exp.counterparty_name || exp.category_name || '-';
   };
 
   const formatCurrency = (value) => {
@@ -179,7 +191,10 @@ export default function AccountsPayable() {
 
     setLoading(true);
     try {
-      const totalAmount = selectedExpense.amount + (Number(paymentData.fees) || 0);
+      const baseAmount = selectedExpense.type === 'variavel'
+        ? (Number(paymentData.amount) || selectedExpense.amount)
+        : selectedExpense.amount;
+      const totalAmount = baseAmount + (Number(paymentData.fees) || 0);
       await base44.entities.Expense.update(selectedExpense.id, {
         status: 'pago',
         payment_date: paymentData.date,
@@ -505,8 +520,8 @@ export default function AccountsPayable() {
           <TableHeader>
             <TableRow className="bg-slate-50">
               <TableHead>Status</TableHead>
+              <TableHead>Nome</TableHead>
               <TableHead>Categoria</TableHead>
-              <TableHead>Fornecedor</TableHead>
               <TableHead>NF</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Dt. Pagamento</TableHead>
@@ -533,8 +548,8 @@ export default function AccountsPayable() {
                         {badge.label}
                       </span>
                     </TableCell>
-                    <TableCell className="font-medium">{exp.category_name}</TableCell>
-                    <TableCell>{exp.counterparty_name || '-'}</TableCell>
+                    <TableCell className="font-medium">{getExpenseDisplayName(exp)}</TableCell>
+                    <TableCell>{exp.category_name}</TableCell>
                     <TableCell className="text-slate-500 text-sm">{exp.invoice_number || '-'}</TableCell>
                     <TableCell>{exp.due_date ? formatLocalDate(exp.due_date) : '-'}</TableCell>
                     <TableCell>{exp.payment_date ? formatLocalDate(exp.payment_date) : '-'}</TableCell>
@@ -556,7 +571,7 @@ export default function AccountsPayable() {
                             Editar
                           </DropdownMenuItem>
                           {exp.status !== 'pago' && (
-                            <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setPaymentData({ date: format(new Date(), 'yyyy-MM-dd'), fees: 0 }); setPaymentOpen(true); }}>
+                            <DropdownMenuItem onClick={() => {               setSelectedExpense(exp); setPaymentData({ date: format(new Date(), 'yyyy-MM-dd'), fees: 0, amount: exp.amount }); setPaymentOpen(true); }}>
                               <DollarSign className="h-4 w-4 mr-2" />
                               Registrar Pagamento
                             </DropdownMenuItem>
@@ -603,7 +618,7 @@ export default function AccountsPayable() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-slate-900">{exp.counterparty_name || 'Sem fornecedor'}</span>
+                        <span className="font-semibold text-slate-900">{getExpenseDisplayName(exp)}</span>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${badge.color}`}>
                           <Icon className="h-3 w-3" />
                           {badge.label}
@@ -629,7 +644,7 @@ export default function AccountsPayable() {
                           Editar
                         </DropdownMenuItem>
                         {exp.status !== 'pago' && (
-                          <DropdownMenuItem onClick={() => { setSelectedExpense(exp); setPaymentData({ date: format(new Date(), 'yyyy-MM-dd'), fees: 0 }); setPaymentOpen(true); }}>
+                          <DropdownMenuItem onClick={() => {               setSelectedExpense(exp); setPaymentData({ date: format(new Date(), 'yyyy-MM-dd'), fees: 0, amount: exp.amount }); setPaymentOpen(true); }}>
                             <DollarSign className="h-4 w-4 mr-2" />
                             Pagar
                           </DropdownMenuItem>
@@ -716,6 +731,12 @@ export default function AccountsPayable() {
               <Label>Data do Pagamento</Label>
               <Input type="date" value={paymentData.date} onChange={(e) => setPaymentData({ ...paymentData, date: e.target.value })} />
             </div>
+            {selectedExpense?.type === 'variavel' && (
+              <div>
+                <Label>Valor (R$) <span className="text-xs text-amber-600 font-normal">— despesa variável, edite se necessário</span></Label>
+                <Input type="number" step="0.01" value={paymentData.amount} onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })} />
+              </div>
+            )}
             <div>
               <Label>Juros/Multa (R$)</Label>
               <Input type="number" step="0.01" value={paymentData.fees} onChange={(e) => setPaymentData({ ...paymentData, fees: e.target.value })} />
@@ -723,7 +744,10 @@ export default function AccountsPayable() {
             {selectedExpense && (
               <div className="bg-slate-50 p-3 rounded">
                 <p className="text-sm text-slate-600">Valor Total</p>
-                <p className="text-xl font-bold">{formatCurrency((selectedExpense.amount || 0) + (Number(paymentData.fees) || 0))}</p>
+                <p className="text-xl font-bold">{formatCurrency(
+                  (selectedExpense.type === 'variavel' ? (Number(paymentData.amount) || 0) : (selectedExpense.amount || 0))
+                  + (Number(paymentData.fees) || 0)
+                )}</p>
               </div>
             )}
           </div>
