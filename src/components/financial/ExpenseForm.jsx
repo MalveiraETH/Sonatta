@@ -122,12 +122,12 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{expense ? 'Editar Despesa' : 'Nova Despesa'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <Label>Mês Competência</Label>
               <Select
@@ -162,7 +162,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Data Vencimento *</Label>
               <Input
@@ -245,7 +245,7 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Método de Pagamento</Label>
               <Select
