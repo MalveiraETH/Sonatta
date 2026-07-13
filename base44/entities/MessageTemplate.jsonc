@@ -1,0 +1,62 @@
+{
+  "name": "MessageTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do template (ex: Adultos - Alta Prioridade)"
+    },
+    "age_group": {
+      "type": "string",
+      "enum": [
+        "bebes",
+        "criancas",
+        "adultos"
+      ],
+      "description": "Grupo et\u00e1rio alvo"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baixa",
+        "todas"
+      ],
+      "default": "todas",
+      "description": "Prioridade alvo (ou todas)"
+    },
+    "message": {
+      "type": "string",
+      "description": "Texto da mensagem. Use {{nome}} para o primeiro nome do cliente e {{aparelho}} para o aparelho testado."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o template est\u00e1 ativo"
+    }
+  },
+  "required": [
+    "name",
+    "age_group",
+    "message"
+  ],
+  "rls": {
+    "read": true,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -11,6 +11,19 @@ import {
   Phone, ChevronDown, ChevronUp, Send, Users, Stethoscope
 } from 'lucide-react';
 
+// ─── Helpers de template ─────────────────────────────────────────────────────
+
+function pickTemplate(templates, ageGroup, priority) {
+  if (!templates || templates.length === 0) return null;
+  // Tenta match exato por grupo + prioridade
+  const exact = templates.find(t => t.age_group === ageGroup && t.priority === priority && t.is_active);
+  if (exact) return exact.message;
+  // Fallback: mesmo grupo, qualquer prioridade
+  const byGroup = templates.find(t => t.age_group === ageGroup && t.is_active);
+  if (byGroup) return byGroup.message;
+  return null;
+}
+
 // ─── Configurações ────────────────────────────────────────────────────────────
 
 const AGE_GROUPS = {
@@ -25,10 +38,11 @@ const PRIORITY = {
   baixa: { label: 'Baixa', color: 'bg-slate-100 text-slate-500',  dot: 'bg-slate-300',  icon: TrendingDown  },
 };
 
-const DEFAULT_TEMPLATES = {
-  bebes: `Olá, {{nome}}! 👶\n\nAqui é a Sonatta – Aparelhos Auditivos. Percebemos que realizaram um teste conosco e queríamos saber como está indo a jornada auditiva do pequeno(a).\n\nTemos soluções especializadas para bebês, com tecnologia de ponta e suporte fonoaudiológico completo. A audição nos primeiros meses é fundamental para o desenvolvimento da linguagem. 💙\n\nPodemos conversar? Estamos à disposição!`,
-  criancas: `Olá, {{nome}}! 🎒\n\nA Sonatta tem novidades! Seu(sua) filho(a) realizou um teste conosco e gostaríamos de saber se surgiu alguma dúvida.\n\nTemos aparelhos discretos e resistentes, perfeitos para a rotina escolar. Crianças com boa audição têm melhor desempenho e desenvolvimento social. 🌟\n\nQuando podemos conversar?`,
-  adultos: `Olá, {{nome}}! 😊\n\nA Sonatta está em contato para saber como você está. Você realizou um teste conosco e ficamos na torcida pela sua experiência.\n\nNossos aparelhos são discretos, conectam ao celular via Bluetooth e se adaptam ao seu estilo de vida. 🎧\n\nQue tal agendar uma conversa sem compromisso?`,
+// Templates são carregados do banco; este é o fallback caso não haja nenhum cadastrado
+const FALLBACK_TEMPLATES = {
+  bebes:    `Olá, {{nome}}! 👶\n\nAqui é a Sonatta. Gostaríamos de saber como está a jornada auditiva do(a) pequeno(a). Estamos à disposição!`,
+  criancas: `Olá, {{nome}}! 🎒\n\nA Sonatta está em contato. Temos aparelhos perfeitos para crianças. Quando podemos conversar?`,
+  adultos:  `Olá, {{nome}}! 😊\n\nA Sonatta está em contato. Nossos aparelhos são discretos e conectam ao celular. Que tal uma conversa sem compromisso?`,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -196,15 +210,16 @@ function ClientRow({ item, onWhatsApp }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function VendasPerdidas() {
-  const [loading, setLoading]         = useState(true);
-  const [data, setData]               = useState({ lost_sales: [], stats: {} });
-  const [activeGroup, setActiveGroup] = useState('todos');
-  const [activePrio, setActivePrio]   = useState('todos');
-  const [search, setSearch]           = useState('');
-  const [campaign, setCampaign]       = useState(null); // { groupKey, clients }
+  const [loading, setLoading]           = useState(true);
+  const [data, setData]                 = useState({ lost_sales: [], stats: {} });
+  const [templates, setTemplates]       = useState([]);
+  const [activeGroup, setActiveGroup]   = useState('todos');
+  const [activePrio, setActivePrio]     = useState('todos');
+  const [search, setSearch]             = useState('');
+  const [campaign, setCampaign]         = useState(null); // { groupKey, clients }
   const [campaignText, setCampaignText] = useState('');
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); loadTemplates(); }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -213,6 +228,13 @@ export default function VendasPerdidas() {
       setData(res.data || { lost_sales: [], stats: {} });
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const list = await base44.entities.MessageTemplate.filter({ is_active: true });
+      setTemplates(list || []);
+    } catch (e) { console.error(e); }
   };
 
   const filtered = (data.lost_sales || []).filter(item => {
@@ -226,22 +248,32 @@ export default function VendasPerdidas() {
 
   const openCampaign = (groupKey) => {
     const clients = (data.lost_sales || []).filter(x => x.age_group?.key === groupKey);
-    setCampaignText(DEFAULT_TEMPLATES[groupKey] || '');
+    const tmplText = pickTemplate(templates, groupKey, 'alta')
+      || FALLBACK_TEMPLATES[groupKey] || '';
+    setCampaignText(tmplText);
     setCampaign({ groupKey, clients });
   };
 
   const sendToClient = (client) => {
     const phone = formatPhone(client.client_phone);
     if (!phone) return;
-    const text = campaignText.replace(/{{nome}}/g, client.client_name?.split(' ')[0] || 'você');
+    const device = client.last_test_devices?.find(d => d.product_name)?.product_name || 'aparelho auditivo';
+    const text = campaignText
+      .replace(/{{nome}}/g, client.client_name?.split(' ')[0] || 'você')
+      .replace(/{{aparelho}}/g, device);
     openWhatsApp(phone, text);
   };
 
   const sendDirect = (item) => {
     const phone = formatPhone(item.client_phone);
     if (!phone) return;
-    const tmpl = DEFAULT_TEMPLATES[item.age_group?.key] || DEFAULT_TEMPLATES.adultos;
-    const text = tmpl.replace(/{{nome}}/g, item.client_name?.split(' ')[0] || 'você');
+    const tmpl = pickTemplate(templates, item.age_group?.key, item.priority)
+      || FALLBACK_TEMPLATES[item.age_group?.key]
+      || FALLBACK_TEMPLATES.adultos;
+    const device = item.last_test_devices?.find(d => d.product_name)?.product_name || 'aparelho auditivo';
+    const text = tmpl
+      .replace(/{{nome}}/g, item.client_name?.split(' ')[0] || 'você')
+      .replace(/{{aparelho}}/g, device);
     openWhatsApp(phone, text);
   };
 
