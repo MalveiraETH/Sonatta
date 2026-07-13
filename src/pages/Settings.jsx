@@ -15,6 +15,7 @@ import QuotePDFSettings from '@/components/settings/QuotePDFSettings';
 import { Settings as SettingsIcon } from 'lucide-react';
 import UsersManagement from '@/components/settings/UsersManagement';
 import AccessPermissions from '@/components/settings/AccessPermissions';
+import WhatsAppCampaignTemplates from '@/components/settings/WhatsAppCampaignTemplates';
 
 export default function Settings() {
   return (
@@ -40,6 +41,7 @@ export default function Settings() {
           <TabsTrigger value="audit" className="text-xs sm:text-sm">Auditoria</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Usuários</TabsTrigger>
           <TabsTrigger value="permissions" className="text-xs sm:text-sm">Permissões</TabsTrigger>
+          <TabsTrigger value="campaign_templates" className="text-xs sm:text-sm">📣 Campanhas WhatsApp</TabsTrigger>
         </TabsList>
 
         <TabsContent value="hours">
@@ -92,6 +94,10 @@ export default function Settings() {
 
         <TabsContent value="permissions">
           <AccessPermissions />
+        </TabsContent>
+
+        <TabsContent value="campaign_templates">
+          <WhatsAppCampaignTemplates />
         </TabsContent>
       </Tabs>
     </div>

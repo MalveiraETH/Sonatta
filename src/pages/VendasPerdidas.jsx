@@ -8,18 +8,27 @@ import { openWhatsApp } from '@/utils/whatsapp';
 import {
   Baby, GraduationCap, UserCheck, AlertTriangle,
   Clock, Search, MessageSquare, TrendingDown, RefreshCw,
-  Phone, ChevronDown, ChevronUp, Send, Users, Stethoscope
+  Phone, ChevronDown, ChevronUp, Send, Users, Stethoscope, Megaphone, X
 } from 'lucide-react';
 
 // ─── Helpers de template ─────────────────────────────────────────────────────
 
-function pickTemplate(templates, ageGroup, priority) {
+function pickTemplate(templates, ageGroup, priority, messageType = 'padrao') {
   if (!templates || templates.length === 0) return null;
-  // Tenta match exato por grupo + prioridade
-  const exact = templates.find(t => t.age_group === ageGroup && t.priority === priority && t.is_active);
+  // Match exato: tipo + grupo + prioridade
+  const exact = templates.find(t =>
+    (t.message_type || 'padrao') === messageType &&
+    t.age_group === ageGroup &&
+    t.priority === priority &&
+    t.is_active
+  );
   if (exact) return exact.message;
-  // Fallback: mesmo grupo, qualquer prioridade
-  const byGroup = templates.find(t => t.age_group === ageGroup && t.is_active);
+  // Fallback: mesmo tipo + grupo, qualquer prioridade
+  const byGroup = templates.find(t =>
+    (t.message_type || 'padrao') === messageType &&
+    t.age_group === ageGroup &&
+    t.is_active
+  );
   if (byGroup) return byGroup.message;
   return null;
 }
@@ -103,8 +112,42 @@ function FilterPill({ label, active, onClick }) {
   );
 }
 
+function MessageTypePicker({ onSelect, onClose }) {
+  return (
+    <div className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-2 w-56" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-slate-100">
+        <p className="text-xs font-semibold text-slate-500">Tipo de mensagem</p>
+        <button onClick={onClose} className="text-slate-300 hover:text-slate-500">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <button
+        onClick={() => onSelect('padrao')}
+        className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[#6B3FA0]/5 transition-colors text-left"
+      >
+        <MessageSquare className="h-4 w-4 text-[#6B3FA0] mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-slate-700">Padrão</p>
+          <p className="text-[11px] text-slate-400 leading-tight">Mensagem individual personalizada</p>
+        </div>
+      </button>
+      <button
+        onClick={() => onSelect('campanha')}
+        className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg hover:bg-orange-50 transition-colors text-left"
+      >
+        <Megaphone className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-slate-700">Campanha</p>
+          <p className="text-[11px] text-slate-400 leading-tight">Mensagem de disparo em massa</p>
+        </div>
+      </button>
+    </div>
+  );
+}
+
 function ClientRow({ item, onWhatsApp }) {
   const [expanded, setExpanded] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const group = AGE_GROUPS[item.age_group?.key] || AGE_GROUPS.adultos;
   const prio  = PRIORITY[item.priority]         || PRIORITY.baixa;
   const PrioIcon = prio.icon;
@@ -139,13 +182,22 @@ function ClientRow({ item, onWhatsApp }) {
         {/* Ações */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {item.client_phone && (
-            <button
-              onClick={() => onWhatsApp(item)}
-              className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Phone className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">WhatsApp</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowPicker(p => !p)}
+                className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Phone className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">WhatsApp</span>
+                <ChevronDown className="h-3 w-3 opacity-70" />
+              </button>
+              {showPicker && (
+                <MessageTypePicker
+                  onSelect={type => { setShowPicker(false); onWhatsApp(item, type); }}
+                  onClose={() => setShowPicker(false)}
+                />
+              )}
+            </div>
           )}
           <button
             onClick={() => setExpanded(e => !e)}
@@ -193,14 +245,24 @@ function ClientRow({ item, onWhatsApp }) {
             </div>
           )}
 
-          <button
-            onClick={() => onWhatsApp(item)}
-            disabled={!item.client_phone}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            <Send className="h-3.5 w-3.5" />
-            Enviar mensagem personalizada
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => onWhatsApp(item, 'padrao')}
+              disabled={!item.client_phone}
+              className="flex items-center gap-2 bg-[#6B3FA0] hover:bg-[#5a3490] disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Msg. Padrão
+            </button>
+            <button
+              onClick={() => onWhatsApp(item, 'campanha')}
+              disabled={!item.client_phone}
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              <Megaphone className="h-3.5 w-3.5" />
+              Msg. Campanha
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -264,10 +326,10 @@ export default function VendasPerdidas() {
     openWhatsApp(phone, text);
   };
 
-  const sendDirect = (item) => {
+  const sendDirect = (item, messageType = 'padrao') => {
     const phone = formatPhone(item.client_phone);
     if (!phone) return;
-    const tmpl = pickTemplate(templates, item.age_group?.key, item.priority)
+    const tmpl = pickTemplate(templates, item.age_group?.key, item.priority, messageType)
       || FALLBACK_TEMPLATES[item.age_group?.key]
       || FALLBACK_TEMPLATES.adultos;
     const device = item.last_test_devices?.find(d => d.product_name)?.product_name || 'aparelho auditivo';

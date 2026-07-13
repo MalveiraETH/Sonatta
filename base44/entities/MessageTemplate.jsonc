@@ -4,7 +4,16 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Nome do template (ex: Adultos - Alta Prioridade)"
+      "description": "Nome do template (ex: Adultos \u2014 Alta Prioridade (Padr\u00e3o))"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "padrao",
+        "campanha"
+      ],
+      "default": "padrao",
+      "description": "Tipo: padrao = envio individual, campanha = disparo em massa"
     },
     "age_group": {
       "type": "string",
