@@ -12,15 +12,20 @@ const ESTAGIO_CONFIG = {
   recente:  { label: 'Recente',  bg: 'bg-emerald-100',text: 'text-emerald-700',icon: CheckCircle,   border: 'border-emerald-200' },
 };
 
-const DEFAULT_TEMPLATE = `Olá {{nome}}! 😊
+const DEFAULT_TEMPLATES = {
+  menor: `Olá, {{nome}}! 👶\n\nAqui é da *Sonatta Soluções Auditivas*.\n\nNotamos que já faz um tempo desde a última compra de baterias/pilhas para o aparelho auditivo do(a) pequeno(a). Queremos garantir que o dispositivo continue funcionando perfeitamente! 🦻\n\nTemos baterias de alta qualidade disponíveis. Entre em contato ou passe aqui na clínica.\n\n_Sonatta Soluções Auditivas_`,
+  maior: `Olá, {{nome}}! 😊\n\nAqui é da *Sonatta Soluções Auditivas*.\n\nNotamos que faz um tempo desde a sua última compra de baterias/pilhas, e queremos garantir que seu aparelho auditivo continue funcionando perfeitamente. 🦻✨\n\nTemos baterias de alta qualidade disponíveis para você! Entre em contato ou passe aqui na clínica.\n\n_Sonatta Soluções Auditivas_`,
+};
 
-Tudo bem? Aqui é da *Sonatta Soluções Auditivas*.
-
-Notamos que faz um tempo desde a sua última compra de baterias, e queremos garantir que seu aparelho auditivo continue funcionando perfeitamente. 🦻✨
-
-Temos baterias de alta qualidade disponíveis para você! Entre em contato ou passe aqui na clínica.
-
-_Sonatta Soluções Auditivas_`;
+function calcIdade(birthDate) {
+  if (!birthDate) return null;
+  const hoje = new Date();
+  const nasc = new Date(birthDate);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  const m = hoje.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
 
 export default function BateriaTab() {
   const [loading, setLoading] = useState(true);
@@ -29,21 +34,30 @@ export default function BateriaTab() {
   const [search, setSearch] = useState('');
   const [filtroEstagio, setFiltroEstagio] = useState('todos');
   const [ciclo, setCiclo] = useState(90);
-  const [template, setTemplate] = useState(DEFAULT_TEMPLATE);
-  const [showTemplate, setShowTemplate] = useState(false);
+  const [bateriaTemplates, setBateriaTemplates] = useState({});
 
   const load = async () => {
     setLoading(true);
-    const res = await base44.functions.invoke('getBateriaClientes', { ciclo_dias: ciclo });
+    const [res, tmpls] = await Promise.all([
+      base44.functions.invoke('getBateriaClientes', { ciclo_dias: ciclo }),
+      base44.entities.MessageTemplate.filter({ message_type: 'bateria' }),
+    ]);
     setClientes(res.data.clientes || []);
     setStats(res.data.stats || {});
+    const map = {};
+    (tmpls || []).forEach(t => { map[t.age_group] = t.message; });
+    setBateriaTemplates(map);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [ciclo]);
 
-  const buildMessage = (cliente) =>
-    template.replace(/{{nome}}/g, cliente.client_name?.split(' ')[0] || cliente.client_name);
+  const buildMessage = (cliente) => {
+    const idade = calcIdade(cliente.birth_date);
+    const grupoKey = (idade !== null && idade < 18) ? 'menor' : 'maior';
+    const tmpl = bateriaTemplates[`bateria_${grupoKey}`] || DEFAULT_TEMPLATES[grupoKey];
+    return tmpl.replace(/{{nome}}/g, cliente.client_name?.split(' ')[0] || cliente.client_name);
+  };
 
   const sendWhatsAppCliente = (cliente) => {
     const phone = (cliente.client_phone || '').replace(/\D/g, '');
@@ -135,26 +149,10 @@ export default function BateriaTab() {
         </Button>
       </div>
 
-      {/* Template de mensagem */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden">
-        <button
-          onClick={() => setShowTemplate(!showTemplate)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-sm font-medium text-slate-700 transition-colors"
-        >
-          <span>✉️ Template de mensagem WhatsApp</span>
-          <span className="text-slate-400">{showTemplate ? '▲' : '▼'}</span>
-        </button>
-        {showTemplate && (
-          <div className="p-4 bg-white">
-            <p className="text-xs text-slate-500 mb-2">Use <code className="bg-slate-100 px-1 rounded">{'{{nome}}'}</code> para o primeiro nome do cliente.</p>
-            <textarea
-              value={template}
-              onChange={e => setTemplate(e.target.value)}
-              rows={8}
-              className="w-full text-sm border border-slate-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#6B3FA0]/30"
-            />
-          </div>
-        )}
+      {/* Info template */}
+      <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
+        <span>💬</span>
+        <span>Os textos enviados variam por faixa etária (menores/maiores de 18 anos). Edite em <strong>Configurações → 🔋 WhatsApp Baterias</strong>.</span>
       </div>
 
       {/* Lista */}

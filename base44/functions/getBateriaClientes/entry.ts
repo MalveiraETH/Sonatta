@@ -37,6 +37,16 @@ Deno.serve(async (req) => {
       sale.items?.some(item => isBateriaItem(item))
     );
 
+    // Busca dados dos clientes para obter birth_date
+    const clienteIds = [...new Set(salesComBateria.map(s => s.client_id).filter(Boolean))];
+    const clienteDataMap = {};
+    // Busca em lotes de 50
+    for (let i = 0; i < clienteIds.length; i += 50) {
+      const batch = clienteIds.slice(i, i + 50);
+      const found = await base44.asServiceRole.entities.Client.filter({ id: { $in: batch } }, null, 50);
+      found.forEach(c => { clienteDataMap[c.id] = c; });
+    }
+
     // Agrupa por cliente (mantém a última compra de bateria)
     const clienteMap = {};
     for (const sale of salesComBateria) {
@@ -44,10 +54,12 @@ Deno.serve(async (req) => {
       const qtd = bateriaItems.reduce((s, i) => s + (i.quantity || 1), 0);
 
       if (!clienteMap[sale.client_id]) {
+        const clienteData = clienteDataMap[sale.client_id];
         clienteMap[sale.client_id] = {
           client_id: sale.client_id,
           client_name: sale.client_name,
           client_phone: sale.client_phone,
+          birth_date: clienteData?.birth_date || null,
           ultima_compra: sale.sale_date || sale.created_date,
           total_compras: 1,
           total_baterias: qtd,

@@ -16,6 +16,7 @@ import { Settings as SettingsIcon } from 'lucide-react';
 import UsersManagement from '@/components/settings/UsersManagement';
 import AccessPermissions from '@/components/settings/AccessPermissions';
 import WhatsAppCampaignTemplates from '@/components/settings/WhatsAppCampaignTemplates';
+import WhatsAppBateriaTemplates from '@/components/settings/WhatsAppBateriaTemplates';
 
 export default function Settings() {
   return (
@@ -42,6 +43,7 @@ export default function Settings() {
           <TabsTrigger value="users" className="text-xs sm:text-sm">Usuários</TabsTrigger>
           <TabsTrigger value="permissions" className="text-xs sm:text-sm">Permissões</TabsTrigger>
           <TabsTrigger value="campaign_templates" className="text-xs sm:text-sm">📣 Campanhas WhatsApp</TabsTrigger>
+          <TabsTrigger value="bateria_templates" className="text-xs sm:text-sm">🔋 WhatsApp Baterias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="hours">
@@ -98,6 +100,10 @@ export default function Settings() {
 
         <TabsContent value="campaign_templates">
           <WhatsAppCampaignTemplates />
+        </TabsContent>
+
+        <TabsContent value="bateria_templates">
+          <WhatsAppBateriaTemplates />
         </TabsContent>
       </Tabs>
     </div>
