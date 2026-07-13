@@ -9,7 +9,7 @@ import ClientRowFunil, { AGE_GROUPS, PRIORITY } from '@/components/vendas/Client
 import BateriaTab from '@/components/vendas/BateriaTab';
 import {
   Search, MessageSquare, TrendingDown, RefreshCw,
-  Send, Users, Battery
+  Send, Users, Battery, TrendingUp, CheckCircle2
 } from 'lucide-react';
 
 // ─── Helpers de template ─────────────────────────────────────────────────────
@@ -244,6 +244,83 @@ export default function VendasPerdidas() {
               </div>
             ))}
           </div>
+
+          {/* ── Dashboard de Performance ── */}
+          {(() => {
+            const all = data.lost_sales || [];
+            const total = all.length;
+            const recuperados = all.filter(c => (c.funil_status || 'novo') === 'agendado_novo_teste').length;
+            const taxaRecuperacao = total > 0 ? Math.round((recuperados / total) * 100) : 0;
+
+            const funilStages = [
+              { key: 'novo',                 label: 'Novos',             color: 'bg-slate-400',   text: 'text-slate-600'  },
+              { key: 'tentativa_contato',    label: 'Em contato',        color: 'bg-amber-400',   text: 'text-amber-600'  },
+              { key: 'agendado_novo_teste',  label: 'Agendados',         color: 'bg-green-500',   text: 'text-green-600'  },
+              { key: 'perdido_definitivo',   label: 'Perdidos definitivo',color: 'bg-red-400',    text: 'text-red-600'    },
+            ];
+            const stageCounts = {};
+            funilStages.forEach(s => { stageCounts[s.key] = all.filter(c => (c.funil_status || 'novo') === s.key).length; });
+
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                {/* Taxa de Recuperação */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">Taxa de Recuperação</p>
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <span className={`text-4xl font-bold ${taxaRecuperacao > 0 ? 'text-green-600' : 'text-slate-300'}`}>
+                      {loading ? '…' : `${taxaRecuperacao}%`}
+                    </span>
+                    <span className="text-sm text-slate-400 mb-1">
+                      {loading ? '' : `${recuperados} de ${total} agendados`}
+                    </span>
+                  </div>
+                  {!loading && total > 0 && (
+                    <div className="mt-3">
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 rounded-full transition-all duration-500"
+                          style={{ width: `${taxaRecuperacao}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-400 mt-2">Clientes que chegaram à etapa "Agendado"</p>
+                </div>
+
+                {/* Funil de Vendas */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#6B3FA0]/10 flex items-center justify-center">
+                      <TrendingDown className="h-4 w-4 text-[#6B3FA0]" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">Distribuição do Funil</p>
+                  </div>
+                  <div className="space-y-2.5">
+                    {funilStages.map(stage => {
+                      const count = loading ? 0 : stageCounts[stage.key];
+                      const pct   = total > 0 ? Math.round((count / total) * 100) : 0;
+                      return (
+                        <div key={stage.key} className="flex items-center gap-2">
+                          <span className={`text-xs font-medium w-32 shrink-0 ${stage.text}`}>{stage.label}</span>
+                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className={`h-full ${stage.color} rounded-full transition-all duration-500`} style={{ width: loading ? '0%' : `${pct}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-slate-600 w-6 text-right shrink-0">{loading ? '…' : count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+            );
+          })()}
 
           {/* Cards de Grupos + Campanhas */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
