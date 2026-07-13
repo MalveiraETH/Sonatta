@@ -6,9 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { openWhatsApp } from '@/utils/whatsapp';
 import ClientRowFunil, { AGE_GROUPS, PRIORITY } from '@/components/vendas/ClientRowFunil';
+import BateriaTab from '@/components/vendas/BateriaTab';
 import {
   Search, MessageSquare, TrendingDown, RefreshCw,
-  Send, Users, Megaphone
+  Send, Users, Battery
 } from 'lucide-react';
 
 // ─── Helpers de template ─────────────────────────────────────────────────────
@@ -31,7 +32,6 @@ function pickTemplate(templates, ageGroup, priority, messageType = 'padrao') {
   return null;
 }
 
-// Templates são carregados do banco; este é o fallback caso não haja nenhum cadastrado
 const FALLBACK_TEMPLATES = {
   bebes:    `Olá, {{nome}}! 👶\n\nAqui é a Sonatta. Gostaríamos de saber como está a jornada auditiva do(a) pequeno(a). Estamos à disposição!`,
   criancas: `Olá, {{nome}}! 🎒\n\nA Sonatta está em contato. Temos aparelhos perfeitos para crianças. Quando podemos conversar?`,
@@ -90,13 +90,14 @@ function FilterPill({ label, active, onClick }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function VendasPerdidas() {
+  const [activeTab, setActiveTab]       = useState('funil');
   const [loading, setLoading]           = useState(true);
   const [data, setData]                 = useState({ lost_sales: [], stats: {} });
   const [templates, setTemplates]       = useState([]);
   const [activeGroup, setActiveGroup]   = useState('todos');
   const [activePrio, setActivePrio]     = useState('todos');
   const [search, setSearch]             = useState('');
-  const [campaign, setCampaign]         = useState(null); // { groupKey, clients }
+  const [campaign, setCampaign]         = useState(null);
   const [campaignText, setCampaignText] = useState('');
   const [activeFunil, setActiveFunil]   = useState('todos');
 
@@ -157,7 +158,6 @@ export default function VendasPerdidas() {
       .replace(/{{nome}}/g, item.client_name?.split(' ')[0] || 'você')
       .replace(/{{aparelho}}/g, device);
     openWhatsApp(phone, text);
-    // Atualiza funil automaticamente: status → tentativa_contato + data do contato
     try {
       const today = new Date().toISOString().split('T')[0];
       await base44.entities.Client.update(item.client_id, {
@@ -198,164 +198,190 @@ export default function VendasPerdidas() {
             Clientes que testaram mas não compraram — recupere essas oportunidades.
           </p>
         </div>
-        <Button onClick={loadData} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-1.5" /> Atualizar
-        </Button>
-      </div>
-
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Total de oportunidades', value: stats.total,            bg: 'bg-white',        text: 'text-slate-800' },
-          { label: 'Alta prioridade (≤7d)',  value: stats.alta_prioridade,  bg: 'bg-red-50',       text: 'text-red-600'   },
-          { label: 'Média prioridade (≤30d)',value: stats.media_prioridade, bg: 'bg-amber-50',     text: 'text-amber-600' },
-          { label: 'Baixa prioridade (+30d)',value: stats.baixa_prioridade, bg: 'bg-slate-50',     text: 'text-slate-500' },
-        ].map(k => (
-          <div key={k.label} className={`${k.bg} rounded-2xl border border-slate-200 p-4 text-center`}>
-            <p className={`text-3xl font-bold ${k.text}`}>{loading ? '…' : (k.value ?? 0)}</p>
-            <p className="text-xs text-slate-400 mt-1 leading-tight">{k.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Cards de Grupos + Campanhas ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {Object.entries(AGE_GROUPS).map(([key, cfg]) => (
-          <GroupCard
-            key={key}
-            groupKey={key}
-            cfg={cfg}
-            count={loading ? 0 : (stats[key] ?? 0)}
-            onCampaign={openCampaign}
-          />
-        ))}
-      </div>
-
-      {/* ── Filtros ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-        <div className="relative">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="Buscar cliente pelo nome..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9 rounded-xl bg-slate-50 border-slate-200"
-          />
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-slate-400 font-medium mr-1">Grupo:</span>
-          <FilterPill label="Todos"              active={activeGroup === 'todos'}    onClick={() => setActiveGroup('todos')} />
-          <FilterPill label="Bebês"              active={activeGroup === 'bebes'}    onClick={() => setActiveGroup('bebes')} />
-          <FilterPill label="Crianças/Adolesc."  active={activeGroup === 'criancas'} onClick={() => setActiveGroup('criancas')} />
-          <FilterPill label="Adultos"            active={activeGroup === 'adultos'}  onClick={() => setActiveGroup('adultos')} />
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-slate-400 font-medium mr-1">Prioridade:</span>
-          <FilterPill label="Todas"  active={activePrio === 'todos'} onClick={() => setActivePrio('todos')} />
-          <FilterPill label="Alta"   active={activePrio === 'alta'}  onClick={() => setActivePrio('alta')} />
-          <FilterPill label="Média"  active={activePrio === 'media'} onClick={() => setActivePrio('media')} />
-          <FilterPill label="Baixa"  active={activePrio === 'baixa'} onClick={() => setActivePrio('baixa')} />
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-slate-400 font-medium mr-1">Funil:</span>
-          <FilterPill label="Todos"             active={activeFunil === 'todos'}              onClick={() => setActiveFunil('todos')} />
-          <FilterPill label="Novo"              active={activeFunil === 'novo'}               onClick={() => setActiveFunil('novo')} />
-          <FilterPill label="Em contato"        active={activeFunil === 'tentativa_contato'}  onClick={() => setActiveFunil('tentativa_contato')} />
-          <FilterPill label="Agendado"          active={activeFunil === 'agendado_novo_teste'} onClick={() => setActiveFunil('agendado_novo_teste')} />
-          <FilterPill label="Perdido definitivo" active={activeFunil === 'perdido_definitivo'} onClick={() => setActiveFunil('perdido_definitivo')} />
-        </div>
-        <p className="text-xs text-slate-400">{filtered.length} cliente(s) encontrado(s)</p>
-      </div>
-
-      {/* ── Lista ── */}
-      <div className="space-y-2">
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 py-16 text-center">
-            <Users className="h-10 w-10 mx-auto text-slate-200 mb-3" />
-            <p className="text-slate-500 font-medium">Nenhum cliente encontrado</p>
-            <p className="text-slate-400 text-sm mt-1">Ajuste os filtros ou aguarde novos testes finalizados.</p>
-          </div>
-        ) : (
-          filtered.map(item => (
-            <ClientRowFunil
-              key={item.client_id}
-              item={item}
-              onWhatsApp={sendDirect}
-              onUpdated={handleClientUpdated}
-            />
-          ))
+        {activeTab === 'funil' && (
+          <Button onClick={loadData} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-1.5" /> Atualizar
+          </Button>
         )}
       </div>
 
-      {/* ── Modal de Campanha ── */}
-      <Dialog open={!!campaign} onOpenChange={() => setCampaign(null)}>
-        <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${campaign ? AGE_GROUPS[campaign.groupKey]?.badge : ''}`}>
-                {campaign && (() => { const Icon = AGE_GROUPS[campaign.groupKey]?.icon; return Icon ? <Icon className="h-4 w-4" /> : null; })()}
-              </div>
-              Campanha — {campaign ? AGE_GROUPS[campaign.groupKey]?.label : ''}
-            </DialogTitle>
-          </DialogHeader>
+      {/* ── Abas ── */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('funil')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'funil' ? 'bg-white text-[#6B3FA0] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <TrendingDown className="h-4 w-4" />
+          Funil de Recuperação
+        </button>
+        <button
+          onClick={() => setActiveTab('baterias')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'baterias' ? 'bg-white text-[#6B3FA0] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <Battery className="h-4 w-4" />
+          Gestão de Baterias
+        </button>
+      </div>
 
-          <div className="space-y-4 pt-1">
-            {/* Editor de mensagem */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-600">Mensagem da campanha</label>
-              <p className="text-xs text-slate-400">
-                Use <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">{'{{nome}}'}</code> para o primeiro nome do cliente.
-              </p>
-              <Textarea
-                value={campaignText}
-                onChange={e => setCampaignText(e.target.value)}
-                rows={7}
-                className="text-sm rounded-xl resize-none"
+      {/* ── Aba Baterias ── */}
+      {activeTab === 'baterias' && <BateriaTab />}
+
+      {/* ── Aba Funil ── */}
+      {activeTab === 'funil' && (
+        <div className="space-y-6">
+
+          {/* KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total de oportunidades', value: stats.total,            bg: 'bg-white',    text: 'text-slate-800' },
+              { label: 'Alta prioridade (≤7d)',  value: stats.alta_prioridade,  bg: 'bg-red-50',   text: 'text-red-600'   },
+              { label: 'Média prioridade (≤30d)',value: stats.media_prioridade, bg: 'bg-amber-50', text: 'text-amber-600' },
+              { label: 'Baixa prioridade (+30d)',value: stats.baixa_prioridade, bg: 'bg-slate-50', text: 'text-slate-500' },
+            ].map(k => (
+              <div key={k.label} className={`${k.bg} rounded-2xl border border-slate-200 p-4 text-center`}>
+                <p className={`text-3xl font-bold ${k.text}`}>{loading ? '…' : (k.value ?? 0)}</p>
+                <p className="text-xs text-slate-400 mt-1 leading-tight">{k.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Cards de Grupos + Campanhas */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {Object.entries(AGE_GROUPS).map(([key, cfg]) => (
+              <GroupCard
+                key={key}
+                groupKey={key}
+                cfg={cfg}
+                count={loading ? 0 : (stats[key] ?? 0)}
+                onCampaign={openCampaign}
+              />
+            ))}
+          </div>
+
+          {/* Filtros */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Buscar cliente pelo nome..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9 rounded-xl bg-slate-50 border-slate-200"
               />
             </div>
-
-            {/* Preview da contagem */}
-            <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">
-              <span>{campaign?.clients?.length ?? 0} clientes neste grupo</span>
-              <span className="text-slate-400">Cada envio abre o WhatsApp individualmente</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-400 font-medium mr-1">Grupo:</span>
+              <FilterPill label="Todos"             active={activeGroup === 'todos'}    onClick={() => setActiveGroup('todos')} />
+              <FilterPill label="Bebês"             active={activeGroup === 'bebes'}    onClick={() => setActiveGroup('bebes')} />
+              <FilterPill label="Crianças/Adolesc." active={activeGroup === 'criancas'} onClick={() => setActiveGroup('criancas')} />
+              <FilterPill label="Adultos"           active={activeGroup === 'adultos'}  onClick={() => setActiveGroup('adultos')} />
             </div>
-
-            {/* Lista de clientes */}
-            <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-60 overflow-y-auto">
-              {(campaign?.clients || []).length === 0 ? (
-                <p className="text-center text-slate-400 text-sm py-8">Nenhum cliente neste grupo.</p>
-              ) : (
-                (campaign?.clients || []).map(client => {
-                  const prio = PRIORITY[client.priority] || PRIORITY.baixa;
-                  return (
-                    <div key={client.client_id} className="flex items-center gap-3 px-3 py-2.5">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-700 truncate">{client.client_name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-slate-400">{client.client_phone || 'Sem telefone'}</span>
-                          <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${prio.color}`}>{prio.label}</span>
-                        </div>
-                      </div>
-                      <button
-                        disabled={!client.client_phone}
-                        onClick={() => sendToClient(client)}
-                        className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <Send className="h-3 w-3" />
-                        Enviar
-                      </button>
-                    </div>
-                  );
-                })
-              )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-400 font-medium mr-1">Prioridade:</span>
+              <FilterPill label="Todas" active={activePrio === 'todos'} onClick={() => setActivePrio('todos')} />
+              <FilterPill label="Alta"  active={activePrio === 'alta'}  onClick={() => setActivePrio('alta')} />
+              <FilterPill label="Média" active={activePrio === 'media'} onClick={() => setActivePrio('media')} />
+              <FilterPill label="Baixa" active={activePrio === 'baixa'} onClick={() => setActivePrio('baixa')} />
             </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-400 font-medium mr-1">Funil:</span>
+              <FilterPill label="Todos"              active={activeFunil === 'todos'}               onClick={() => setActiveFunil('todos')} />
+              <FilterPill label="Novo"               active={activeFunil === 'novo'}                onClick={() => setActiveFunil('novo')} />
+              <FilterPill label="Em contato"         active={activeFunil === 'tentativa_contato'}   onClick={() => setActiveFunil('tentativa_contato')} />
+              <FilterPill label="Agendado"           active={activeFunil === 'agendado_novo_teste'} onClick={() => setActiveFunil('agendado_novo_teste')} />
+              <FilterPill label="Perdido definitivo" active={activeFunil === 'perdido_definitivo'}  onClick={() => setActiveFunil('perdido_definitivo')} />
+            </div>
+            <p className="text-xs text-slate-400">{filtered.length} cliente(s) encontrado(s)</p>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {/* Lista */}
+          <div className="space-y-2">
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 py-16 text-center">
+                <Users className="h-10 w-10 mx-auto text-slate-200 mb-3" />
+                <p className="text-slate-500 font-medium">Nenhum cliente encontrado</p>
+                <p className="text-slate-400 text-sm mt-1">Ajuste os filtros ou aguarde novos testes finalizados.</p>
+              </div>
+            ) : (
+              filtered.map(item => (
+                <ClientRowFunil
+                  key={item.client_id}
+                  item={item}
+                  onWhatsApp={sendDirect}
+                  onUpdated={handleClientUpdated}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Modal de Campanha */}
+          <Dialog open={!!campaign} onOpenChange={() => setCampaign(null)}>
+            <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${campaign ? AGE_GROUPS[campaign.groupKey]?.badge : ''}`}>
+                    {campaign && (() => { const Icon = AGE_GROUPS[campaign.groupKey]?.icon; return Icon ? <Icon className="h-4 w-4" /> : null; })()}
+                  </div>
+                  Campanha — {campaign ? AGE_GROUPS[campaign.groupKey]?.label : ''}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 pt-1">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-600">Mensagem da campanha</label>
+                  <p className="text-xs text-slate-400">
+                    Use <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono">{'{{nome}}'}</code> para o primeiro nome do cliente.
+                  </p>
+                  <Textarea
+                    value={campaignText}
+                    onChange={e => setCampaignText(e.target.value)}
+                    rows={7}
+                    className="text-sm rounded-xl resize-none"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">
+                  <span>{campaign?.clients?.length ?? 0} clientes neste grupo</span>
+                  <span className="text-slate-400">Cada envio abre o WhatsApp individualmente</span>
+                </div>
+                <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-60 overflow-y-auto">
+                  {(campaign?.clients || []).length === 0 ? (
+                    <p className="text-center text-slate-400 text-sm py-8">Nenhum cliente neste grupo.</p>
+                  ) : (
+                    (campaign?.clients || []).map(client => {
+                      const prio = PRIORITY[client.priority] || PRIORITY.baixa;
+                      return (
+                        <div key={client.client_id} className="flex items-center gap-3 px-3 py-2.5">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{client.client_name}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-slate-400">{client.client_phone || 'Sem telefone'}</span>
+                              <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${prio.color}`}>{prio.label}</span>
+                            </div>
+                          </div>
+                          <button
+                            disabled={!client.client_phone}
+                            onClick={() => sendToClient(client)}
+                            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+                          >
+                            <Send className="h-3 w-3" />
+                            Enviar
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+        </div>
+      )}
+
     </div>
   );
 }
