@@ -5,17 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { openWhatsApp } from '@/utils/whatsapp';
+import ClientRowFunil, { AGE_GROUPS, PRIORITY } from '@/components/vendas/ClientRowFunil';
 import {
-  Baby, GraduationCap, UserCheck, AlertTriangle,
-  Clock, Search, MessageSquare, TrendingDown, RefreshCw,
-  Phone, ChevronDown, ChevronUp, Send, Users, Stethoscope, Megaphone, X
+  Search, MessageSquare, TrendingDown, RefreshCw,
+  Send, Users, Megaphone
 } from 'lucide-react';
 
 // ─── Helpers de template ─────────────────────────────────────────────────────
 
 function pickTemplate(templates, ageGroup, priority, messageType = 'padrao') {
   if (!templates || templates.length === 0) return null;
-  // Match exato: tipo + grupo + prioridade
   const exact = templates.find(t =>
     (t.message_type || 'padrao') === messageType &&
     t.age_group === ageGroup &&
@@ -23,7 +22,6 @@ function pickTemplate(templates, ageGroup, priority, messageType = 'padrao') {
     t.is_active
   );
   if (exact) return exact.message;
-  // Fallback: mesmo tipo + grupo, qualquer prioridade
   const byGroup = templates.find(t =>
     (t.message_type || 'padrao') === messageType &&
     t.age_group === ageGroup &&
@@ -33,20 +31,6 @@ function pickTemplate(templates, ageGroup, priority, messageType = 'padrao') {
   return null;
 }
 
-// ─── Configurações ────────────────────────────────────────────────────────────
-
-const AGE_GROUPS = {
-  bebes:    { label: 'Bebês',                sublabel: '0 a 1 ano',   icon: Baby,          bg: 'bg-pink-50',   border: 'border-pink-200',   text: 'text-pink-700',   badge: 'bg-pink-100 text-pink-700',   dot: 'bg-pink-400'   },
-  criancas: { label: 'Crianças/Adolesc.',    sublabel: '1 a 15 anos', icon: GraduationCap, bg: 'bg-emerald-50',border: 'border-emerald-200',text: 'text-emerald-700',badge: 'bg-emerald-100 text-emerald-700',dot: 'bg-emerald-400'},
-  adultos:  { label: 'Adultos',             sublabel: '+15 anos',    icon: UserCheck,     bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-700',   badge: 'bg-blue-100 text-blue-700',   dot: 'bg-blue-400'   },
-};
-
-const PRIORITY = {
-  alta:  { label: 'Alta',  color: 'bg-red-100 text-red-700',      dot: 'bg-red-400',    icon: AlertTriangle },
-  media: { label: 'Média', color: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400',  icon: Clock         },
-  baixa: { label: 'Baixa', color: 'bg-slate-100 text-slate-500',  dot: 'bg-slate-300',  icon: TrendingDown  },
-};
-
 // Templates são carregados do banco; este é o fallback caso não haja nenhum cadastrado
 const FALLBACK_TEMPLATES = {
   bebes:    `Olá, {{nome}}! 👶\n\nAqui é a Sonatta. Gostaríamos de saber como está a jornada auditiva do(a) pequeno(a). Estamos à disposição!`,
@@ -54,16 +38,7 @@ const FALLBACK_TEMPLATES = {
   adultos:  `Olá, {{nome}}! 😊\n\nA Sonatta está em contato. Nossos aparelhos são discretos e conectam ao celular. Que tal uma conversa sem compromisso?`,
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatPhone(p) { return p?.replace(/\D/g, '') || ''; }
-
-function daysLabel(days) {
-  if (days === null || days === undefined) return '—';
-  if (days === 0) return 'hoje';
-  if (days === 1) return '1 dia atrás';
-  return `${days} dias atrás`;
-}
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
@@ -112,163 +87,6 @@ function FilterPill({ label, active, onClick }) {
   );
 }
 
-function MessageTypePicker({ onSelect, onClose }) {
-  return (
-    <div className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-2 w-56" onClick={e => e.stopPropagation()}>
-      <div className="flex items-center justify-between px-2 pb-2 mb-1 border-b border-slate-100">
-        <p className="text-xs font-semibold text-slate-500">Tipo de mensagem</p>
-        <button onClick={onClose} className="text-slate-300 hover:text-slate-500">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-      <button
-        onClick={() => onSelect('padrao')}
-        className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[#6B3FA0]/5 transition-colors text-left"
-      >
-        <MessageSquare className="h-4 w-4 text-[#6B3FA0] mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-slate-700">Padrão</p>
-          <p className="text-[11px] text-slate-400 leading-tight">Mensagem individual personalizada</p>
-        </div>
-      </button>
-      <button
-        onClick={() => onSelect('campanha')}
-        className="w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg hover:bg-orange-50 transition-colors text-left"
-      >
-        <Megaphone className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="text-sm font-semibold text-slate-700">Campanha</p>
-          <p className="text-[11px] text-slate-400 leading-tight">Mensagem de disparo em massa</p>
-        </div>
-      </button>
-    </div>
-  );
-}
-
-function ClientRow({ item, onWhatsApp }) {
-  const [expanded, setExpanded] = useState(false);
-  const [showPicker, setShowPicker] = useState(false);
-  const group = AGE_GROUPS[item.age_group?.key] || AGE_GROUPS.adultos;
-  const prio  = PRIORITY[item.priority]         || PRIORITY.baixa;
-  const PrioIcon = prio.icon;
-  const GroupIcon = group.icon;
-
-  return (
-    <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden hover:border-slate-200 transition-colors">
-      {/* Row principal */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        {/* Avatar / grupo */}
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${group.badge}`}>
-          <GroupIcon className="h-4 w-4" />
-        </div>
-
-        {/* Infos */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-slate-800 text-sm leading-tight">{item.client_name}</p>
-            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${group.badge}`}>{group.label}</span>
-          </div>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1 ${prio.color}`}>
-              <PrioIcon className="h-3 w-3" />
-              {prio.label}
-            </span>
-            <span className="text-xs text-slate-400">
-              Teste finalizado {daysLabel(item.days_since_test)}
-            </span>
-          </div>
-        </div>
-
-        {/* Ações */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {item.client_phone && (
-            <div className="relative">
-              <button
-                onClick={() => setShowPicker(p => !p)}
-                className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Phone className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">WhatsApp</span>
-                <ChevronDown className="h-3 w-3 opacity-70" />
-              </button>
-              {showPicker && (
-                <MessageTypePicker
-                  onSelect={type => { setShowPicker(false); onWhatsApp(item, type); }}
-                  onClose={() => setShowPicker(false)}
-                />
-              )}
-            </div>
-          )}
-          <button
-            onClick={() => setExpanded(e => !e)}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"
-          >
-            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Detalhe expandido */}
-      {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-            <div>
-              <p className="text-slate-400 uppercase tracking-wider font-medium mb-0.5">Telefone</p>
-              <p className="text-slate-700 font-medium">{item.client_phone || '—'}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 uppercase tracking-wider font-medium mb-0.5">Profissional</p>
-              <p className="text-slate-700 font-medium">{item.responsible_professional || '—'}</p>
-            </div>
-            <div>
-              <p className="text-slate-400 uppercase tracking-wider font-medium mb-0.5">Data do teste</p>
-              <p className="text-slate-700 font-medium">
-                {item.last_test_end_date
-                  ? new Date(item.last_test_end_date + 'T12:00:00').toLocaleDateString('pt-BR')
-                  : '—'}
-              </p>
-            </div>
-          </div>
-
-          {item.last_test_devices?.filter(d => d.product_name)?.length > 0 && (
-            <div>
-              <p className="text-xs text-slate-400 uppercase tracking-wider font-medium mb-1">Aparelhos testados</p>
-              <div className="flex flex-wrap gap-1.5">
-                {item.last_test_devices.filter(d => d.product_name).map((d, i) => (
-                  <span key={i} className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-600 font-medium flex items-center gap-1">
-                    <Stethoscope className="h-3 w-3 text-slate-400" />
-                    {d.product_name}
-                    {d.serial_number && <span className="text-slate-300">· {d.serial_number}</span>}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => onWhatsApp(item, 'padrao')}
-              disabled={!item.client_phone}
-              className="flex items-center gap-2 bg-[#6B3FA0] hover:bg-[#5a3490] disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Msg. Padrão
-            </button>
-            <button
-              onClick={() => onWhatsApp(item, 'campanha')}
-              disabled={!item.client_phone}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-            >
-              <Megaphone className="h-3.5 w-3.5" />
-              Msg. Campanha
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function VendasPerdidas() {
@@ -280,6 +98,7 @@ export default function VendasPerdidas() {
   const [search, setSearch]             = useState('');
   const [campaign, setCampaign]         = useState(null); // { groupKey, clients }
   const [campaignText, setCampaignText] = useState('');
+  const [activeFunil, setActiveFunil]   = useState('todos');
 
   useEffect(() => { loadData(); loadTemplates(); }, []);
 
@@ -303,7 +122,8 @@ export default function VendasPerdidas() {
     const g = activeGroup === 'todos' || item.age_group?.key === activeGroup;
     const p = activePrio  === 'todos' || item.priority === activePrio;
     const s = !search || item.client_name?.toLowerCase().includes(search.toLowerCase());
-    return g && p && s;
+    const f = activeFunil === 'todos' || (item.funil_status || 'novo') === activeFunil;
+    return g && p && s && f;
   });
 
   const stats = data.stats || {};
@@ -326,7 +146,7 @@ export default function VendasPerdidas() {
     openWhatsApp(phone, text);
   };
 
-  const sendDirect = (item, messageType = 'padrao') => {
+  const sendDirect = async (item, messageType = 'padrao') => {
     const phone = formatPhone(item.client_phone);
     if (!phone) return;
     const tmpl = pickTemplate(templates, item.age_group?.key, item.priority, messageType)
@@ -337,6 +157,31 @@ export default function VendasPerdidas() {
       .replace(/{{nome}}/g, item.client_name?.split(' ')[0] || 'você')
       .replace(/{{aparelho}}/g, device);
     openWhatsApp(phone, text);
+    // Atualiza funil automaticamente: status → tentativa_contato + data do contato
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await base44.entities.Client.update(item.client_id, {
+        funil_status: 'tentativa_contato',
+        funil_last_contact: today,
+      });
+      setData(prev => ({
+        ...prev,
+        lost_sales: (prev.lost_sales || []).map(c =>
+          c.client_id === item.client_id
+            ? { ...c, funil_status: 'tentativa_contato', funil_last_contact: today }
+            : c
+        )
+      }));
+    } catch (e) { console.error(e); }
+  };
+
+  const handleClientUpdated = (clientId, patch) => {
+    setData(prev => ({
+      ...prev,
+      lost_sales: (prev.lost_sales || []).map(c =>
+        c.client_id === clientId ? { ...c, ...patch } : c
+      )
+    }));
   };
 
   return (
@@ -411,6 +256,14 @@ export default function VendasPerdidas() {
           <FilterPill label="Média"  active={activePrio === 'media'} onClick={() => setActivePrio('media')} />
           <FilterPill label="Baixa"  active={activePrio === 'baixa'} onClick={() => setActivePrio('baixa')} />
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-slate-400 font-medium mr-1">Funil:</span>
+          <FilterPill label="Todos"             active={activeFunil === 'todos'}              onClick={() => setActiveFunil('todos')} />
+          <FilterPill label="Novo"              active={activeFunil === 'novo'}               onClick={() => setActiveFunil('novo')} />
+          <FilterPill label="Em contato"        active={activeFunil === 'tentativa_contato'}  onClick={() => setActiveFunil('tentativa_contato')} />
+          <FilterPill label="Agendado"          active={activeFunil === 'agendado_novo_teste'} onClick={() => setActiveFunil('agendado_novo_teste')} />
+          <FilterPill label="Perdido definitivo" active={activeFunil === 'perdido_definitivo'} onClick={() => setActiveFunil('perdido_definitivo')} />
+        </div>
         <p className="text-xs text-slate-400">{filtered.length} cliente(s) encontrado(s)</p>
       </div>
 
@@ -428,7 +281,12 @@ export default function VendasPerdidas() {
           </div>
         ) : (
           filtered.map(item => (
-            <ClientRow key={item.client_id} item={item} onWhatsApp={sendDirect} />
+            <ClientRowFunil
+              key={item.client_id}
+              item={item}
+              onWhatsApp={sendDirect}
+              onUpdated={handleClientUpdated}
+            />
           ))
         )}
       </div>

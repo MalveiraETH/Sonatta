@@ -85,6 +85,9 @@ Deno.serve(async (req) => {
         priority: calcPriority(lastTest?.end_date),
         responsible_professional: client.responsible_professional,
         notes: client.notes,
+        funil_status: client.funil_status || 'novo',
+        funil_last_contact: client.funil_last_contact || null,
+        funil_notes: client.funil_notes || '',
       };
     }).filter(Boolean);
 
