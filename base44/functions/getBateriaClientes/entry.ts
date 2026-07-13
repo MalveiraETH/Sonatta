@@ -15,7 +15,7 @@ function isBateriaItem(item) {
 
   // Verifica se é bateria pelo nome ou categoria
   const nameMatch = BATERIA_KEYWORDS.some(kw => name.includes(kw));
-  const catMatch = cat === 'bateria';
+  const catMatch = cat === 'bateria' || cat === 'pilha';
 
   return nameMatch || catMatch;
 }

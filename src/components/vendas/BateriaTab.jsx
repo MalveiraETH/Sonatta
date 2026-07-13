@@ -185,7 +185,7 @@ export default function BateriaTab() {
                       <p className="text-xs text-slate-500">
                         Última compra: <strong>{cliente.dias_desde_compra} dias atrás</strong>
                         {' · '}{cliente.total_compras}x compra{cliente.total_compras !== 1 ? 's' : ''}
-                        {' · '}{cliente.total_baterias} bateria{cliente.total_baterias !== 1 ? 's' : ''}
+                        {' · '}{cliente.total_baterias} bateria{cliente.total_baterias !== 1 ? 's' : ''}/pilha{cliente.total_baterias !== 1 ? 's' : ''}
                       </p>
                     </div>
                   </div>
