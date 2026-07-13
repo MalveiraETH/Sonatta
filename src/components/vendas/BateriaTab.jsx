@@ -40,7 +40,7 @@ export default function BateriaTab() {
     setLoading(true);
     const [res, tmpls] = await Promise.all([
       base44.functions.invoke('getBateriaClientes', { ciclo_dias: ciclo }),
-      base44.entities.MessageTemplate.filter({ message_type: 'bateria' }),
+      base44.entities.MessageTemplate.filter({ age_group: { $in: ['bateria_menor', 'bateria_maior'] } }),
     ]);
     setClientes(res.data.clientes || []);
     setStats(res.data.stats || {});
@@ -62,7 +62,8 @@ export default function BateriaTab() {
   const sendWhatsAppCliente = (cliente) => {
     const phone = (cliente.client_phone || '').replace(/\D/g, '');
     if (!phone) { alert('Cliente sem telefone cadastrado'); return; }
-    openWhatsApp(`55${phone}`, buildMessage(cliente));
+    const phoneWithDDI = phone.startsWith('55') ? phone : `55${phone}`;
+    openWhatsApp(phoneWithDDI, buildMessage(cliente));
   };
 
   const filtered = clientes.filter(c => {

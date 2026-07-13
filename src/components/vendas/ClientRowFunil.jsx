@@ -68,6 +68,11 @@ export default function ClientRowFunil({ item, onWhatsApp, onUpdated }) {
   const [localNote, setLocalNote]     = useState(item.funil_notes || '');
   const [localStatus, setLocalStatus] = useState(item.funil_status || 'novo');
 
+  // Sincroniza se o item for atualizado externamente (ex: via sendDirect no pai)
+  React.useEffect(() => {
+    setLocalStatus(item.funil_status || 'novo');
+  }, [item.funil_status]);
+
   const group     = AGE_GROUPS[item.age_group?.key] || AGE_GROUPS.adultos;
   const prio      = PRIORITY[item.priority]          || PRIORITY.baixa;
   const funilCfg  = FUNIL_STATUS[localStatus]         || FUNIL_STATUS.novo;
