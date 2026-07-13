@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Baby, GraduationCap, UserCheck, AlertTriangle,
   Clock, TrendingDown, Phone, ChevronDown, ChevronUp,
   MessageSquare, Megaphone, Stethoscope, X, Save,
-  CheckCircle2, XCircle, PhoneCall, CalendarCheck, Loader2
+  CheckCircle2, XCircle, PhoneCall, CalendarCheck, Loader2, ClipboardPlus
 } from 'lucide-react';
 
 export const AGE_GROUPS = {
@@ -62,6 +63,7 @@ export default function ClientRowFunil({ item, onWhatsApp, onUpdated }) {
   const [expanded, setExpanded]       = useState(false);
   const [showPicker, setShowPicker]   = useState(false);
   const [savingNote, setSavingNote]   = useState(false);
+  const [addingRecord, setAddingRecord] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [localNote, setLocalNote]     = useState(item.funil_notes || '');
   const [localStatus, setLocalStatus] = useState(item.funil_status || 'novo');
@@ -72,6 +74,23 @@ export default function ClientRowFunil({ item, onWhatsApp, onUpdated }) {
   const PrioIcon  = prio.icon;
   const GroupIcon = group.icon;
   const FunilIcon = funilCfg.icon;
+
+  const addToMedicalRecord = async () => {
+    if (!localNote?.trim()) return;
+    setAddingRecord(true);
+    try {
+      await base44.entities.MedicalRecord.create({
+        client_id: item.client_id,
+        client_name: item.client_name,
+        date: new Date().toISOString().split('T')[0],
+        record_type: 'outros',
+        notes: localNote,
+      });
+      // toast via import dinâmico não está disponível — usa alert nativo como fallback
+      toast.success('Adicionado ao prontuário com sucesso!');
+    } catch (e) { console.error(e); }
+    setAddingRecord(false);
+  };
 
   const saveNote = async () => {
     setSavingNote(true);
@@ -233,7 +252,15 @@ export default function ClientRowFunil({ item, onWhatsApp, onUpdated }) {
               rows={3}
               className="text-xs rounded-lg resize-none border-slate-200"
             />
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <button
+                onClick={addToMedicalRecord}
+                disabled={addingRecord || !localNote?.trim()}
+                className="flex items-center gap-1.5 text-xs text-[#6B3FA0] hover:text-[#5a3490] disabled:opacity-40 font-medium transition-colors"
+              >
+                {addingRecord ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardPlus className="h-3.5 w-3.5" />}
+                {addingRecord ? 'Adicionando...' : 'Adicionar ao prontuário'}
+              </button>
               <button
                 onClick={saveNote}
                 disabled={savingNote || localNote === (item.funil_notes || '')}

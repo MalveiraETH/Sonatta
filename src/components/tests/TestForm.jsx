@@ -17,7 +17,7 @@ import {
   SelectValue } from
 '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, X, ChevronsUpDown, Check } from 'lucide-react';
+import { Plus, X, ChevronsUpDown, Check, ClipboardPlus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -69,6 +69,7 @@ function DeviceCombobox({ device, products, onSelect, onRemove }) {
 
 export default function TestForm({ open, onClose, test, onSuccess, extendMode = false, preselectedClientId = null, preselectedAppointmentData = null }) {
   const [loading, setLoading] = useState(false);
+  const [addingRecord, setAddingRecord] = useState(false);
   const [clientOpen, setClientOpen] = useState(false);
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
@@ -166,6 +167,25 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     } catch (error) {
       console.error('Erro ao atualizar status do cliente:', error);
     }
+  };
+
+  const addToMedicalRecord = async () => {
+    if (!formData.notes?.trim() || !formData.client_id) return;
+    setAddingRecord(true);
+    try {
+      const client = clients.find(c => c.id === formData.client_id);
+      await base44.entities.MedicalRecord.create({
+        client_id: formData.client_id,
+        client_name: client?.full_name,
+        date: formData.end_date || formData.start_date || format(new Date(), 'yyyy-MM-dd'),
+        record_type: 'avaliacao',
+        notes: formData.notes,
+      });
+      toast.success('Adicionado ao prontuário');
+    } catch (e) {
+      toast.error('Erro ao adicionar ao prontuário');
+    }
+    setAddingRecord(false);
   };
 
   const handleSubmit = async (e) => {
@@ -351,12 +371,22 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
               </div>
 
               <div>
-                <Label>Observações</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Observações</Label>
+                  <button
+                    type="button"
+                    onClick={addToMedicalRecord}
+                    disabled={addingRecord || !formData.notes?.trim()}
+                    className="flex items-center gap-1.5 text-xs text-[#6B3FA0] hover:text-[#5a3490] disabled:opacity-40 font-medium transition-colors"
+                  >
+                    <ClipboardPlus className="h-3.5 w-3.5" />
+                    {addingRecord ? 'Adicionando...' : 'Adicionar ao prontuário'}
+                  </button>
+                </div>
                 <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3} />
-
               </div>
             </>
           }
