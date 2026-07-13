@@ -1,5 +1,25 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+// Palavras que EXCLUEM um item de ser considerado bateria
+const EXCLUDE_KEYWORDS = ['cerustop', 'protetor de cera', 'cera', 'molde', 'receptor', 'gancho', 'oliva', 'tubo', 'carregador', 'desumidificador'];
+
+// Palavras que CONFIRMAM que é bateria/pilha
+const BATERIA_KEYWORDS = ['bateria', 'pilha', 'zinc air', 'pr41', 'pr44', 'pr48', 'pr70', 'size 10', 'size 13', 'size 312', 'size 675'];
+
+function isBateriaItem(item) {
+  const name = (item.product_name || '').toLowerCase();
+  const cat = (item.product_category || '').toLowerCase();
+
+  // Se o nome contém palavra de exclusão, não é bateria
+  if (EXCLUDE_KEYWORDS.some(kw => name.includes(kw))) return false;
+
+  // Verifica se é bateria pelo nome ou categoria
+  const nameMatch = BATERIA_KEYWORDS.some(kw => name.includes(kw));
+  const catMatch = cat === 'bateria';
+
+  return nameMatch || catMatch;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -12,17 +32,15 @@ Deno.serve(async (req) => {
     // Busca todas as vendas não canceladas
     const sales = await base44.asServiceRole.entities.Sale.filter({ status: ['pendente', 'pago'] }, '-sale_date', 2000);
 
-    // Filtra vendas que contêm baterias
+    // Filtra vendas que contêm baterias (com lógica de exclusão robusta)
     const salesComBateria = sales.filter(sale =>
-      sale.items?.some(item => item.product_category === 'bateria' || item.product_name?.toLowerCase().includes('bateria') || item.product_name?.toLowerCase().includes('pilha'))
+      sale.items?.some(item => isBateriaItem(item))
     );
 
     // Agrupa por cliente (mantém a última compra de bateria)
     const clienteMap = {};
     for (const sale of salesComBateria) {
-      const bateriaItems = sale.items.filter(item =>
-        item.product_category === 'bateria' || item.product_name?.toLowerCase().includes('bateria') || item.product_name?.toLowerCase().includes('pilha')
-      );
+      const bateriaItems = sale.items.filter(item => isBateriaItem(item));
       const qtd = bateriaItems.reduce((s, i) => s + (i.quantity || 1), 0);
 
       if (!clienteMap[sale.client_id]) {
@@ -38,7 +56,6 @@ Deno.serve(async (req) => {
       } else {
         clienteMap[sale.client_id].total_compras += 1;
         clienteMap[sale.client_id].total_baterias += qtd;
-        // mantém a data mais recente
         const existing = clienteMap[sale.client_id].ultima_compra;
         const current = sale.sale_date || sale.created_date;
         if (current > existing) {
@@ -58,7 +75,6 @@ Deno.serve(async (req) => {
       return { ...c, dias_desde_compra: dias, estagio };
     });
 
-    // Ordena por dias decrescente (mais urgentes primeiro)
     clientes.sort((a, b) => b.dias_desde_compra - a.dias_desde_compra);
 
     const stats = {
