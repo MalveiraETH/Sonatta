@@ -33,13 +33,12 @@ export default function BateriaTab() {
   const [stats, setStats] = useState({});
   const [search, setSearch] = useState('');
   const [filtroEstagio, setFiltroEstagio] = useState('todos');
-  const [ciclo, setCiclo] = useState(90);
   const [bateriaTemplates, setBateriaTemplates] = useState({});
 
   const load = async () => {
     setLoading(true);
     const [res, tmpls] = await Promise.all([
-      base44.functions.invoke('getBateriaClientes', { ciclo_dias: ciclo }),
+      base44.functions.invoke('getBateriaClientes', {}),
       base44.entities.MessageTemplate.filter({ age_group: { $in: ['bateria_menor', 'bateria_maior'] } }),
     ]);
     setClientes(res.data.clientes || []);
@@ -50,7 +49,7 @@ export default function BateriaTab() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [ciclo]);
+  useEffect(() => { load(); }, []);
 
   const buildMessage = (cliente) => {
     const idade = calcIdade(cliente.birth_date);
@@ -89,7 +88,7 @@ export default function BateriaTab() {
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-8 w-8 text-red-500 opacity-70" />
             <div>
-              <p className="text-xs text-slate-500">Urgente ({ciclo}+ dias)</p>
+              <p className="text-xs text-slate-500">Esgotados</p>
               <p className="text-2xl font-bold text-red-600">{stats.urgente || 0}</p>
             </div>
           </div>
@@ -98,7 +97,7 @@ export default function BateriaTab() {
           <div className="flex items-center gap-3">
             <Clock className="h-8 w-8 text-amber-500 opacity-70" />
             <div>
-              <p className="text-xs text-slate-500">Atenção (60–90 dias)</p>
+              <p className="text-xs text-slate-500">Atenção (&lt;15 dias restantes)</p>
               <p className="text-2xl font-bold text-amber-600">{stats.atencao || 0}</p>
             </div>
           </div>
@@ -107,7 +106,7 @@ export default function BateriaTab() {
           <div className="flex items-center gap-3">
             <CheckCircle className="h-8 w-8 text-emerald-500 opacity-70" />
             <div>
-              <p className="text-xs text-slate-500">Recentes (&lt;60 dias)</p>
+              <p className="text-xs text-slate-500">OK (15+ dias restantes)</p>
               <p className="text-2xl font-bold text-emerald-600">{stats.recente || 0}</p>
             </div>
           </div>
@@ -131,19 +130,9 @@ export default function BateriaTab() {
                   : 'bg-white text-slate-600 border-slate-200 hover:border-[#6B3FA0]'
               }`}
             >
-              {e === 'todos' ? 'Todos' : e === 'urgente' ? '🔴 Urgente' : e === 'atencao' ? '🟡 Atenção' : '🟢 Recente'}
+              {e === 'todos' ? 'Todos' : e === 'urgente' ? '🔴 Esgotado' : e === 'atencao' ? '🟡 Atenção' : '🟢 OK'}
             </button>
           ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 whitespace-nowrap">Ciclo (dias):</span>
-          <Input
-            type="number"
-            value={ciclo}
-            onChange={e => setCiclo(Number(e.target.value))}
-            className="w-20 text-center"
-            min={1}
-          />
         </div>
         <Button variant="outline" size="icon" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -182,9 +171,12 @@ export default function BateriaTab() {
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{cliente.client_name}</p>
                       <p className="text-xs text-slate-500">
-                        Última compra: <strong>{cliente.dias_desde_compra} dias atrás</strong>
-                        {' · '}{cliente.total_compras}x compra{cliente.total_compras !== 1 ? 's' : ''}
-                        {' · '}{cliente.total_baterias} bateria{cliente.total_baterias !== 1 ? 's' : ''}/pilha{cliente.total_baterias !== 1 ? 's' : ''}
+                        {cliente.dias_restantes > 0
+                          ? <>Termina em <strong className="text-amber-600">{cliente.dias_restantes} dia{cliente.dias_restantes !== 1 ? 's' : ''}</strong> · {new Date(cliente.data_termino_prevista + 'T12:00:00').toLocaleDateString('pt-BR')}</>
+                          : <><strong className="text-red-600">Esgotado há {Math.abs(cliente.dias_restantes)} dia{Math.abs(cliente.dias_restantes) !== 1 ? 's' : ''}</strong></>
+                        }
+                        {' · '}{cliente.uso_aparelhos === 'bilateral' ? '🦻🦻 Par' : '🦻 Unilateral'}
+                        {' · '}{cliente.cartelas_ultima_compra} cartela{cliente.cartelas_ultima_compra !== 1 ? 's' : ''} comprada{cliente.cartelas_ultima_compra !== 1 ? 's' : ''}
                       </p>
                     </div>
                   </div>

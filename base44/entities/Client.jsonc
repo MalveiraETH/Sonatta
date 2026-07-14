@@ -65,6 +65,15 @@
       "default": "lead",
       "description": "Status do cliente"
     },
+    "uso_aparelhos": {
+      "type": "string",
+      "enum": [
+        "unilateral",
+        "bilateral"
+      ],
+      "default": "unilateral",
+      "description": "Se o cliente usa um aparelho (unilateral) ou par (bilateral)"
+    },
     "notes": {
       "type": "string",
       "description": "Observa\u00e7\u00f5es gerais"

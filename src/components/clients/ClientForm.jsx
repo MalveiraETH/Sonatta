@@ -34,6 +34,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
     payer_name: '',
     payer_document: '',
     status: 'lead',
+    uso_aparelhos: 'unilateral',
     notes: ''
   });
 
@@ -51,6 +52,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         payer_name: client.payer_name || '',
         payer_document: client.payer_document || '',
         status: client.status || 'lead',
+        uso_aparelhos: client.uso_aparelhos || 'unilateral',
         notes: client.notes || ''
       });
     } else {
@@ -66,6 +68,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         payer_name: '',
         payer_document: '',
         status: 'lead',
+        uso_aparelhos: 'unilateral',
         notes: ''
       });
     }
@@ -269,6 +272,22 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
                   <SelectItem value="lead">Lead</SelectItem>
                   <SelectItem value="cliente_ativo">Cliente Ativo</SelectItem>
                   <SelectItem value="pos_venda">Pós-Venda</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="uso_aparelhos">Uso de Aparelhos</Label>
+              <Select
+                value={formData.uso_aparelhos}
+                onValueChange={(value) => setFormData({ ...formData, uso_aparelhos: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unilateral">🦻 Unilateral (1 aparelho)</SelectItem>
+                  <SelectItem value="bilateral">🦻🦻 Bilateral (par de aparelhos)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
