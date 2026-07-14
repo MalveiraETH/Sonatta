@@ -246,8 +246,14 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
     }));
   };
 
-  const generateSaleNumber = () => {
-    return `VND-${saleDate.getFullYear()}${String(saleDate.getMonth() + 1).padStart(2, '0')}${String(saleDate.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+  const generateSaleNumber = async () => {
+    const allSales = await base44.entities.Sale.list('-created_date', 500);
+    let maxNum = 0;
+    for (const s of allSales) {
+      const match = s.sale_number?.match(/^VND-(\d+)$/) || s.sale_number?.match(/VND-\d{8}-(\d+)/);
+      if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+    }
+    return `VND-${String(maxNum + 1).padStart(4, '0')}`;
   };
 
   const addPayment = () => {
@@ -298,7 +304,7 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
     try {
       const dataToSave = {
         ...formData,
-        sale_number: formData.sale_number || generateSaleNumber(),
+        sale_number: formData.sale_number || await generateSaleNumber(),
         sale_date: format(new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate()), 'yyyy-MM-dd')
       };
 

@@ -222,8 +222,14 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     }));
   };
 
-  const generateQuoteNumber = () => {
-    return `ORC-${quoteDate.getFullYear()}${String(quoteDate.getMonth() + 1).padStart(2, '0')}${String(quoteDate.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+  const generateQuoteNumber = async () => {
+    const allQuotes = await base44.entities.Quote.list('-created_date', 500);
+    let maxNum = 0;
+    for (const q of allQuotes) {
+      const match = q.quote_number?.match(/^ORC-(\d+)$/) || q.quote_number?.match(/ORC-\d{8}-(\d+)/);
+      if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+    }
+    return `ORC-${String(maxNum + 1).padStart(4, '0')}`;
   };
 
   const paymentMethods = {
@@ -247,7 +253,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     try {
       const dataToSave = {
         ...formData,
-        quote_number: formData.quote_number || generateQuoteNumber(),
+        quote_number: formData.quote_number || await generateQuoteNumber(),
         status: 'criado'
       };
 

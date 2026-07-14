@@ -218,8 +218,14 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
 
         toast.success('Teste atualizado');
       } else {
-        const testsCount = await base44.entities.Test.list();
-        testData.test_number = `TST-${String(testsCount.length + 1).padStart(4, '0')}`;
+        // Gerar número único buscando o maior existente e incrementando
+        const allTests = await base44.entities.Test.list('-created_date', 500);
+        let maxNum = 0;
+        for (const t of allTests) {
+          const match = t.test_number?.match(/^TST-(\d+)$/);
+          if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+        }
+        testData.test_number = `TST-${String(maxNum + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
 
         // Atualizar status do cliente baseado no status do teste
