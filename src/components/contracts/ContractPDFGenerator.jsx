@@ -24,7 +24,7 @@ function parseHtmlToBlocks(html) {
 
     if (tag === 'p' || tag === 'div') {
       const line = extractInlineText(node);
-      blocks.push({ type: 'paragraph', segments: line.segments, align: line.align });
+      blocks.push({ type: 'paragraph', segments: line.segments, align: line.align, lineHeight: line.lineHeight, marginBottom: line.marginBottom });
       return;
     }
     if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
@@ -60,6 +60,12 @@ function extractInlineText(node) {
   else if (alignClass.includes('ql-align-right') || node.style?.textAlign === 'right') align = 'right';
   else if (alignClass.includes('ql-align-justify') || node.style?.textAlign === 'justify') align = 'justify';
 
+  // Ler line-height e margin-bottom do estilo inline (gerado pelo Quill)
+  const lineHeightRaw = node.style?.lineHeight || '';
+  const lineHeight = parseFloat(lineHeightRaw) || null;
+  const marginBottomRaw = node.style?.marginBottom || '';
+  const marginBottom = parseFloat(marginBottomRaw) || null; // em px
+
   const walk = (n) => {
     if (n.nodeType === Node.TEXT_NODE) {
       const text = n.textContent;
@@ -86,7 +92,7 @@ function extractInlineText(node) {
   };
 
   Array.from(node.childNodes).forEach(walk);
-  return { segments, align };
+  return { segments, align, lineHeight, marginBottom };
 }
 
 // Carrega imagem como base64 via canvas (com CORS)
@@ -242,7 +248,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         }
 
         if (block.type === 'paragraph') {
-          const { segments, align } = block;
+          const { segments, align, lineHeight: blockLH, marginBottom: blockMB } = block;
           if (!segments || segments.length === 0) {
             // parágrafo vazio = espaçamento entre parágrafos
             curY += LINE_HEIGHT_NORMAL;
@@ -269,10 +275,15 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           const jsPDFAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
           const textX = align === 'center' ? pageW / 2 : align === 'right' ? pageW - marginR : marginL;
 
+          // Aplicar line-height e espaçamento de parágrafo configurados no editor
+          const effectiveLH = blockLH ? LINE_HEIGHT_NORMAL * blockLH : LINE_HEIGHT_NORMAL;
+          // marginBottom em px → convertemos para mm (1px ≈ 0.264mm), cap em 20mm
+          const effectiveMB = blockMB ? Math.min(blockMB * 0.264, 20) : PARA_SPACING;
+
           const lines = pdf.splitTextToSize(fullText, contentW);
-          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + PARA_SPACING);
+          checkPageBreak(lines.length * effectiveLH + effectiveMB);
           pdf.text(lines, textX, curY, { align: jsPDFAlign });
-          curY += lines.length * LINE_HEIGHT_NORMAL + PARA_SPACING;
+          curY += lines.length * effectiveLH + effectiveMB;
           continue;
         }
       }

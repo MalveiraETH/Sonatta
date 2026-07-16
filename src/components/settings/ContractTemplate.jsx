@@ -5,27 +5,47 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileText, Loader2, Save, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import ReactQuill from 'react-quill-new';
+import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
+// Registrar atributo line-height no Quill
+const Parchment = Quill.import('parchment');
+const lineHeightStyle = new Parchment.Attributor.Style('lineHeight', 'line-height', {
+  scope: Parchment.Scope.BLOCK,
+  whitelist: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'],
+});
+Quill.register(lineHeightStyle, true);
+
+// Registrar atributo margin-bottom (espaçamento entre parágrafos)
+const paragraphSpacingStyle = new Parchment.Attributor.Style('paragraphSpacing', 'margin-bottom', {
+  scope: Parchment.Scope.BLOCK,
+  whitelist: ['0px', '4px', '8px', '12px', '16px', '24px', '32px'],
+});
+Quill.register(paragraphSpacingStyle, true);
+
 const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    [{ font: [] }],
-    [{ size: ['small', false, 'large', 'huge'] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ color: [] }, { background: [] }],
-    [{ list: 'ordered' }, { list: 'bullet' }],
-    [{ align: [] }],
-    ['clean'],
-  ],
+  toolbar: {
+    container: [
+      [{ header: [1, 2, 3, false] }],
+      [{ size: ['small', false, 'large', 'huge'] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ color: [] }, { background: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ align: [] }],
+      [{ lineHeight: ['1', '1.2', '1.5', '1.8', '2', '2.5', '3'] }],
+      [{ paragraphSpacing: ['0px', '4px', '8px', '12px', '16px', '24px', '32px'] }],
+      ['clean'],
+    ],
+    handlers: {},
+  },
 };
 
 const QUILL_FORMATS = [
-  'header', 'font', 'size',
+  'header', 'size',
   'bold', 'italic', 'underline', 'strike',
   'color', 'background',
   'list', 'align',
+  'lineHeight', 'paragraphSpacing',
 ];
 
 const DEFAULT_TEMPLATE = `CONTRATO DE COMPROMISSO DE PAGAMENTO
@@ -279,6 +299,27 @@ export default function ContractTemplate() {
           </div>
         </div>
         
+        <style>{`
+          .ql-lineHeight .ql-picker-label::before { content: 'Entrelinha'; }
+          .ql-lineHeight .ql-picker-item[data-value="1"]::before { content: '1.0'; }
+          .ql-lineHeight .ql-picker-item[data-value="1.2"]::before { content: '1.2'; }
+          .ql-lineHeight .ql-picker-item[data-value="1.5"]::before { content: '1.5'; }
+          .ql-lineHeight .ql-picker-item[data-value="1.8"]::before { content: '1.8'; }
+          .ql-lineHeight .ql-picker-item[data-value="2"]::before { content: '2.0'; }
+          .ql-lineHeight .ql-picker-item[data-value="2.5"]::before { content: '2.5'; }
+          .ql-lineHeight .ql-picker-item[data-value="3"]::before { content: '3.0'; }
+          .ql-paragraphSpacing .ql-picker-label::before { content: 'Espaç.§'; }
+          .ql-paragraphSpacing .ql-picker-item[data-value="0px"]::before { content: 'Sem espaço'; }
+          .ql-paragraphSpacing .ql-picker-item[data-value="4px"]::before { content: 'Mínimo'; }
+          .ql-paragraphSpacing .ql-picker-item[data-value="8px"]::before { content: 'Pequeno'; }
+          .ql-paragraphSpacing .ql-picker-item[data-value="12px"]::before { content: 'Médio'; }
+          .ql-paragraphSpacing .ql-picker-item[data-value="16px"]::before { content: 'Normal'; }
+          .ql-paragraphSpacing .ql-picker-item[data-value="24px"]::before { content: 'Grande'; }
+          .ql-paragraphSpacing .ql-picker-item[data-value="32px"]::before { content: 'Extra'; }
+          .ql-lineHeight, .ql-paragraphSpacing { width: 90px !important; }
+          .ql-editor p { margin-bottom: 0; }
+          .ql-editor { min-height: 420px; font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; }
+        `}</style>
         <div className={`rounded-lg border border-slate-200 overflow-hidden ${!isAdmin ? 'pointer-events-none opacity-60' : ''}`}>
           <ReactQuill
             theme="snow"
@@ -287,7 +328,6 @@ export default function ContractTemplate() {
             modules={QUILL_MODULES}
             formats={QUILL_FORMATS}
             placeholder="Digite o texto do contrato..."
-            style={{ minHeight: '420px' }}
           />
         </div>
 
