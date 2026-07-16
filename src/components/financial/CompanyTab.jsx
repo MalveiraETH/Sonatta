@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Plus } from 'lucide-react';
+import { Building2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CompanyTab() {
   const [companies, setCompanies] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [saved, setSaved] = useState(false);
   const [formData, setFormData] = useState({
     name: 'Sonatta - Aparelhos Auditivos Manaus',
     cnpj: '33.457.952/0001-98',
@@ -40,11 +41,11 @@ export default function CompanyTab() {
     try {
       if (editing) {
         await base44.entities.Company.update(editing.id, formData);
-        toast.success('Empresa atualizada!');
       } else {
         await base44.entities.Company.create(formData);
-        toast.success('Empresa cadastrada!');
       }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
       loadCompanies();
     } catch (error) {
       console.error('Erro ao salvar empresa:', error);
@@ -107,7 +108,13 @@ export default function CompanyTab() {
               />
             </div>
           </div>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-4">
+            {saved && (
+              <div className="flex items-center gap-2 text-green-600 animate-in fade-in slide-in-from-left-4 duration-300">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="text-sm font-medium">Atualizado com sucesso!</span>
+              </div>
+            )}
             <Button type="submit" className="bg-[#6B3FA0] hover:bg-[#834CB8]">
               {editing ? 'Atualizar' : 'Salvar'}
             </Button>
