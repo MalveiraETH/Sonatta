@@ -561,9 +561,12 @@ export default function Contracts() {
                   <p className="font-medium text-lg">{formatCurrency(selectedContract.total_value)}</p>
                 </div>
               </div>
-              {selectedContract.contract_text && (
-                <div className="bg-slate-50 p-4 rounded max-h-60 overflow-y-auto">
-                  <pre className="text-xs whitespace-pre-wrap">{selectedContract.contract_text}</pre>
+              {selectedContract.contract_text && selectedContract.contract_text !== 'Template não configurado' && (
+                <div className="bg-slate-50 p-4 rounded max-h-60 overflow-y-auto text-sm">
+                  {selectedContract.contract_text.includes('<') 
+                    ? <div dangerouslySetInnerHTML={{ __html: selectedContract.contract_text }} className="prose prose-sm max-w-none" />
+                    : <pre className="text-xs whitespace-pre-wrap">{selectedContract.contract_text}</pre>
+                  }
                 </div>
               )}
               {/* Botões de exportação */}

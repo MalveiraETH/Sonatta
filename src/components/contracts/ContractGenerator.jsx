@@ -76,10 +76,15 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
     if (!template) return '';
     
     // Buscar pagamento PIX parcelado
-    const pixParcelado = sale.payment_details?.find(p => p.method === 'pix_parcelado');
-    if (!pixParcelado) return '';
+    // Tentar PIX parcelado primeiro, senão usar qualquer método de pagamento disponível
+    const pixParcelado = sale.payment_details?.find(p => p.method === 'pix_parcelado') ||
+      sale.payment_details?.find(p => p.installments > 1) ||
+      sale.payment_details?.[0];
+    if (!pixParcelado) return template.template_text || '';
 
-    const installmentValue = pixParcelado.amount / pixParcelado.installments;
+    const installmentValue = pixParcelado.installments > 1
+      ? pixParcelado.amount / pixParcelado.installments
+      : pixParcelado.amount;
     const saleDate = new Date(sale.sale_date || sale.created_date);
     const firstPaymentDate = addDays(saleDate, 30);
 
@@ -105,13 +110,6 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
 
   const handleGenerate = async () => {
     if (!sale) return;
-
-    // Verificar se há PIX parcelado
-    const hasPixParcelado = sale.payment_details?.some(p => p.method === 'pix_parcelado');
-    if (!hasPixParcelado) {
-      toast.error('Este contrato é apenas para vendas com PIX Parcelado');
-      return;
-    }
 
     setLoading(true);
     try {
