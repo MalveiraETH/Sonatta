@@ -3,9 +3,30 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { FileText, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
+const QUILL_MODULES = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    [{ font: [] }],
+    [{ size: ['small', false, 'large', 'huge'] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ color: [] }, { background: [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ align: [] }],
+    ['clean'],
+  ],
+};
+
+const QUILL_FORMATS = [
+  'header', 'font', 'size',
+  'bold', 'italic', 'underline', 'strike',
+  'color', 'background',
+  'list', 'align',
+];
 
 const DEFAULT_TEMPLATE = `CONTRATO DE COMPROMISSO DE PAGAMENTO
 
@@ -70,7 +91,13 @@ export default function ContractTemplate() {
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [template, setTemplate] = useState(null);
-  const [templateText, setTemplateText] = useState(DEFAULT_TEMPLATE);
+  // Se o template salvo for texto puro (sem tags HTML), converte para HTML básico
+  const toHtml = (text) => {
+    if (!text) return '';
+    if (text.includes('<') && text.includes('>')) return text;
+    return text.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
+  };
+  const [templateText, setTemplateText] = useState(toHtml(DEFAULT_TEMPLATE));
   const [footerInfo, setFooterInfo] = useState({
     phone: '(92) 99169-2102',
     email: 'contato@sonatta.com.br',
@@ -85,7 +112,7 @@ export default function ContractTemplate() {
   useEffect(() => {
     const unsubscribe = base44.entities.ContractTemplate.subscribe((event) => {
       if (event.type === 'update' && event.data.name === 'PIX Parcelado') {
-        setTemplateText(event.data.template_text);
+        setTemplateText(toHtml(event.data.template_text));
         if (event.data.footer_info) setFooterInfo(event.data.footer_info);
       }
     });
@@ -101,7 +128,7 @@ export default function ContractTemplate() {
       setCurrentUser(user);
       if (templates.length > 0) {
         setTemplate(templates[0]);
-        setTemplateText(templates[0].template_text);
+        setTemplateText(toHtml(templates[0].template_text));
         if (templates[0].footer_info) {
           setFooterInfo(templates[0].footer_info);
         }
@@ -200,14 +227,17 @@ export default function ContractTemplate() {
           </div>
         </div>
         
-        <Textarea
-          value={templateText}
-          onChange={(e) => setTemplateText(e.target.value)}
-          placeholder="Digite o texto do contrato..."
-          rows={20}
-          className="font-mono text-sm"
-          disabled={!isAdmin}
-        />
+        <div className={`rounded-lg border border-slate-200 overflow-hidden ${!isAdmin ? 'pointer-events-none opacity-60' : ''}`}>
+          <ReactQuill
+            theme="snow"
+            value={templateText}
+            onChange={setTemplateText}
+            modules={QUILL_MODULES}
+            formats={QUILL_FORMATS}
+            placeholder="Digite o texto do contrato..."
+            style={{ minHeight: '420px' }}
+          />
+        </div>
 
         <Card className="p-4 bg-slate-50">
           <h3 className="font-semibold text-slate-800 mb-4">Informações do Rodapé (PDF)</h3>
