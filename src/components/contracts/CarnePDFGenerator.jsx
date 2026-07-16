@@ -295,7 +295,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
       pdf.setTextColor(120, 120, 120);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(6.5);
-      pdf.text(`${SONATTA.name}  •  CNPJ: ${SONATTA.cnpj}  •  ${SONATTA.phone}`, cx, compY);
+      pdf.text(`${SONATTA.name}  •  CNPJ: ${SONATTA.cnpj}`, cx, compY);
 
       // ── Grade de campos 3x2 ──
       // Linha 1: CLIENTE | CPF | CONTRATO
@@ -379,14 +379,27 @@ export default function CarnePDFGenerator({ contract, sale }) {
       }
 
       // ── Instrução PIX ──
-      const instrY = fillY + fillH + 4;
-      pdf.setTextColor(100, 100, 100);
+      const instrY = fillY + fillH + 3;
+
+      // Fundo destaque para instrução PIX
+      pdf.setFillColor(240, 235, 252);
+      pdf.setDrawColor(...PURPLE);
+      pdf.roundedRect(cx, instrY - 3, cw, 10, 1, 1, 'FD');
+
+      pdf.setTextColor(...PURPLE);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(6.5);
+      pdf.text('CHAVE PIX (CNPJ):', cx + 3, instrY + 1.5);
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(30, 30, 30);
+      pdf.text(SONATTA.cnpj, cx + 3, instrY + 6.5);
+
       pdf.setFont('helvetica', 'italic');
       pdf.setFontSize(6);
-      pdf.text(
-        `Pague via PIX: ${SONATTA.phone} (CNPJ: ${SONATTA.cnpj})  •  Guarde o comprovante e apresente junto a este carnê.`,
-        PW / 2, instrY, { align: 'center' }
-      );
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('Guarde o comprovante e apresente junto a este carnê.', PW - margin - 3, instrY + 4, { align: 'right' });
     });
 
     pdf.save(`carne_${contract.contract_number}.pdf`);
