@@ -28,16 +28,16 @@ export default function CarnePDFGenerator({ contract, sale }) {
 
     setGenerating(true);
     try {
-      // Buscar dados da empresa
-      const settingsList = await base44.entities.AppSettings.list();
-      const settings = settingsList[0] || {};
+      // Buscar dados da empresa cadastrada
+      const companies = await base44.entities.Company.list();
+      const company = companies[0] || {};
       const SONATTA = {
-        name: settings.company_name || 'Sonatta – Soluções Auditivas',
-        cnpj: settings.cnpj || '33.457.952/0001-98',
-        address: settings.address || '',
-        phone: settings.phone || '(92) 99169-2102',
-        email: settings.email || 'contato@sonatta.com.br',
-        website: settings.website || 'www.sonatta.com.br',
+        name: company.name || 'Sonatta – Soluções Auditivas',
+        cnpj: company.cnpj || '33.457.952/0001-98',
+        address: company.address || '',
+        phone: company.phone || '(92) 99169-2102',
+        email: company.email || 'contato@sonatta.com.br',
+        website: company.website || 'www.sonatta.com.br',
       };
 
       // Buscar parcelas já geradas para essa venda

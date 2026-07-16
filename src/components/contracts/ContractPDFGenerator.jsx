@@ -8,22 +8,11 @@ import jsPDF from 'jspdf';
 
 export default function ContractPDFGenerator({ contract, contractText }) {
   const [generating, setGenerating] = React.useState(false);
-  const [footerInfo, setFooterInfo] = React.useState(null);
+  const [company, setCompany] = React.useState(null);
 
   React.useEffect(() => {
-    loadFooterInfo();
+    base44.entities.Company.list().then(list => { if (list[0]) setCompany(list[0]); }).catch(() => {});
   }, []);
-
-  const loadFooterInfo = async () => {
-    try {
-      const templates = await base44.entities.ContractTemplate.filter({ name: 'PIX Parcelado' });
-      if (templates.length > 0 && templates[0].footer_info) {
-        setFooterInfo(templates[0].footer_info);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const generatePDF = async () => {
     setGenerating(true);
@@ -63,24 +52,21 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         footerElement.style.position = 'absolute';
         footerElement.style.left = '-9999px';
         
-        const footerContent = footerInfo ? `
+        const co = company || {};
+        const footerContent = `
           <div style="border-top: 2px solid #6B3FA0; padding: 10px 25mm; background: white; font-family: Arial, sans-serif;">
             <div style="text-align: center;">
               <p style="margin: 0 0 6px 0; font-size: 9pt; color: #4a5568; line-height: 1.5;">
-                <strong style="color: #6B3FA0;">Sonatta - Soluções Auditivas</strong><br>
-                Edifício Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007<br>
-                Adrianópolis, Manaus – AM, 69057-035
+                <strong style="color: #6B3FA0;">${co.name || 'Sonatta – Soluções Auditivas'}</strong><br>
+                ${co.address || ''}<br>
+                CNPJ: ${co.cnpj || '33.457.952/0001-98'}
               </p>
-              <p style="margin: 6px 0 0 0; font-size: 8pt; color: #4a5568; line-height: 1.5;">
-                <span style="display: inline-flex; align-items: center; margin: 0 8px;">📱 WhatsApp: ${footerInfo.phone}</span>
-                <span style="display: inline-flex; align-items: center; margin: 0 8px;">🌐 ${footerInfo.website}</span><br>
-                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📸 Instagram: ${footerInfo.instagram}</span>
-                <span style="display: inline-flex; align-items: center; margin: 0 6px;">📘 Facebook: @sonatta.manaus</span>
-                <span style="display: inline-flex; align-items: center; margin: 0 6px;">💼 LinkedIn: /sonatta</span>
+              <p style="margin: 4px 0 0 0; font-size: 8pt; color: #4a5568; line-height: 1.5;">
+                📱 ${co.phone || ''}  &nbsp;|&nbsp;  ✉️ ${co.email || ''}
               </p>
             </div>
           </div>
-        ` : '';
+        `;
         
         footerElement.innerHTML = footerContent;
         return footerElement;
