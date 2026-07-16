@@ -114,30 +114,60 @@ export default function ContractTemplate() {
   const [template, setTemplate] = useState(null);
   const quillRef = useRef(null);
 
+  // Retorna todos os blocos (<p>, <li>, etc.) que intersectam a seleção atual.
+  // Se não houver seleção (length=0), aplica no parágrafo do cursor.
+  // Se nada estiver selecionado no editor, aplica em TODOS os blocos do documento.
+  const getSelectedBlocks = (editor) => {
+    const root = editor.root;
+    const selection = editor.getSelection(false);
+    const allBlocks = Array.from(root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6'));
+    if (!selection) return allBlocks;
+
+    if (selection.length === 0) {
+      // Cursor num ponto: retorna só o bloco onde está o cursor
+      const [leaf] = editor.getLeaf(selection.index);
+      const block = leaf?.parent?.domNode || leaf?.domNode;
+      return block ? [block] : allBlocks;
+    }
+
+    // Seleção com múltiplos caracteres: retorna blocos dentro do range
+    const range = document.createRange();
+    const startNode = editor.getLeaf(selection.index)[0]?.domNode;
+    const endNode = editor.getLeaf(selection.index + selection.length - 1)[0]?.domNode;
+    if (!startNode || !endNode) return allBlocks;
+    try {
+      range.setStartBefore(startNode);
+      range.setEndAfter(endNode);
+      return allBlocks.filter(b => range.intersectsNode(b));
+    } catch {
+      return allBlocks;
+    }
+  };
+
   const applyLineHeight = (value) => {
     const editor = quillRef.current?.getEditor();
     if (!editor) return;
-    const selection = editor.getSelection(true);
-    if (!selection) return;
-    const [leaf] = editor.getLeaf(selection.index);
-    const block = leaf?.parent;
-    if (block?.domNode) {
-      block.domNode.style.lineHeight = value || '';
-    }
-    // Forçar re-leitura do HTML pelo React
+    const blocks = getSelectedBlocks(editor);
+    blocks.forEach(b => { b.style.lineHeight = value || ''; });
     setTemplateText(editor.root.innerHTML);
   };
 
   const applyParaSpacing = (value) => {
     const editor = quillRef.current?.getEditor();
     if (!editor) return;
-    const selection = editor.getSelection(true);
-    if (!selection) return;
-    const [leaf] = editor.getLeaf(selection.index);
-    const block = leaf?.parent;
-    if (block?.domNode) {
-      block.domNode.style.marginBottom = value || '';
-    }
+    const blocks = getSelectedBlocks(editor);
+    blocks.forEach(b => { b.style.marginBottom = value || ''; });
+    setTemplateText(editor.root.innerHTML);
+  };
+
+  const applyToAll = (lineHeight, paraSpacing) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const allBlocks = Array.from(editor.root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6'));
+    allBlocks.forEach(b => {
+      if (lineHeight !== null) b.style.lineHeight = lineHeight;
+      if (paraSpacing !== null) b.style.marginBottom = paraSpacing;
+    });
     setTemplateText(editor.root.innerHTML);
   };
   // Se o template salvo for texto puro (sem tags HTML), converte para HTML básico
@@ -334,32 +364,53 @@ export default function ContractTemplate() {
 
         {/* Controles de espaçamento customizados */}
         {isAdmin && (
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 whitespace-nowrap">Entrelinha:</span>
-              <select
-                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
-                defaultValue=""
-                onChange={(e) => applyLineHeight(e.target.value)}
-              >
-                {LINE_HEIGHT_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+          <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-2">
+            <p className="text-xs font-semibold text-slate-600">Controle de Espaçamento</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 whitespace-nowrap">Entrelinha:</span>
+                <select
+                  className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                  defaultValue=""
+                  onChange={(e) => applyLineHeight(e.target.value)}
+                >
+                  {LINE_HEIGHT_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 whitespace-nowrap">Espaç. parágrafo:</span>
+                <select
+                  className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                  defaultValue=""
+                  onChange={(e) => applyParaSpacing(e.target.value)}
+                >
+                  {PARA_SPACING_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 whitespace-nowrap">Espaç. parágrafo:</span>
-              <select
-                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
-                defaultValue=""
-                onChange={(e) => applyParaSpacing(e.target.value)}
-              >
-                {PARA_SPACING_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-500">Aplicar a todo o documento:</span>
+              <button
+                type="button"
+                onClick={() => applyToAll('1.2', '4px')}
+                className="text-xs bg-[#6B3FA0] text-white px-2 py-1 rounded hover:bg-[#834CB8]"
+              >Compacto</button>
+              <button
+                type="button"
+                onClick={() => applyToAll('1.5', '8px')}
+                className="text-xs bg-[#6B3FA0] text-white px-2 py-1 rounded hover:bg-[#834CB8]"
+              >Normal</button>
+              <button
+                type="button"
+                onClick={() => applyToAll('1.8', '16px')}
+                className="text-xs bg-slate-400 text-white px-2 py-1 rounded hover:bg-slate-500"
+              >Espaçado</button>
             </div>
-            <p className="text-xs text-slate-400">↑ Selecione o parágrafo no editor, depois aplique o estilo</p>
+            <p className="text-xs text-slate-400">Selecione trechos no editor para aplicar por parágrafo, ou use os botões acima para o documento inteiro.</p>
           </div>
         )}
 

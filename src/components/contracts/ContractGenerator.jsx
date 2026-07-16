@@ -111,6 +111,13 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
   const handleGenerate = async () => {
     if (!sale) return;
 
+    // Verificar se há PIX parcelado
+    const hasPixParcelado = sale.payment_details?.some(p => p.method === 'pix_parcelado');
+    if (!hasPixParcelado) {
+      toast.error('Este contrato é apenas para vendas com PIX Parcelado');
+      return;
+    }
+
     setLoading(true);
     try {
       const contractNumber = generateContractNumber();
