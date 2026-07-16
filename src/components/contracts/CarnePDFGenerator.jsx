@@ -90,7 +90,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
     const setDraw = ([r, g, b]) => pdf.setDrawColor(r, g, b);
 
     // ── CAPA ──────────────────────────────────────────────────────────────
-    const LOGO_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png';
+    const LOGO_URL = 'https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg';
 
     // Borda roxa superior fina
     pdf.setFillColor(...PURPLE);
@@ -107,7 +107,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
 
     // Logo à esquerda
     try {
-      pdf.addImage(LOGO_URL, 'PNG', margin + 4, HDR_Y + 4, 28, 28);
+      pdf.addImage(LOGO_URL, 'JPEG', margin + 4, HDR_Y + 4, 34, 20);
     } catch (_) { /* sem logo */ }
 
     // Textos à direita do logo, centralizados verticalmente

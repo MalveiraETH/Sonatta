@@ -38,8 +38,8 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         headerElement.style.left = '-9999px';
         headerElement.innerHTML = `
           <div style="text-align: center; padding: 8mm 0 5mm 0; border-bottom: 2px solid #6B3FA0; background: white;">
-            <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/a0b7b5040_Logo_Sonatta.png" 
-                 style="max-width: 130px; height: auto;" />
+            <img src="https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg" 
+                 style="max-width: 160px; height: auto;" />
           </div>
         `;
         return headerElement;
