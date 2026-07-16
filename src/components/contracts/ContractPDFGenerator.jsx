@@ -8,10 +8,12 @@ import jsPDF from 'jspdf';
 
 export default function ContractPDFGenerator({ contract, contractText }) {
   const [generating, setGenerating] = React.useState(false);
-  const [company, setCompany] = React.useState(null);
+  const [contractTemplate, setContractTemplate] = React.useState(null);
 
   React.useEffect(() => {
-    base44.entities.Company.list().then(list => { if (list[0]) setCompany(list[0]); }).catch(() => {});
+    base44.entities.ContractTemplate.filter({ name: 'PIX Parcelado' })
+      .then(list => { if (list[0]) setContractTemplate(list[0]); })
+      .catch(() => {});
   }, []);
 
   const loadB64 = (url) =>
@@ -44,8 +46,10 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       const footerHeight = 23;
       const contentAreaHeight = pageHeight - headerHeight - footerHeight;
 
-      // Carregar logo via canvas (mesmo padrão do orçamento)
-      const LOGO_URL = 'https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg';
+      // Carregar logo via canvas
+      const headerInfo = contractTemplate?.header_info || {};
+      const footerInfo = contractTemplate?.footer_info || {};
+      const LOGO_URL = headerInfo.logo_url || 'https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg';
       const logoB64 = await loadB64(LOGO_URL);
 
       // Desenhar cabeçalho diretamente no jsPDF (sem html2canvas)
@@ -78,17 +82,18 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         footerElement.style.position = 'absolute';
         footerElement.style.left = '-9999px';
         
-        const co = company || {};
+        const fi = footerInfo;
+        const parts = [
+          fi.phone ? `📱 ${fi.phone}` : '',
+          fi.email ? `✉️ ${fi.email}` : '',
+          fi.website ? `🌐 ${fi.website}` : '',
+          fi.instagram ? `📸 ${fi.instagram}` : '',
+        ].filter(Boolean).join('  &nbsp;|&nbsp;  ');
         const footerContent = `
           <div style="border-top: 2px solid #6B3FA0; padding: 10px 25mm; background: white; font-family: Arial, sans-serif;">
             <div style="text-align: center;">
-              <p style="margin: 0 0 6px 0; font-size: 9pt; color: #4a5568; line-height: 1.5;">
-                <strong style="color: #6B3FA0;">${co.name || 'Sonatta – Soluções Auditivas'}</strong><br>
-                ${co.address || ''}<br>
-                CNPJ: ${co.cnpj || '33.457.952/0001-98'}
-              </p>
-              <p style="margin: 4px 0 0 0; font-size: 8pt; color: #4a5568; line-height: 1.5;">
-                📱 ${co.phone || ''}  &nbsp;|&nbsp;  ✉️ ${co.email || ''}
+              <p style="margin: 0 0 4px 0; font-size: 8pt; color: #4a5568; line-height: 1.5;">
+                ${parts}
               </p>
             </div>
           </div>
