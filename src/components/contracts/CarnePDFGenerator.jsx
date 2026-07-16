@@ -74,7 +74,6 @@ export default function CarnePDFGenerator({ contract, sale }) {
   const buildPDF = async (contract, sale, pixPayment, installments, SONATTA) => {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const PW = 210;
-    const PH = 297;
     const margin = 14;
     const usable = PW - margin * 2;
 
@@ -87,74 +86,42 @@ export default function CarnePDFGenerator({ contract, sale }) {
       return format(date, 'dd/MM/yyyy');
     };
 
-    // ── CAPA — fundo totalmente branco com logo centralizada ───────────────
-    // Logo Sonatta no centro vertical da capa
-    const logoUrl = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png';
+    const setColor = ([r, g, b]) => { pdf.setFillColor(r, g, b); pdf.setTextColor(r, g, b); };
+    const setDraw = ([r, g, b]) => pdf.setDrawColor(r, g, b);
 
-    // Tenta carregar a imagem via fetch e converter para base64 para o jsPDF
-    try {
-      const resp = await fetch(logoUrl);
-      const blob = await resp.blob();
-      const b64 = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
-      // Logo centralizada, grande (80x80mm) no meio da página
-      const logoW = 100;
-      const logoH = 100;
-      pdf.addImage(b64, 'PNG', (PW - logoW) / 2, (PH - logoH) / 2 - 20, logoW, logoH);
-    } catch (e) {
-      // Fallback: texto caso imagem falhe
-      pdf.setTextColor(...PURPLE);
-      pdf.setFontSize(28);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('SONATTA', PW / 2, PH / 2, { align: 'center' });
-    }
-
-    // Texto de suporte abaixo da logo
-    pdf.setTextColor(...PURPLE);
-    pdf.setFontSize(13);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('Soluções Auditivas', PW / 2, PH / 2 + 40, { align: 'center' });
-
-    pdf.setFontSize(9);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text('CARNÊ DE PAGAMENTO — PIX PARCELADO', PW / 2, PH / 2 + 50, { align: 'center' });
-
-    pdf.setFontSize(8);
-    pdf.text(`CNPJ: ${SONATTA.cnpj}`, PW / 2, PH / 2 + 57, { align: 'center' });
-
-    // Rodapé sutil na capa
-    pdf.setFontSize(7);
-    pdf.setTextColor(180, 180, 180);
-    pdf.text(`${SONATTA.name}  •  ${SONATTA.address}`, PW / 2, PH - 12, { align: 'center' });
-
-    // ── PÁGINA 2: Dados do contrato ───────────────────────────────────────
-    pdf.addPage();
-    let y = 18;
-
-    // Título da página de dados
+    // ── CAPA ──────────────────────────────────────────────────────────────
+    // Header roxo
     pdf.setFillColor(...PURPLE);
-    pdf.rect(0, 0, PW, 14, 'F');
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(11);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('DADOS DO CONTRATO', PW / 2, 9.5, { align: 'center' });
-    y = 22;
+    pdf.rect(0, 0, PW, 40, 'F');
 
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('CARNÊ DE PAGAMENTO', PW / 2, 17, { align: 'center' });
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('PIX PARCELADO', PW / 2, 24, { align: 'center' });
+    pdf.text(SONATTA.name.toUpperCase(), PW / 2, 30, { align: 'center' });
+    pdf.text(`CNPJ: ${SONATTA.cnpj}`, PW / 2, 36, { align: 'center' });
+
+    let y = 50;
+
+    // Bloco dados Sonatta + Cliente lado a lado
     const colW = (usable - 6) / 2;
     const col1x = margin;
     const col2x = margin + colW + 6;
 
-    // Caixa Empresa
+    // Caixa Sonatta
     pdf.setFillColor(...LIGHT_PURPLE);
     pdf.setDrawColor(...PURPLE);
     pdf.roundedRect(col1x, y, colW, 42, 2, 2, 'FD');
+
     pdf.setTextColor(...PURPLE);
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
     pdf.text('DADOS DA EMPRESA', col1x + 3, y + 6);
+
     pdf.setTextColor(30, 30, 30);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
@@ -174,9 +141,11 @@ export default function CarnePDFGenerator({ contract, sale }) {
     pdf.setFillColor(...LIGHT_PURPLE);
     pdf.setDrawColor(...PURPLE);
     pdf.roundedRect(col2x, y, colW, 42, 2, 2, 'FD');
+
     pdf.setTextColor(...PURPLE);
     pdf.setFont('helvetica', 'bold');
     pdf.text('DADOS DO CLIENTE', col2x + 3, y + 6);
+
     pdf.setTextColor(30, 30, 30);
     pdf.setFont('helvetica', 'normal');
     const clientLines = [
@@ -197,10 +166,12 @@ export default function CarnePDFGenerator({ contract, sale }) {
     pdf.setFillColor(245, 245, 250);
     pdf.setDrawColor(200, 200, 220);
     pdf.roundedRect(margin, y, usable, 24, 2, 2, 'FD');
+
     pdf.setTextColor(...PURPLE);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8);
     pdf.text('RESUMO DA VENDA', margin + 3, y + 6);
+
     pdf.setTextColor(30, 30, 30);
     pdf.setFont('helvetica', 'normal');
     const resumeItems = [
@@ -211,6 +182,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
       [`Nº de Parcelas:`, `${pixPayment.installments}x`],
       [`Valor da Parcela:`, formatCurrency(pixPayment.amount / pixPayment.installments)],
     ];
+
     const itemW = usable / 3;
     resumeItems.forEach(([label, val], i) => {
       const col = i % 3;
@@ -231,6 +203,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8);
     pdf.text('PRODUTOS', margin + 3, y + 4.5);
+
     y += 7;
     sale.items?.forEach((item, idx) => {
       pdf.setFillColor(idx % 2 === 0 ? 252 : 245, idx % 2 === 0 ? 252 : 245, idx % 2 === 0 ? 255 : 250);
@@ -245,22 +218,20 @@ export default function CarnePDFGenerator({ contract, sale }) {
       y += item.serial_number ? 11 : 8;
     });
 
-    y += 8;
+    y += 6;
     pdf.setTextColor(80, 80, 80);
     pdf.setFontSize(7.5);
     pdf.setFont('helvetica', 'italic');
     pdf.text('As parcelas detalhadas estão nas páginas seguintes. Guarde este documento para controle dos pagamentos.', PW / 2, y, { align: 'center' });
 
-    // ── PARCELAS — 4 coupons por página ───────────────────────────────────
-    // Cada slot = 68mm (4 slots × 68 = 272mm + 3 separadores × ~2.5mm ≈ 279mm dentro de A4 297mm)
+    // ── PARCELAS — 4 coupons por página ──────────────────────────────────
+    // A4 = 297mm. Reservamos 4 slots de 68mm + 3 separadores de 3mm = 4*68+3*3 = 281mm (topo em y=8, bottom em 289)
     const SLOTS = 4;
-    const SLOT_H = 68;
-    const SEP_H = 3;
-    const PAGE_START_Y = 8;
+    const SLOT_H = 68; // altura total de cada slot (inclui separador)
+    const SEP_H = 3;   // altura da linha de corte entre slots
+    const COUPON_H = SLOT_H - SEP_H; // 65mm de coupon visível
+    const PAGE_START_Y = 8; // margem superior das páginas de parcelas
     const totalInstallments = installments.length;
-
-    // Espaçamentos internos do coupon — uniformes
-    const GAP = 2; // gap entre todos os blocos internos
 
     const statusColors = {
       pago: [34, 197, 94],
@@ -275,19 +246,16 @@ export default function CarnePDFGenerator({ contract, sale }) {
       parcialmente_pago: 'PARCIAL',
     };
 
-    const HEADER_H = 10;
-    const COMPANY_LINE_H = 5;  // altura reservada para linha da empresa
-    const FIELD_H = 12;        // altura de cada campo da grade
-    const FILL_H = 10;         // altura dos blocos valor pago / data
-    const PIX_H = 10;          // altura do bloco PIX
-
     installments.forEach((inst, idx) => {
       const slotIndex = idx % SLOTS;
+
+      // Nova página a cada 4 coupons
       if (slotIndex === 0) pdf.addPage();
 
+      // Y absoluto onde este slot começa
       const slotTopY = PAGE_START_Y + slotIndex * SLOT_H;
 
-      // Linha de corte entre slots
+      // Linha de corte ANTES do slot (exceto o primeiro)
       if (slotIndex > 0) {
         const cutY = slotTopY - SEP_H / 2;
         pdf.setDrawColor(180, 180, 180);
@@ -299,18 +267,21 @@ export default function CarnePDFGenerator({ contract, sale }) {
         pdf.text('✂  recorte aqui', PW / 2, cutY - 0.5, { align: 'center' });
       }
 
+      // Y onde começa o conteúdo do coupon (deixa 1mm de padding após separador)
       const cy = slotIndex === 0 ? slotTopY : slotTopY - SEP_H + 1.5;
       const cx = margin;
       const cw = usable;
 
       // ── Header ──
       pdf.setFillColor(...PURPLE);
-      pdf.roundedRect(cx, cy, cw, HEADER_H, 1.5, 1.5, 'F');
+      pdf.roundedRect(cx, cy, cw, 10, 1.5, 1.5, 'F');
+
       pdf.setTextColor(255, 255, 255);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(9.5);
       pdf.text(`Parcela ${inst.installment_number}/${totalInstallments}`, cx + 4, cy + 6.5);
 
+      // Status badge
       const sc = statusColors[inst.payment_status] || [150, 150, 150];
       const sl = statusLabels[inst.payment_status] || inst.payment_status?.toUpperCase();
       pdf.setFillColor(...sc);
@@ -319,18 +290,18 @@ export default function CarnePDFGenerator({ contract, sale }) {
       pdf.setFontSize(7);
       pdf.text(sl, cx + cw - 17, cy + 6.3, { align: 'center' });
 
-      // ── Linha empresa ──
-      const compY = cy + HEADER_H + GAP;
+      // ── Empresa (linha fina abaixo do header) ──
+      const compY = cy + 12;
       pdf.setTextColor(120, 120, 120);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(6.5);
-      pdf.text(`${SONATTA.name}  •  CNPJ: ${SONATTA.cnpj}`, cx, compY + 3);
+      pdf.text(`${SONATTA.name}  •  CNPJ: ${SONATTA.cnpj}`, cx, compY);
 
-      // ── Grade 3×2 (campos de informação) ──
-      const GRID_TOP = compY + COMPANY_LINE_H + GAP;
-      const fW = cw / 3;
+      // ── Grade de campos 3x2 ──
+      // Linha 1: CLIENTE | CPF | CONTRATO
+      // Linha 2: VENDA   | VENCIMENTO | VALOR DA PARCELA
       const fields = [
-        { label: 'CLIENTE', value: pdf.splitTextToSize(contract.client_name || '—', fW - 8)[0] },
+        { label: 'CLIENTE', value: pdf.splitTextToSize(contract.client_name || '—', (cw / 3) - 8)[0] },
         { label: 'CPF', value: contract.client_cpf || '—' },
         { label: 'CONTRATO', value: contract.contract_number || '—' },
         { label: 'VENDA', value: sale.sale_number || '—' },
@@ -338,11 +309,15 @@ export default function CarnePDFGenerator({ contract, sale }) {
         { label: 'VALOR DA PARCELA', value: formatCurrency(inst.gross_amount) },
       ];
 
+      const fW = cw / 3;
+      const FIELD_H = 12; // altura de cada campo
+      const GRID_TOP = compY + 4;
+
       fields.forEach((f, fi) => {
         const fc = fi % 3;
         const fr = Math.floor(fi / 3);
         const fx = cx + fc * fW;
-        const fy = GRID_TOP + fr * (FIELD_H + GAP);
+        const fy = GRID_TOP + fr * (FIELD_H + 1);
 
         pdf.setFillColor(245, 243, 252);
         pdf.setDrawColor(...PURPLE);
@@ -359,12 +334,14 @@ export default function CarnePDFGenerator({ contract, sale }) {
         pdf.text(String(f.value), fx + 2.5, fy + 9.5);
       });
 
-      // ── Valor pago + Data ──
-      const fillY = GRID_TOP + 2 * (FIELD_H + GAP) + GAP;
+      // ── Área de pagamento (valor pago + data) ──
+      const fillY = GRID_TOP + 2 * (FIELD_H + 1) + 2;
+      const fillH = 10;
 
+      // Valor pago
       pdf.setFillColor(252, 252, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx, fillY, cw / 2 - 2, FILL_H, 1, 1, 'FD');
+      pdf.roundedRect(cx, fillY, cw / 2 - 2, fillH, 1, 1, 'FD');
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(6);
@@ -381,9 +358,10 @@ export default function CarnePDFGenerator({ contract, sale }) {
         pdf.text('___________________', cx + 2.5, fillY + 8.5);
       }
 
+      // Data do pagamento
       pdf.setFillColor(252, 252, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx + cw / 2 + 2, fillY, cw / 2 - 2, FILL_H, 1, 1, 'FD');
+      pdf.roundedRect(cx + cw / 2 + 2, fillY, cw / 2 - 2, fillH, 1, 1, 'FD');
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(6);
@@ -400,26 +378,28 @@ export default function CarnePDFGenerator({ contract, sale }) {
         pdf.text('____/____/________', cx + cw / 2 + 4, fillY + 8.5);
       }
 
-      // ── Bloco PIX ──
-      const instrY = fillY + FILL_H + GAP;
+      // ── Instrução PIX ──
+      const instrY = fillY + fillH + 3;
+
+      // Fundo destaque para instrução PIX
       pdf.setFillColor(240, 235, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx, instrY, cw, PIX_H, 1, 1, 'FD');
+      pdf.roundedRect(cx, instrY - 3, cw, 10, 1, 1, 'FD');
 
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(6.5);
-      pdf.text('CHAVE PIX (CNPJ):', cx + 3, instrY + 4);
+      pdf.text('CHAVE PIX (CNPJ):', cx + 3, instrY + 1.5);
 
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(8);
       pdf.setTextColor(30, 30, 30);
-      pdf.text(SONATTA.cnpj, cx + 3, instrY + 8.5);
+      pdf.text(SONATTA.cnpj, cx + 3, instrY + 6.5);
 
       pdf.setFont('helvetica', 'italic');
       pdf.setFontSize(6);
       pdf.setTextColor(100, 100, 100);
-      pdf.text('Guarde o comprovante e apresente junto a este carnê.', PW - margin - 3, instrY + 6, { align: 'right' });
+      pdf.text('Guarde o comprovante e apresente junto a este carnê.', PW - margin - 3, instrY + 4, { align: 'right' });
     });
 
     pdf.save(`carne_${contract.contract_number}.pdf`);
