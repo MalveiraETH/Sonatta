@@ -90,137 +90,209 @@ export default function CarnePDFGenerator({ contract, sale }) {
     const setDraw = ([r, g, b]) => pdf.setDrawColor(r, g, b);
 
     // ── CAPA ──────────────────────────────────────────────────────────────
-    // Header roxo
+    const LOGO_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/694e93aa7609bf14847de917/6be15c70b_IMG_5204.png';
+
+    // Borda roxa superior fina
     pdf.setFillColor(...PURPLE);
-    pdf.rect(0, 0, PW, 40, 'F');
+    pdf.rect(0, 0, PW, 3, 'F');
 
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(18);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('CARNÊ DE PAGAMENTO', PW / 2, 17, { align: 'center' });
+    // Header: logo + textos lado a lado, fundo branco limpo
+    const HDR_Y = 8;
+    const HDR_H = 36;
 
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('PIX PARCELADO', PW / 2, 24, { align: 'center' });
-    pdf.text(SONATTA.name.toUpperCase(), PW / 2, 30, { align: 'center' });
-    pdf.text(`CNPJ: ${SONATTA.cnpj}`, PW / 2, 36, { align: 'center' });
+    // Fundo header com borda suave
+    pdf.setFillColor(250, 248, 255);
+    pdf.setDrawColor(...LIGHT_PURPLE);
+    pdf.roundedRect(margin, HDR_Y, usable, HDR_H, 2, 2, 'FD');
 
-    let y = 50;
+    // Logo à esquerda
+    try {
+      pdf.addImage(LOGO_URL, 'PNG', margin + 4, HDR_Y + 4, 28, 28);
+    } catch (_) { /* sem logo */ }
 
-    // Bloco dados Sonatta + Cliente lado a lado
-    const colW = (usable - 6) / 2;
-    const col1x = margin;
-    const col2x = margin + colW + 6;
-
-    // Caixa Sonatta
-    pdf.setFillColor(...LIGHT_PURPLE);
-    pdf.setDrawColor(...PURPLE);
-    pdf.roundedRect(col1x, y, colW, 42, 2, 2, 'FD');
+    // Textos à direita do logo, centralizados verticalmente
+    const txtX = margin + 38;
+    const txtW = usable - 42;
 
     pdf.setTextColor(...PURPLE);
-    pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('DADOS DA EMPRESA', col1x + 3, y + 6);
+    pdf.setFontSize(16);
+    pdf.text('CARNÊ DE PAGAMENTO', txtX + txtW / 2, HDR_Y + 11, { align: 'center' });
 
-    pdf.setTextColor(30, 30, 30);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(80, 60, 120);
+    pdf.text('PIX PARCELADO', txtX + txtW / 2, HDR_Y + 18, { align: 'center' });
+
     pdf.setFontSize(8);
-    const sonattaLines = [
-      SONATTA.name,
-      `CNPJ: ${SONATTA.cnpj}`,
-      SONATTA.address,
-      `Tel: ${SONATTA.phone}`,
-      SONATTA.email,
-    ];
-    sonattaLines.forEach((line, i) => {
-      const wrapped = pdf.splitTextToSize(line, colW - 6);
-      pdf.text(wrapped, col1x + 3, y + 13 + i * 5.5);
-    });
+    pdf.setTextColor(50, 50, 50);
+    pdf.text(SONATTA.name.toUpperCase(), txtX + txtW / 2, HDR_Y + 25, { align: 'center' });
+
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text(`CNPJ: ${SONATTA.cnpj}`, txtX + txtW / 2, HDR_Y + 31, { align: 'center' });
+
+    // Linha divisória roxa fina abaixo do header
+    let y = HDR_Y + HDR_H + 4;
+    pdf.setDrawColor(...PURPLE);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, y, PW - margin, y);
+    y += 5;
+
+    // ── Bloco dados Sonatta + Cliente lado a lado ──
+    const colW = (usable - 4) / 2;
+    const col1x = margin;
+    const col2x = margin + colW + 4;
+
+    // Calcula altura necessária para caixa empresa (endereço pode ser longo)
+    const addrWrapped = pdf.splitTextToSize(SONATTA.address || '', colW - 8);
+    const boxH = Math.max(42, 14 + (addrWrapped.length + 3) * 5);
+
+    // Caixa Empresa
+    pdf.setFillColor(250, 248, 255);
+    pdf.setDrawColor(...LIGHT_PURPLE);
+    pdf.roundedRect(col1x, y, colW, boxH, 2, 2, 'FD');
+
+    pdf.setFillColor(...PURPLE);
+    pdf.roundedRect(col1x, y, colW, 7, 2, 2, 'F');
+    pdf.rect(col1x, y + 4, colW, 3, 'F'); // corta cantos inferiores arredondados do header
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(7);
+    pdf.text('DADOS DA EMPRESA', col1x + 3, y + 5);
+
+    let ey = y + 12;
+    pdf.setTextColor(30, 30, 30);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.text(SONATTA.name, col1x + 3, ey); ey += 5.5;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.text(`CNPJ: ${SONATTA.cnpj}`, col1x + 3, ey); ey += 5;
+    if (SONATTA.address) {
+      const wrapped = pdf.splitTextToSize(SONATTA.address, colW - 8);
+      pdf.text(wrapped, col1x + 3, ey); ey += wrapped.length * 4.5;
+    }
+    if (SONATTA.phone) { pdf.text(`Tel: ${SONATTA.phone}`, col1x + 3, ey); ey += 5; }
+    if (SONATTA.email) {
+      const emailWrapped = pdf.splitTextToSize(SONATTA.email, colW - 8);
+      pdf.text(emailWrapped, col1x + 3, ey);
+    }
 
     // Caixa Cliente
-    pdf.setFillColor(...LIGHT_PURPLE);
-    pdf.setDrawColor(...PURPLE);
-    pdf.roundedRect(col2x, y, colW, 42, 2, 2, 'FD');
+    pdf.setFillColor(250, 248, 255);
+    pdf.setDrawColor(...LIGHT_PURPLE);
+    pdf.roundedRect(col2x, y, colW, boxH, 2, 2, 'FD');
 
-    pdf.setTextColor(...PURPLE);
+    pdf.setFillColor(...PURPLE);
+    pdf.roundedRect(col2x, y, colW, 7, 2, 2, 'F');
+    pdf.rect(col2x, y + 4, colW, 3, 'F');
+    pdf.setTextColor(255, 255, 255);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('DADOS DO CLIENTE', col2x + 3, y + 6);
+    pdf.setFontSize(7);
+    pdf.text('DADOS DO CLIENTE', col2x + 3, y + 5);
 
+    let cy2 = y + 12;
     pdf.setTextColor(30, 30, 30);
-    pdf.setFont('helvetica', 'normal');
-    const clientLines = [
-      contract.client_name || '—',
-      `CPF: ${contract.client_cpf || '—'}`,
-      `Tel: ${contract.client_phone || '—'}`,
-      `Email: ${contract.client_email || '—'}`,
-      contract.client_address || '—',
-    ];
-    clientLines.forEach((line, i) => {
-      const wrapped = pdf.splitTextToSize(line, colW - 6);
-      pdf.text(wrapped, col2x + 3, y + 13 + i * 5.5);
-    });
-
-    y += 50;
-
-    // Resumo da venda
-    pdf.setFillColor(245, 245, 250);
-    pdf.setDrawColor(200, 200, 220);
-    pdf.roundedRect(margin, y, usable, 24, 2, 2, 'FD');
-
-    pdf.setTextColor(...PURPLE);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
-    pdf.text('RESUMO DA VENDA', margin + 3, y + 6);
-
-    pdf.setTextColor(30, 30, 30);
+    pdf.setFontSize(8.5);
+    const clientNameW = pdf.splitTextToSize(contract.client_name || '—', colW - 8);
+    pdf.text(clientNameW, col2x + 3, cy2); cy2 += clientNameW.length * 5.5;
     pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.text(`CPF: ${contract.client_cpf || '—'}`, col2x + 3, cy2); cy2 += 5;
+    pdf.text(`Tel: ${contract.client_phone || '—'}`, col2x + 3, cy2); cy2 += 5;
+    pdf.text(`Email: ${contract.client_email || '—'}`, col2x + 3, cy2); cy2 += 5;
+    if (contract.client_address) {
+      const addrW = pdf.splitTextToSize(contract.client_address, colW - 8);
+      pdf.text(addrW, col2x + 3, cy2);
+    }
+
+    y += boxH + 5;
+
+    // ── Resumo da venda ──
+    pdf.setFillColor(250, 248, 255);
+    pdf.setDrawColor(...LIGHT_PURPLE);
+    pdf.roundedRect(margin, y, usable, 30, 2, 2, 'FD');
+
+    pdf.setFillColor(...PURPLE);
+    pdf.roundedRect(margin, y, usable, 7, 2, 2, 'F');
+    pdf.rect(margin, y + 4, usable, 3, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(7);
+    pdf.text('RESUMO DA VENDA', margin + 3, y + 5);
+
     const resumeItems = [
-      [`Contrato:`, contract.contract_number],
-      [`Venda Nº:`, sale.sale_number],
-      [`Total da Venda:`, formatCurrency(sale.total)],
-      [`Total PIX Parcelado:`, formatCurrency(pixPayment.amount)],
-      [`Nº de Parcelas:`, `${pixPayment.installments}x`],
-      [`Valor da Parcela:`, formatCurrency(pixPayment.amount / pixPayment.installments)],
+      ['Contrato', contract.contract_number],
+      ['Venda Nº', sale.sale_number],
+      ['Total da Venda', formatCurrency(sale.total)],
+      ['Total PIX Parcelado', formatCurrency(pixPayment.amount)],
+      ['Nº de Parcelas', `${pixPayment.installments}x`],
+      ['Valor da Parcela', formatCurrency(pixPayment.amount / pixPayment.installments)],
     ];
 
     const itemW = usable / 3;
     resumeItems.forEach(([label, val], i) => {
       const col = i % 3;
       const row = Math.floor(i / 3);
-      const x = margin + 3 + col * itemW;
-      const iy = y + 13 + row * 7;
+      const rx = margin + 3 + col * itemW;
+      const ry = y + 13 + row * 8;
+      pdf.setTextColor(100, 80, 140);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(label, x, iy);
+      pdf.setFontSize(6.5);
+      pdf.text(label.toUpperCase(), rx, ry);
+      pdf.setTextColor(20, 20, 20);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(val, x + pdf.getTextWidth(label) + 2, iy);
+      pdf.setFontSize(8);
+      pdf.text(String(val), rx, ry + 5);
     });
 
-    // Produtos
-    y += 32;
+    y += 38;
+
+    // ── Produtos ──
+    pdf.setFillColor(250, 248, 255);
+    pdf.setDrawColor(...LIGHT_PURPLE);
+    const prodItems = sale.items || [];
+    const prodH = 10 + prodItems.reduce((acc, item) => acc + (item.serial_number ? 10 : 7), 0);
+    pdf.roundedRect(margin, y, usable, prodH, 2, 2, 'FD');
+
     pdf.setFillColor(...PURPLE);
-    pdf.rect(margin, y, usable, 7, 'F');
+    pdf.roundedRect(margin, y, usable, 7, 2, 2, 'F');
+    pdf.rect(margin, y + 4, usable, 3, 'F');
     pdf.setTextColor(255, 255, 255);
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
-    pdf.text('PRODUTOS', margin + 3, y + 4.5);
+    pdf.setFontSize(7);
+    pdf.text('PRODUTOS', margin + 3, y + 5);
 
-    y += 7;
-    sale.items?.forEach((item, idx) => {
-      pdf.setFillColor(idx % 2 === 0 ? 252 : 245, idx % 2 === 0 ? 252 : 245, idx % 2 === 0 ? 255 : 250);
-      pdf.rect(margin, y, usable, 8, 'F');
+    let py = y + 12;
+    prodItems.forEach((item, idx) => {
+      if (idx > 0) {
+        pdf.setDrawColor(220, 210, 240);
+        pdf.setLineWidth(0.2);
+        pdf.line(margin + 2, py - 2, PW - margin - 2, py - 2);
+      }
       pdf.setTextColor(30, 30, 30);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(8);
-      const desc = `${item.product_name}${item.brand ? ` — ${item.brand}` : ''}${item.model ? ` ${item.model}` : ''}`;
-      pdf.text(desc, margin + 3, y + 5);
-      if (item.serial_number) pdf.text(`Série: ${item.serial_number}`, margin + 3, y + 9.5);
-      pdf.text(formatCurrency(item.total), PW - margin - 3, y + 5, { align: 'right' });
-      y += item.serial_number ? 11 : 8;
+      const desc = item.product_name || '';
+      pdf.text(desc, margin + 3, py);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(formatCurrency(item.total), PW - margin - 3, py, { align: 'right' });
+      if (item.serial_number) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6.5);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Série: ${item.serial_number}`, margin + 3, py + 4.5);
+        py += 10;
+      } else {
+        py += 7;
+      }
     });
 
-    y += 6;
-    pdf.setTextColor(80, 80, 80);
-    pdf.setFontSize(7.5);
+    y = py + 8;
+    pdf.setTextColor(120, 100, 160);
+    pdf.setFontSize(7);
     pdf.setFont('helvetica', 'italic');
     pdf.text('As parcelas detalhadas estão nas páginas seguintes. Guarde este documento para controle dos pagamentos.', PW / 2, y, { align: 'center' });
 
