@@ -219,157 +219,168 @@ export default function CarnePDFGenerator({ contract, sale }) {
     pdf.setFont('helvetica', 'italic');
     pdf.text('As parcelas detalhadas estão nas páginas seguintes. Guarde este documento para controle dos pagamentos.', PW / 2, y, { align: 'center' });
 
-    // ── PARCELAS — cada uma em metade de página A4 ────────────────────────
-    const CARNE_H = 130; // altura de cada coupon em mm
+    // ── PARCELAS — 4 coupons por página ──────────────────────────────────
+    // A4 = 297mm. Reservamos 4 slots de 68mm + 3 separadores de 3mm = 4*68+3*3 = 281mm (topo em y=8, bottom em 289)
+    const SLOTS = 4;
+    const SLOT_H = 68; // altura total de cada slot (inclui separador)
+    const SEP_H = 3;   // altura da linha de corte entre slots
+    const COUPON_H = SLOT_H - SEP_H; // 65mm de coupon visível
+    const PAGE_START_Y = 8; // margem superior das páginas de parcelas
     const totalInstallments = installments.length;
 
-    installments.forEach((inst, idx) => {
-      // 2 coupons por página
-      if (idx % 2 === 0) {
-        pdf.addPage();
-      }
-      const slotY = idx % 2 === 0 ? 0 : CARNE_H + 5;
+    const statusColors = {
+      pago: [34, 197, 94],
+      pendente: [234, 179, 8],
+      atrasado: [239, 68, 68],
+      parcialmente_pago: [59, 130, 246],
+    };
+    const statusLabels = {
+      pago: 'PAGO',
+      pendente: 'PENDENTE',
+      atrasado: 'ATRASADO',
+      parcialmente_pago: 'PARCIAL',
+    };
 
-      // Linha pontilhada de separação entre coupons
-      if (idx % 2 === 1) {
+    installments.forEach((inst, idx) => {
+      const slotIndex = idx % SLOTS;
+
+      // Nova página a cada 4 coupons
+      if (slotIndex === 0) pdf.addPage();
+
+      // Y absoluto onde este slot começa
+      const slotTopY = PAGE_START_Y + slotIndex * SLOT_H;
+
+      // Linha de corte ANTES do slot (exceto o primeiro)
+      if (slotIndex > 0) {
+        const cutY = slotTopY - SEP_H / 2;
         pdf.setDrawColor(180, 180, 180);
         pdf.setLineDashPattern([2, 2], 0);
-        pdf.line(margin, CARNE_H + 2.5, PW - margin, CARNE_H + 2.5);
+        pdf.line(margin, cutY, PW - margin, cutY);
         pdf.setLineDashPattern([], 0);
         pdf.setTextColor(150, 150, 150);
-        pdf.setFontSize(6.5);
-        pdf.text('✂  recorte aqui', PW / 2, CARNE_H + 2, { align: 'center' });
+        pdf.setFontSize(6);
+        pdf.text('✂  recorte aqui', PW / 2, cutY - 0.5, { align: 'center' });
       }
 
+      // Y onde começa o conteúdo do coupon (deixa 1mm de padding após separador)
+      const cy = slotIndex === 0 ? slotTopY : slotTopY - SEP_H + 1.5;
       const cx = margin;
-      const cy = slotY + 8;
       const cw = usable;
 
-      // Header do coupon
+      // ── Header ──
       pdf.setFillColor(...PURPLE);
-      pdf.roundedRect(cx, cy, cw, 12, 2, 2, 'F');
+      pdf.roundedRect(cx, cy, cw, 10, 1.5, 1.5, 'F');
 
       pdf.setTextColor(255, 255, 255);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(11);
-      pdf.text(`Parcela ${inst.installment_number}/${totalInstallments}`, cx + 4, cy + 7.5);
+      pdf.setFontSize(9.5);
+      pdf.text(`Parcela ${inst.installment_number}/${totalInstallments}`, cx + 4, cy + 6.5);
 
       // Status badge
-      const statusColors = {
-        pago: [34, 197, 94],
-        pendente: [234, 179, 8],
-        atrasado: [239, 68, 68],
-        parcialmente_pago: [59, 130, 246],
-      };
-      const statusLabels = {
-        pago: 'PAGO',
-        pendente: 'PENDENTE',
-        atrasado: 'ATRASADO',
-        parcialmente_pago: 'PARCIAL',
-      };
       const sc = statusColors[inst.payment_status] || [150, 150, 150];
       const sl = statusLabels[inst.payment_status] || inst.payment_status?.toUpperCase();
-
       pdf.setFillColor(...sc);
-      pdf.roundedRect(cx + cw - 38, cy + 2, 34, 8, 2, 2, 'F');
+      pdf.roundedRect(cx + cw - 30, cy + 1.5, 26, 7, 1.5, 1.5, 'F');
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(8);
-      pdf.text(sl, cx + cw - 21, cy + 7.2, { align: 'center' });
-
-      // Corpo do coupon
-      const bodyY = cy + 14;
-
-      // Empresa (topo esquerdo pequeno)
-      pdf.setTextColor(100, 100, 100);
-      pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(7);
-      pdf.text(SONATTA.name, cx, bodyY);
-      pdf.text(`CNPJ: ${SONATTA.cnpj}  •  ${SONATTA.phone}`, cx, bodyY + 4);
+      pdf.text(sl, cx + cw - 17, cy + 6.3, { align: 'center' });
 
-      // Dados principais em grade
+      // ── Empresa (linha fina abaixo do header) ──
+      const compY = cy + 12;
+      pdf.setTextColor(120, 120, 120);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6.5);
+      pdf.text(`${SONATTA.name}  •  CNPJ: ${SONATTA.cnpj}  •  ${SONATTA.phone}`, cx, compY);
+
+      // ── Grade de campos 3x2 ──
+      // Linha 1: CLIENTE | CPF | CONTRATO
+      // Linha 2: VENDA   | VENCIMENTO | VALOR DA PARCELA
       const fields = [
-        { label: 'CLIENTE', value: contract.client_name },
+        { label: 'CLIENTE', value: pdf.splitTextToSize(contract.client_name || '—', (cw / 3) - 8)[0] },
         { label: 'CPF', value: contract.client_cpf || '—' },
-        { label: 'CONTRATO', value: contract.contract_number },
-        { label: 'VENDA', value: sale.sale_number },
+        { label: 'CONTRATO', value: contract.contract_number || '—' },
+        { label: 'VENDA', value: sale.sale_number || '—' },
         { label: 'VENCIMENTO', value: formatDate(inst.due_date) },
         { label: 'VALOR DA PARCELA', value: formatCurrency(inst.gross_amount) },
       ];
 
       const fW = cw / 3;
+      const FIELD_H = 12; // altura de cada campo
+      const GRID_TOP = compY + 4;
+
       fields.forEach((f, fi) => {
         const fc = fi % 3;
         const fr = Math.floor(fi / 3);
         const fx = cx + fc * fW;
-        const fy = bodyY + 12 + fr * 14;
+        const fy = GRID_TOP + fr * (FIELD_H + 1);
 
         pdf.setFillColor(245, 243, 252);
         pdf.setDrawColor(...PURPLE);
-        pdf.roundedRect(fx + 1, fy - 1, fW - 2, 12, 1, 1, 'FD');
+        pdf.roundedRect(fx + 0.5, fy, fW - 1, FIELD_H, 1, 1, 'FD');
 
         pdf.setTextColor(...PURPLE);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(6.5);
-        pdf.text(f.label, fx + 3, fy + 4);
+        pdf.setFontSize(6);
+        pdf.text(f.label, fx + 2.5, fy + 4);
 
         pdf.setTextColor(20, 20, 20);
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8.5);
-        pdf.text(f.value, fx + 3, fy + 9.5);
+        pdf.setFontSize(8);
+        pdf.text(String(f.value), fx + 2.5, fy + 9.5);
       });
 
-      const gridBottom = bodyY + 12 + 2 * 14 + 4;
+      // ── Área de pagamento (valor pago + data) ──
+      const fillY = GRID_TOP + 2 * (FIELD_H + 1) + 2;
+      const fillH = 10;
 
-      // Área de valor pago / data (para o cliente preencher)
-      const fillY = gridBottom + 4;
+      // Valor pago
       pdf.setFillColor(252, 252, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx, fillY, cw / 2 - 2, 16, 1, 1, 'FD');
-
+      pdf.roundedRect(cx, fillY, cw / 2 - 2, fillH, 1, 1, 'FD');
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(7);
-      pdf.text('VALOR PAGO (R$)', cx + 3, fillY + 5);
-      pdf.setTextColor(200, 200, 200);
-      pdf.setFontSize(8);
+      pdf.setFontSize(6);
+      pdf.text('VALOR PAGO (R$)', cx + 2.5, fillY + 4);
       if (inst.paid_amount > 0) {
         pdf.setTextColor(34, 197, 94);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(formatCurrency(inst.paid_amount), cx + 3, fillY + 12);
+        pdf.setFontSize(7.5);
+        pdf.text(formatCurrency(inst.paid_amount), cx + 2.5, fillY + 8.5);
       } else {
-        pdf.text('_______________________', cx + 3, fillY + 12);
+        pdf.setTextColor(210, 210, 210);
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('___________________', cx + 2.5, fillY + 8.5);
       }
 
+      // Data do pagamento
       pdf.setFillColor(252, 252, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx + cw / 2 + 2, fillY, cw / 2 - 2, 16, 1, 1, 'FD');
-
+      pdf.roundedRect(cx + cw / 2 + 2, fillY, cw / 2 - 2, fillH, 1, 1, 'FD');
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(7);
-      pdf.text('DATA DO PAGAMENTO', cx + cw / 2 + 5, fillY + 5);
-      pdf.setTextColor(200, 200, 200);
-      pdf.setFontSize(8);
+      pdf.setFontSize(6);
+      pdf.text('DATA DO PAGAMENTO', cx + cw / 2 + 4, fillY + 4);
       if (inst.last_payment_date) {
         pdf.setTextColor(34, 197, 94);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(formatDate(inst.last_payment_date), cx + cw / 2 + 5, fillY + 12);
+        pdf.setFontSize(7.5);
+        pdf.text(formatDate(inst.last_payment_date), cx + cw / 2 + 4, fillY + 8.5);
       } else {
-        pdf.text('____/____/________', cx + cw / 2 + 5, fillY + 12);
+        pdf.setTextColor(210, 210, 210);
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('____/____/________', cx + cw / 2 + 4, fillY + 8.5);
       }
 
-      // Instrução de pagamento
-      const instrY = fillY + 22;
-      pdf.setTextColor(80, 80, 80);
+      // ── Instrução PIX ──
+      const instrY = fillY + fillH + 4;
+      pdf.setTextColor(100, 100, 100);
       pdf.setFont('helvetica', 'italic');
-      pdf.setFontSize(7);
+      pdf.setFontSize(6);
       pdf.text(
-        `Realize o pagamento via PIX para a chave: ${SONATTA.phone} (CNPJ: ${SONATTA.cnpj})`,
+        `Pague via PIX: ${SONATTA.phone} (CNPJ: ${SONATTA.cnpj})  •  Guarde o comprovante e apresente junto a este carnê.`,
         PW / 2, instrY, { align: 'center' }
-      );
-      pdf.text(
-        'Guarde o comprovante e apresente junto a este carnê para registro.',
-        PW / 2, instrY + 4.5, { align: 'center' }
       );
     });
 
