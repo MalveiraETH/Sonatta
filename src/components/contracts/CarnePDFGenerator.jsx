@@ -7,14 +7,7 @@ import jsPDF from 'jspdf';
 import { addMonths, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const SONATTA = {
-  name: 'Sonatta – Soluções Auditivas',
-  cnpj: '33.457.952/0001-98',
-  address: 'Ed. Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007, Adrianópolis, Manaus – AM, 69057-035',
-  phone: '(92) 99169-2102',
-  email: 'contato@sonatta.com.br',
-  website: 'www.sonatta.com.br',
-};
+// Dados da empresa são carregados dinamicamente do AppSettings
 
 // Cor roxa Sonatta em RGB
 const PURPLE = [107, 63, 160];
@@ -35,6 +28,18 @@ export default function CarnePDFGenerator({ contract, sale }) {
 
     setGenerating(true);
     try {
+      // Buscar dados da empresa
+      const settingsList = await base44.entities.AppSettings.list();
+      const settings = settingsList[0] || {};
+      const SONATTA = {
+        name: settings.company_name || 'Sonatta – Soluções Auditivas',
+        cnpj: settings.cnpj || '33.457.952/0001-98',
+        address: settings.address || '',
+        phone: settings.phone || '(92) 99169-2102',
+        email: settings.email || 'contato@sonatta.com.br',
+        website: settings.website || 'www.sonatta.com.br',
+      };
+
       // Buscar parcelas já geradas para essa venda
       let installments = await base44.entities.Installment.filter({ sale_id: sale.id });
       installments = installments.filter(i => i.payment_method === 'pix_parcelado');
@@ -56,7 +61,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
         }));
       }
 
-      buildPDF(contract, sale, pixPayment, installments);
+      buildPDF(contract, sale, pixPayment, installments, SONATTA);
       toast.success('Carnê gerado com sucesso!');
     } catch (error) {
       console.error(error);
@@ -66,7 +71,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
     }
   };
 
-  const buildPDF = (contract, sale, pixPayment, installments) => {
+  const buildPDF = (contract, sale, pixPayment, installments, SONATTA) => {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const PW = 210;
     const margin = 14;
