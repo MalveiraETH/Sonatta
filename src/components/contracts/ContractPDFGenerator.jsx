@@ -49,8 +49,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       // Carregar logo via canvas
       const headerInfo = contractTemplate?.header_info || {};
       const footerInfo = contractTemplate?.footer_info || {};
-      const LOGO_URL = headerInfo.logo_url || 'https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg';
-      const logoB64 = await loadB64(LOGO_URL);
+      const logoB64 = headerInfo.logo_url ? await loadB64(headerInfo.logo_url) : null;
 
       // Desenhar cabeçalho diretamente no jsPDF (sem html2canvas)
       const drawHeader = () => {

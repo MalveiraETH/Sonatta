@@ -106,7 +106,6 @@ export default function ContractTemplate() {
   });
   const [headerInfo, setHeaderInfo] = useState({
     title: 'CONTRATO DE COMPROMISSO DE PAGAMENTO',
-    validity_days: '',
     logo_url: ''
   });
   const [headerOpen, setHeaderOpen] = useState(true);
@@ -227,32 +226,20 @@ export default function ContractTemplate() {
           >
             <div>
               <p className="font-semibold text-[#6B3FA0]">Cabeçalho do PDF</p>
-              <p className="text-xs text-slate-500">Logo, título do documento e validade</p>
+              <p className="text-xs text-slate-500">Logo e título do documento</p>
             </div>
             {headerOpen ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
           </button>
           {headerOpen && (
             <div className="px-4 pb-4 space-y-4 border-t border-slate-100 pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-sm text-slate-600">Título do documento</label>
-                  <Input
-                    value={headerInfo.title}
-                    onChange={(e) => setHeaderInfo({ ...headerInfo, title: e.target.value })}
-                    placeholder="CONTRATO DE COMPROMISSO DE PAGAMENTO"
-                    disabled={!isAdmin}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm text-slate-600">Validade padrão (dias)</label>
-                  <Input
-                    value={headerInfo.validity_days}
-                    onChange={(e) => setHeaderInfo({ ...headerInfo, validity_days: e.target.value })}
-                    placeholder="30"
-                    type="number"
-                    disabled={!isAdmin}
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-sm text-slate-600">Título do documento</label>
+                <Input
+                  value={headerInfo.title}
+                  onChange={(e) => setHeaderInfo({ ...headerInfo, title: e.target.value })}
+                  placeholder="CONTRATO DE COMPROMISSO DE PAGAMENTO"
+                  disabled={!isAdmin}
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-slate-600">URL da logo</label>
