@@ -66,32 +66,29 @@ function extractInlineText(node) {
   const marginBottomRaw = node.style?.marginBottom || '';
   const marginBottom = parseFloat(marginBottomRaw) || null; // em px
 
-  const walk = (n) => {
+  const walk = (n, ctx = { bold: false, italic: false }) => {
     if (n.nodeType === Node.TEXT_NODE) {
       const text = n.textContent;
-      if (text) segments.push({ text, bold: false, italic: false, size: null });
+      if (text) segments.push({ text, bold: ctx.bold, italic: ctx.italic, size: null });
       return;
     }
     if (n.nodeType !== Node.ELEMENT_NODE) return;
     const t = n.tagName.toLowerCase();
-    if (t === 'strong' || t === 'b') {
-      const inner = n.textContent;
-      if (inner) segments.push({ text: inner, bold: true, italic: false, size: null });
-      return;
-    }
-    if (t === 'em' || t === 'i') {
-      const inner = n.textContent;
-      if (inner) segments.push({ text: inner, bold: false, italic: true, size: null });
-      return;
-    }
     if (t === 'br') {
       segments.push({ text: '\n', bold: false, italic: false, size: null });
       return;
     }
-    Array.from(n.childNodes).forEach(walk);
+    // Herda estilo do contexto e detecta bold/italic via tag ou class do Quill
+    const isBold = ctx.bold || t === 'strong' || t === 'b'
+      || n.classList?.contains('ql-bold')
+      || n.style?.fontWeight === 'bold' || n.style?.fontWeight >= 700;
+    const isItalic = ctx.italic || t === 'em' || t === 'i'
+      || n.classList?.contains('ql-italic')
+      || n.style?.fontStyle === 'italic';
+    Array.from(n.childNodes).forEach(child => walk(child, { bold: isBold, italic: isItalic }));
   };
 
-  Array.from(node.childNodes).forEach(walk);
+  Array.from(node.childNodes).forEach(n => walk(n));
   return { segments, align, lineHeight, marginBottom };
 }
 
@@ -188,13 +185,13 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       const blocks = parseHtmlToBlocks(contractText);
 
       // Configurações de layout de texto
-      const LINE_HEIGHT_NORMAL = 6.5;
-      const LINE_HEIGHT_HEADING = 8;
-      const PARA_SPACING = 3;
-      const FONT_SIZE_NORMAL = 11;
-      const FONT_SIZE_H1 = 14;
-      const FONT_SIZE_H2 = 12;
-      const FONT_SIZE_H3 = 11;
+      const LINE_HEIGHT_NORMAL = 5.5;   // mm por linha (fonte 11pt)
+      const LINE_HEIGHT_HEADING = 7;
+      const PARA_SPACING = 2.5;         // espaço depois de parágrafo normal
+      const FONT_SIZE_NORMAL = 10;
+      const FONT_SIZE_H1 = 13;
+      const FONT_SIZE_H2 = 11;
+      const FONT_SIZE_H3 = 10;
 
       let curY = marginTop + headerH;
       let currentPage = 1;
@@ -213,12 +210,18 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         }
       };
 
+      // Quebra texto respeitando palavras (sem cortar no meio da palavra)
+      const splitWords = (text, maxW) => {
+        // usa splitTextToSize do jsPDF que já respeita palavras
+        return pdf.splitTextToSize(text, maxW);
+      };
+
       // Inicia primeira página
       initPage();
 
       for (const block of blocks) {
         if (block.type === 'linebreak') {
-          curY += LINE_HEIGHT_NORMAL * 0.5;
+          curY += LINE_HEIGHT_NORMAL * 0.4;
           continue;
         }
 
@@ -227,7 +230,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(fs);
           pdf.setTextColor(30, 30, 30);
-          const lines = pdf.splitTextToSize(block.text, contentW);
+          const lines = splitWords(block.text, contentW);
           checkPageBreak(lines.length * LINE_HEIGHT_HEADING + PARA_SPACING);
           pdf.text(lines, marginL, curY);
           curY += lines.length * LINE_HEIGHT_HEADING + PARA_SPACING;
@@ -238,32 +241,25 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(FONT_SIZE_NORMAL);
           pdf.setTextColor(30, 30, 30);
-          const prefix = block.ordered ? `${block.index}.` : '•';
-          const text = `${prefix} ${block.text}`;
-          const lines = pdf.splitTextToSize(text, contentW - 4);
-          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + 1);
-          pdf.text(lines, marginL + 2, curY);
-          curY += lines.length * LINE_HEIGHT_NORMAL + 1;
+          const prefix = block.ordered ? `${block.index}.` : '\u2022';
+          const indent = 4;
+          const lines = splitWords(`${prefix} ${block.text}`, contentW - indent);
+          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + 1.5);
+          pdf.text(lines, marginL + indent, curY);
+          curY += lines.length * LINE_HEIGHT_NORMAL + 1.5;
           continue;
         }
 
         if (block.type === 'paragraph') {
           const { segments, align, lineHeight: blockLH, marginBottom: blockMB } = block;
-          if (!segments || segments.length === 0) {
-            // parágrafo vazio = espaçamento entre parágrafos
-            curY += LINE_HEIGHT_NORMAL;
+
+          // Parágrafo sem conteúdo real = espaço reduzido entre seções
+          const fullText = segments?.map(s => s.text).join('') || '';
+          if (!fullText.trim()) {
+            curY += LINE_HEIGHT_NORMAL * 0.5;
             continue;
           }
 
-          // Verificar se o parágrafo inteiro é só texto (sem mixed bold/italic)
-          // Para simplicidade e confiabilidade, concatenamos e renderizamos com estilo do primeiro segmento
-          const fullText = segments.map(s => s.text).join('');
-          if (!fullText.trim() && fullText !== '\n') {
-            curY += LINE_HEIGHT_NORMAL * 0.6;
-            continue;
-          }
-
-          // Detectar se tem bold no parágrafo
           const hasBold = segments.some(s => s.bold);
           const hasItalic = segments.some(s => s.italic);
           const fontStyle = hasBold && hasItalic ? 'bolditalic' : hasBold ? 'bold' : hasItalic ? 'italic' : 'normal';
@@ -275,12 +271,11 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           const jsPDFAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
           const textX = align === 'center' ? pageW / 2 : align === 'right' ? pageW - marginR : marginL;
 
-          // Aplicar line-height e espaçamento de parágrafo configurados no editor
+          // line-height do editor (ex: 1.5) → mm; marginBottom px → mm (1px ≈ 0.264mm)
           const effectiveLH = blockLH ? LINE_HEIGHT_NORMAL * blockLH : LINE_HEIGHT_NORMAL;
-          // marginBottom em px → convertemos para mm (1px ≈ 0.264mm), cap em 20mm
-          const effectiveMB = blockMB ? Math.min(blockMB * 0.264, 20) : PARA_SPACING;
+          const effectiveMB = blockMB ? Math.min(blockMB * 0.264, 8) : PARA_SPACING;
 
-          const lines = pdf.splitTextToSize(fullText, contentW);
+          const lines = splitWords(fullText, contentW);
           checkPageBreak(lines.length * effectiveLH + effectiveMB);
           pdf.text(lines, textX, curY, { align: jsPDFAlign });
           curY += lines.length * effectiveLH + effectiveMB;
