@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Loader2, Save } from 'lucide-react';
+import { FileText, Loader2, Save, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -104,6 +104,12 @@ export default function ContractTemplate() {
     website: 'www.sonatta.com.br',
     instagram: '@sonatta.manaus'
   });
+  const [headerInfo, setHeaderInfo] = useState({
+    title: 'CONTRATO DE COMPROMISSO DE PAGAMENTO',
+    validity_days: '',
+    logo_url: ''
+  });
+  const [headerOpen, setHeaderOpen] = useState(true);
 
   useEffect(() => {
     loadTemplate();
@@ -114,6 +120,7 @@ export default function ContractTemplate() {
       if (event.type === 'update' && event.data.name === 'PIX Parcelado') {
         setTemplateText(toHtml(event.data.template_text));
         if (event.data.footer_info) setFooterInfo(event.data.footer_info);
+        if (event.data.header_info) setHeaderInfo(prev => ({ ...prev, ...event.data.header_info }));
       }
     });
     return () => unsubscribe();
@@ -129,9 +136,8 @@ export default function ContractTemplate() {
       if (templates.length > 0) {
         setTemplate(templates[0]);
         setTemplateText(toHtml(templates[0].template_text));
-        if (templates[0].footer_info) {
-          setFooterInfo(templates[0].footer_info);
-        }
+        if (templates[0].footer_info) setFooterInfo(templates[0].footer_info);
+        if (templates[0].header_info) setHeaderInfo({ ...headerInfo, ...templates[0].header_info });
       }
     } catch (error) {
       console.error(error);
@@ -149,7 +155,8 @@ export default function ContractTemplate() {
     try {
       const dataToSave = {
         template_text: templateText,
-        footer_info: footerInfo
+        footer_info: footerInfo,
+        header_info: headerInfo
       };
 
       if (template) {
@@ -211,6 +218,64 @@ export default function ContractTemplate() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Cabeçalho do PDF */}
+        <Card className="p-0 bg-white border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setHeaderOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 text-left"
+          >
+            <div>
+              <p className="font-semibold text-[#6B3FA0]">Cabeçalho do PDF</p>
+              <p className="text-xs text-slate-500">Logo, título do documento e validade</p>
+            </div>
+            {headerOpen ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+          </button>
+          {headerOpen && (
+            <div className="px-4 pb-4 space-y-4 border-t border-slate-100 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm text-slate-600">Título do documento</label>
+                  <Input
+                    value={headerInfo.title}
+                    onChange={(e) => setHeaderInfo({ ...headerInfo, title: e.target.value })}
+                    placeholder="CONTRATO DE COMPROMISSO DE PAGAMENTO"
+                    disabled={!isAdmin}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm text-slate-600">Validade padrão (dias)</label>
+                  <Input
+                    value={headerInfo.validity_days}
+                    onChange={(e) => setHeaderInfo({ ...headerInfo, validity_days: e.target.value })}
+                    placeholder="30"
+                    type="number"
+                    disabled={!isAdmin}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm text-slate-600">URL da logo</label>
+                <p className="text-xs text-slate-400">Cole a URL pública da imagem (PNG/JPG)</p>
+                <Input
+                  value={headerInfo.logo_url}
+                  onChange={(e) => setHeaderInfo({ ...headerInfo, logo_url: e.target.value })}
+                  placeholder="https://..."
+                  disabled={!isAdmin}
+                />
+              </div>
+              {headerInfo.logo_url && (
+                <img
+                  src={headerInfo.logo_url}
+                  alt="Logo"
+                  className="h-14 object-contain"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              )}
+            </div>
+          )}
+        </Card>
+
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
           <p className="font-semibold text-blue-900 mb-2">Variáveis Disponíveis:</p>
           <div className="grid grid-cols-2 gap-2 text-blue-700">
