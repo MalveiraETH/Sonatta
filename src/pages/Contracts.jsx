@@ -40,8 +40,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, Mail, CheckCircle, Archive, Trash2, X, FileText, Shield } from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, Mail, CheckCircle, Archive, Trash2, X, FileText, Shield, BookOpen } from 'lucide-react';
 import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
+import CarnePDFGenerator from '@/components/contracts/CarnePDFGenerator';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -58,6 +59,7 @@ export default function Contracts() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -98,6 +100,20 @@ export default function Contracts() {
     }
 
     setFilteredContracts(filtered);
+  };
+
+  const openDetail = async (contract) => {
+    setSelectedContract(contract);
+    setSelectedSale(null);
+    setDetailOpen(true);
+    if (contract.sale_id) {
+      try {
+        const sale = await base44.entities.Sale.get(contract.sale_id);
+        setSelectedSale(sale);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const handleStatusChange = async (contract, newStatus) => {
@@ -420,7 +436,7 @@ export default function Contracts() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDetailOpen(true); }}>
+                        <DropdownMenuItem onClick={() => openDetail(contract)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
                         </DropdownMenuItem>
@@ -496,7 +512,7 @@ export default function Contracts() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDetailOpen(true); }}>
+                      <DropdownMenuItem onClick={() => openDetail(contract)}>
                         <Eye className="h-4 w-4 mr-2" />
                         Detalhes
                       </DropdownMenuItem>
@@ -550,6 +566,16 @@ export default function Contracts() {
                   <pre className="text-xs whitespace-pre-wrap">{selectedContract.contract_text}</pre>
                 </div>
               )}
+              {/* Botões de exportação */}
+              <div className="flex flex-wrap gap-3 pt-2 border-t">
+                <ContractPDFGenerator
+                  contract={selectedContract}
+                  contractText={selectedContract.contract_text || ''}
+                />
+                {selectedSale?.payment_details?.some(p => p.method === 'pix_parcelado') && (
+                  <CarnePDFGenerator contract={selectedContract} sale={selectedSale} />
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
