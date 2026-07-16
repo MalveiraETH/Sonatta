@@ -296,7 +296,9 @@ export default function CarnePDFGenerator({ contract, sale }) {
       const fW = cw / 3;
 
       // ── Empresa (linha fina abaixo do header) ──
-      const compY = cy + 11;
+      // GAP acima (após header de 10mm) + texto de 6.5pt ≈ 2.3mm altura + GAP abaixo antes da grade
+      const COMP_LINE_H = 2.3; // altura aprox do texto 6.5pt
+      const compY = cy + 10 + GAP + COMP_LINE_H; // baseline do texto
       pdf.setTextColor(120, 120, 120);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(6.5);
@@ -314,7 +316,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
         { label: 'VALOR DA PARCELA', value: formatCurrency(inst.gross_amount) },
       ];
 
-      const GRID_TOP = compY + 2;
+      const GRID_TOP = compY + GAP;
 
       fields.forEach((f, fi) => {
         const fc = fi % 3;
