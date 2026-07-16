@@ -3,8 +3,108 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+// html2canvas removido: PDF agora usa renderização nativa de texto (vetorial, selecionável)
+
+// Converte HTML do Quill em lista de blocos de texto estruturados
+function parseHtmlToBlocks(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const blocks = [];
+
+  const processNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent;
+      if (text) blocks.push({ type: 'text', text, bold: false, italic: false });
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const tag = node.tagName.toLowerCase();
+
+    if (tag === 'p' || tag === 'div') {
+      const line = extractInlineText(node);
+      blocks.push({ type: 'paragraph', segments: line.segments, align: line.align });
+      return;
+    }
+    if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+      const text = node.textContent.trim();
+      blocks.push({ type: 'heading', text, level: parseInt(tag[1]) });
+      return;
+    }
+    if (tag === 'ul' || tag === 'ol') {
+      const items = Array.from(node.querySelectorAll('li'));
+      items.forEach((li, idx) => {
+        const text = li.textContent.trim();
+        blocks.push({ type: 'listitem', text, ordered: tag === 'ol', index: idx + 1 });
+      });
+      return;
+    }
+    if (tag === 'br') {
+      blocks.push({ type: 'linebreak' });
+      return;
+    }
+    // fallback: iterate children
+    Array.from(node.childNodes).forEach(processNode);
+  };
+
+  Array.from(div.childNodes).forEach(processNode);
+  return blocks;
+}
+
+function extractInlineText(node) {
+  const segments = [];
+  let alignClass = node.getAttribute('class') || '';
+  let align = 'left';
+  if (alignClass.includes('ql-align-center') || node.style?.textAlign === 'center') align = 'center';
+  else if (alignClass.includes('ql-align-right') || node.style?.textAlign === 'right') align = 'right';
+  else if (alignClass.includes('ql-align-justify') || node.style?.textAlign === 'justify') align = 'justify';
+
+  const walk = (n) => {
+    if (n.nodeType === Node.TEXT_NODE) {
+      const text = n.textContent;
+      if (text) segments.push({ text, bold: false, italic: false, size: null });
+      return;
+    }
+    if (n.nodeType !== Node.ELEMENT_NODE) return;
+    const t = n.tagName.toLowerCase();
+    if (t === 'strong' || t === 'b') {
+      const inner = n.textContent;
+      if (inner) segments.push({ text: inner, bold: true, italic: false, size: null });
+      return;
+    }
+    if (t === 'em' || t === 'i') {
+      const inner = n.textContent;
+      if (inner) segments.push({ text: inner, bold: false, italic: true, size: null });
+      return;
+    }
+    if (t === 'br') {
+      segments.push({ text: '\n', bold: false, italic: false, size: null });
+      return;
+    }
+    Array.from(n.childNodes).forEach(walk);
+  };
+
+  Array.from(node.childNodes).forEach(walk);
+  return { segments, align };
+}
+
+// Carrega imagem como base64 via canvas (com CORS)
+function loadImageAsBase64(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      resolve({ dataUrl: canvas.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight });
+    };
+    img.onerror = () => resolve(null);
+    img.src = url + (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+  });
+}
 
 export default function ContractPDFGenerator({ contract, contractText }) {
   const [generating, setGenerating] = React.useState(false);
@@ -16,187 +116,168 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       .catch(() => {});
   }, []);
 
-  const loadB64 = (url) =>
-    new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = img.width; c.height = img.height;
-        c.getContext('2d').drawImage(img, 0, 0);
-        resolve(c.toDataURL('image/jpeg'));
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-
   const generatePDF = async () => {
     setGenerating(true);
     try {
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 25;
-      const headerHeight = 22;
-      const footerHeight = 23;
-      const contentAreaHeight = pageHeight - headerHeight - footerHeight;
-
-      // Carregar logo via canvas
       const headerInfo = contractTemplate?.header_info || {};
       const footerInfo = contractTemplate?.footer_info || {};
-      const logoB64 = headerInfo.logo_url ? await loadB64(headerInfo.logo_url) : null;
 
-      // Desenhar cabeçalho diretamente no jsPDF (sem html2canvas)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = 210;
+      const pageH = 297;
+      const marginL = 20;
+      const marginR = 20;
+      const marginTop = 28;
+      const marginBottom = 22;
+      const contentW = pageW - marginL - marginR;
+      const headerH = 22;
+      const footerY = pageH - marginBottom;
+
+      // Carregar logo
+      let logoData = null;
+      if (headerInfo.logo_url) {
+        logoData = await loadImageAsBase64(headerInfo.logo_url);
+      }
+
       const drawHeader = () => {
-        pdf.setFillColor(255, 255, 255);
-        pdf.rect(0, 0, pageWidth, headerHeight, 'F');
-        if (logoB64) {
-          const tmpImg = new Image();
-          tmpImg.src = logoB64;
-          const LOGO_MAX_H = 14, LOGO_MAX_W = 50;
-          const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
-          let lw = LOGO_MAX_H * ratio, lh = LOGO_MAX_H;
-          if (lw > LOGO_MAX_W) { lw = LOGO_MAX_W; lh = lw / ratio; }
-          pdf.addImage(logoB64, 'JPEG', margin, (headerHeight - lh) / 2, lw, lh, undefined, 'NONE');
+        pdf.setDrawColor(107, 63, 160);
+        pdf.setLineWidth(0.5);
+
+        if (logoData) {
+          const maxLogoH = 14;
+          const maxLogoW = 60;
+          const ratio = logoData.w / logoData.h;
+          let lh = maxLogoH;
+          let lw = lh * ratio;
+          if (lw > maxLogoW) { lw = maxLogoW; lh = lw / ratio; }
+          const logoX = marginL;
+          const logoY = (headerH - lh) / 2;
+          pdf.addImage(logoData.dataUrl, 'PNG', logoX, logoY, lw, lh);
         } else {
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(14);
           pdf.setTextColor(107, 63, 160);
-          pdf.text('SONATTA', margin, 14);
+          pdf.text('SONATTA', marginL, 14);
         }
-        pdf.setDrawColor(107, 63, 160);
-        pdf.setLineWidth(0.5);
-        pdf.line(margin, headerHeight - 1, pageWidth - margin, headerHeight - 1);
+
+        pdf.line(marginL, headerH, pageW - marginR, headerH);
       };
 
-      // Criar rodapé
-      const createFooter = () => {
-        const footerElement = document.createElement('div');
-        footerElement.style.width = '210mm';
-        footerElement.style.position = 'absolute';
-        footerElement.style.left = '-9999px';
-        
+      const drawFooter = () => {
         const fi = footerInfo;
         const parts = [
-          fi.phone ? `📱 ${fi.phone}` : '',
-          fi.email ? `✉️ ${fi.email}` : '',
-          fi.website ? `🌐 ${fi.website}` : '',
-          fi.instagram ? `📸 ${fi.instagram}` : '',
-        ].filter(Boolean).join('  &nbsp;|&nbsp;  ');
-        const footerContent = `
-          <div style="border-top: 2px solid #6B3FA0; padding: 10px 25mm; background: white; font-family: Arial, sans-serif;">
-            <div style="text-align: center;">
-              <p style="margin: 0 0 4px 0; font-size: 8pt; color: #4a5568; line-height: 1.5;">
-                ${parts}
-              </p>
-            </div>
-          </div>
-        `;
-        
-        footerElement.innerHTML = footerContent;
-        return footerElement;
+          fi.phone, fi.email, fi.website, fi.instagram
+        ].filter(Boolean).join('   |   ');
+
+        pdf.setDrawColor(107, 63, 160);
+        pdf.setLineWidth(0.3);
+        pdf.line(marginL, footerY - 4, pageW - marginR, footerY - 4);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(parts, pageW / 2, footerY, { align: 'center' });
       };
 
-      // Criar conteúdo
-      const contentElement = document.createElement('div');
-      contentElement.style.position = 'absolute';
-      contentElement.style.left = '-9999px';
-      contentElement.style.width = '160mm';
-      contentElement.style.fontFamily = 'Arial, sans-serif';
-      contentElement.style.fontSize = '11pt';
-      contentElement.style.lineHeight = '1.6';
-      contentElement.style.color = '#1a202c';
-      contentElement.style.textAlign = 'justify';
-      contentElement.innerHTML = contractText.replace(/\n/g, '<br>');
+      // Parse do HTML do contrato
+      const blocks = parseHtmlToBlocks(contractText);
 
-      document.body.appendChild(contentElement);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Configurações de layout de texto
+      const LINE_HEIGHT_NORMAL = 6.5;
+      const LINE_HEIGHT_HEADING = 8;
+      const PARA_SPACING = 3;
+      const FONT_SIZE_NORMAL = 11;
+      const FONT_SIZE_H1 = 14;
+      const FONT_SIZE_H2 = 12;
+      const FONT_SIZE_H3 = 11;
 
-      const contentCanvas = await html2canvas(contentElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
+      let curY = marginTop + headerH;
+      let currentPage = 1;
 
-      document.body.removeChild(contentElement);
-
-      const contentImgData = contentCanvas.toDataURL('image/png');
-      const contentImgWidth = 160;
-      const contentImgHeight = (contentCanvas.height * contentImgWidth) / contentCanvas.width;
-
-      // Calcular número de páginas necessárias
-      const numberOfPages = Math.ceil(contentImgHeight / contentAreaHeight);
-
-      // Renderizar apenas o rodapé com html2canvas
-      const footerElement = createFooter();
-      document.body.appendChild(footerElement);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      const footerCanvas = await html2canvas(footerElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
-
-      document.body.removeChild(footerElement);
-      const footerImgData = footerCanvas.toDataURL('image/png');
-
-      // Adicionar páginas ao PDF
-      for (let i = 0; i < numberOfPages; i++) {
-        if (i > 0) {
-          pdf.addPage();
-        }
-
-        // Desenhar cabeçalho via jsPDF (logo nativa, sem html2canvas)
+      const initPage = () => {
         drawHeader();
+        drawFooter();
+        curY = marginTop + headerH;
+      };
 
-        // Adicionar conteúdo - cortar a imagem corretamente para cada página
-        const scale = contentCanvas.width / contentImgWidth;
-        const sourceY = i * contentAreaHeight * scale;
-        const sourceHeight = Math.min(contentAreaHeight * scale, contentCanvas.height - sourceY);
-        
-        if (sourceHeight > 0) {
-          const destHeight = sourceHeight / scale;
-          
-          // Criar um canvas temporário com apenas a parte necessária
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = contentCanvas.width;
-          tempCanvas.height = sourceHeight;
-          const ctx = tempCanvas.getContext('2d');
-          
-          // Copiar apenas a parte necessária do canvas original
-          ctx.drawImage(
-            contentCanvas,
-            0, sourceY,                    // sx, sy - origem no canvas original
-            contentCanvas.width, sourceHeight, // sWidth, sHeight - tamanho na origem
-            0, 0,                          // dx, dy - destino no canvas temporário
-            contentCanvas.width, sourceHeight  // dWidth, dHeight - tamanho no destino
-          );
-          
-          // Adicionar a imagem recortada ao PDF
-          const tempImgData = tempCanvas.toDataURL('image/png');
-          pdf.addImage(
-            tempImgData,
-            'PNG',
-            margin,
-            headerHeight,
-            contentImgWidth,
-            destHeight
-          );
+      const checkPageBreak = (neededH) => {
+        if (curY + neededH > footerY - 6) {
+          pdf.addPage();
+          currentPage++;
+          initPage();
+        }
+      };
+
+      // Inicia primeira página
+      initPage();
+
+      for (const block of blocks) {
+        if (block.type === 'linebreak') {
+          curY += LINE_HEIGHT_NORMAL * 0.5;
+          continue;
         }
 
-        // Adicionar rodapé
-        pdf.addImage(footerImgData, 'PNG', 0, pageHeight - footerHeight, pageWidth, footerHeight);
+        if (block.type === 'heading') {
+          const fs = block.level === 1 ? FONT_SIZE_H1 : block.level === 2 ? FONT_SIZE_H2 : FONT_SIZE_H3;
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(fs);
+          pdf.setTextColor(30, 30, 30);
+          const lines = pdf.splitTextToSize(block.text, contentW);
+          checkPageBreak(lines.length * LINE_HEIGHT_HEADING + PARA_SPACING);
+          pdf.text(lines, marginL, curY);
+          curY += lines.length * LINE_HEIGHT_HEADING + PARA_SPACING;
+          continue;
+        }
+
+        if (block.type === 'listitem') {
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(FONT_SIZE_NORMAL);
+          pdf.setTextColor(30, 30, 30);
+          const prefix = block.ordered ? `${block.index}.` : '•';
+          const text = `${prefix} ${block.text}`;
+          const lines = pdf.splitTextToSize(text, contentW - 4);
+          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + 1);
+          pdf.text(lines, marginL + 2, curY);
+          curY += lines.length * LINE_HEIGHT_NORMAL + 1;
+          continue;
+        }
+
+        if (block.type === 'paragraph') {
+          const { segments, align } = block;
+          if (!segments || segments.length === 0) {
+            // parágrafo vazio = espaçamento entre parágrafos
+            curY += LINE_HEIGHT_NORMAL;
+            continue;
+          }
+
+          // Verificar se o parágrafo inteiro é só texto (sem mixed bold/italic)
+          // Para simplicidade e confiabilidade, concatenamos e renderizamos com estilo do primeiro segmento
+          const fullText = segments.map(s => s.text).join('');
+          if (!fullText.trim() && fullText !== '\n') {
+            curY += LINE_HEIGHT_NORMAL * 0.6;
+            continue;
+          }
+
+          // Detectar se tem bold no parágrafo
+          const hasBold = segments.some(s => s.bold);
+          const hasItalic = segments.some(s => s.italic);
+          const fontStyle = hasBold && hasItalic ? 'bolditalic' : hasBold ? 'bold' : hasItalic ? 'italic' : 'normal';
+
+          pdf.setFont('helvetica', fontStyle);
+          pdf.setFontSize(FONT_SIZE_NORMAL);
+          pdf.setTextColor(30, 30, 30);
+
+          const jsPDFAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
+          const textX = align === 'center' ? pageW / 2 : align === 'right' ? pageW - marginR : marginL;
+
+          const lines = pdf.splitTextToSize(fullText, contentW);
+          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + PARA_SPACING);
+          pdf.text(lines, textX, curY, { align: jsPDFAlign });
+          curY += lines.length * LINE_HEIGHT_NORMAL + PARA_SPACING;
+          continue;
+        }
       }
 
-      pdf.save(`contrato_${contract.contract_number}.pdf`);
+      pdf.save(`contrato_${contract.contract_number || 'documento'}.pdf`);
       toast.success('PDF gerado com sucesso!');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
