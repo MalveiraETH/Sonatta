@@ -61,7 +61,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
         }));
       }
 
-      buildPDF(contract, sale, pixPayment, installments, SONATTA);
+      await buildPDF(contract, sale, pixPayment, installments, SONATTA);
       toast.success('Carnê gerado com sucesso!');
     } catch (error) {
       console.error(error);
@@ -71,7 +71,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
     }
   };
 
-  const buildPDF = (contract, sale, pixPayment, installments, SONATTA) => {
+  const buildPDF = async (contract, sale, pixPayment, installments, SONATTA) => {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const PW = 210;
     const margin = 14;
