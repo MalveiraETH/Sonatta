@@ -14,6 +14,20 @@ export default function ContractPDFGenerator({ contract, contractText }) {
     base44.entities.Company.list().then(list => { if (list[0]) setCompany(list[0]); }).catch(() => {});
   }, []);
 
+  const loadB64 = (url) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resolve(c.toDataURL('image/jpeg'));
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+
   const generatePDF = async () => {
     setGenerating(true);
     try {
@@ -26,23 +40,35 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       const pageWidth = 210;
       const pageHeight = 297;
       const margin = 25;
-      const headerHeight = 18;
+      const headerHeight = 22;
       const footerHeight = 23;
       const contentAreaHeight = pageHeight - headerHeight - footerHeight;
 
-      // Criar cabeçalho
-      const createHeader = () => {
-        const headerElement = document.createElement('div');
-        headerElement.style.width = '210mm';
-        headerElement.style.position = 'absolute';
-        headerElement.style.left = '-9999px';
-        headerElement.innerHTML = `
-          <div style="text-align: center; padding: 8mm 0 5mm 0; border-bottom: 2px solid #6B3FA0; background: white;">
-            <img src="https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg" 
-                 style="max-width: 160px; height: auto;" />
-          </div>
-        `;
-        return headerElement;
+      // Carregar logo via canvas (mesmo padrão do orçamento)
+      const LOGO_URL = 'https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg';
+      const logoB64 = await loadB64(LOGO_URL);
+
+      // Desenhar cabeçalho diretamente no jsPDF (sem html2canvas)
+      const drawHeader = () => {
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+        if (logoB64) {
+          const tmpImg = new Image();
+          tmpImg.src = logoB64;
+          const LOGO_MAX_H = 14, LOGO_MAX_W = 50;
+          const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
+          let lw = LOGO_MAX_H * ratio, lh = LOGO_MAX_H;
+          if (lw > LOGO_MAX_W) { lw = LOGO_MAX_W; lh = lw / ratio; }
+          pdf.addImage(logoB64, 'JPEG', margin, (headerHeight - lh) / 2, lw, lh, undefined, 'NONE');
+        } else {
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(14);
+          pdf.setTextColor(107, 63, 160);
+          pdf.text('SONATTA', margin, 14);
+        }
+        pdf.setDrawColor(107, 63, 160);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, headerHeight - 1, pageWidth - margin, headerHeight - 1);
       };
 
       // Criar rodapé
@@ -103,21 +129,10 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       // Calcular número de páginas necessárias
       const numberOfPages = Math.ceil(contentImgHeight / contentAreaHeight);
 
-      // Renderizar cabeçalho e rodapé
-      const headerElement = createHeader();
+      // Renderizar apenas o rodapé com html2canvas
       const footerElement = createFooter();
-      
-      document.body.appendChild(headerElement);
       document.body.appendChild(footerElement);
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const headerCanvas = await html2canvas(headerElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const footerCanvas = await html2canvas(footerElement, {
         scale: 2,
@@ -126,10 +141,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         backgroundColor: '#ffffff'
       });
 
-      document.body.removeChild(headerElement);
       document.body.removeChild(footerElement);
-
-      const headerImgData = headerCanvas.toDataURL('image/png');
       const footerImgData = footerCanvas.toDataURL('image/png');
 
       // Adicionar páginas ao PDF
@@ -138,8 +150,8 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           pdf.addPage();
         }
 
-        // Adicionar cabeçalho
-        pdf.addImage(headerImgData, 'PNG', 0, 0, pageWidth, headerHeight);
+        // Desenhar cabeçalho via jsPDF (logo nativa, sem html2canvas)
+        drawHeader();
 
         // Adicionar conteúdo - cortar a imagem corretamente para cada página
         const scale = contentCanvas.width / contentImgWidth;

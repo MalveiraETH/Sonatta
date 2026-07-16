@@ -71,6 +71,20 @@ export default function CarnePDFGenerator({ contract, sale }) {
     }
   };
 
+  const loadB64 = (url) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resolve(c.toDataURL('image/jpeg'));
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+
   const buildPDF = async (contract, sale, pixPayment, installments, SONATTA) => {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const PW = 210;
@@ -91,6 +105,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
 
     // ── CAPA ──────────────────────────────────────────────────────────────
     const LOGO_URL = 'https://media.base44.com/images/public/694e93aa7609bf14847de917/79a5e2f8f_logomarca_sonatta.jpg';
+    const logoB64 = await loadB64(LOGO_URL);
 
     // Borda roxa superior fina
     pdf.setFillColor(...PURPLE);
@@ -105,10 +120,16 @@ export default function CarnePDFGenerator({ contract, sale }) {
     pdf.setDrawColor(...LIGHT_PURPLE);
     pdf.roundedRect(margin, HDR_Y, usable, HDR_H, 2, 2, 'FD');
 
-    // Logo à esquerda
-    try {
-      pdf.addImage(LOGO_URL, 'JPEG', margin + 4, HDR_Y + 4, 34, 20);
-    } catch (_) { /* sem logo */ }
+    // Logo à esquerda — proporção preservada igual ao orçamento
+    if (logoB64) {
+      const tmpImg = new Image();
+      await new Promise((r) => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = logoB64; });
+      const LOGO_MAX_H = 20, LOGO_MAX_W = 42;
+      const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
+      let lw = LOGO_MAX_H * ratio, lh = LOGO_MAX_H;
+      if (lw > LOGO_MAX_W) { lw = LOGO_MAX_W; lh = lw / ratio; }
+      pdf.addImage(logoB64, 'JPEG', margin + 4, HDR_Y + (HDR_H - lh) / 2, lw, lh, undefined, 'NONE');
+    }
 
     // Textos à direita do logo, centralizados verticalmente
     const txtX = margin + 38;
