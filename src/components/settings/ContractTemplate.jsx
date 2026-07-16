@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,28 @@ const QUILL_FORMATS = [
   'bold', 'italic', 'underline', 'strike',
   'color', 'background',
   'list', 'align',
+];
+
+const LINE_HEIGHT_OPTIONS = [
+  { label: 'Entrelinha padrão', value: '' },
+  { label: '1.0', value: '1' },
+  { label: '1.2', value: '1.2' },
+  { label: '1.5', value: '1.5' },
+  { label: '1.8', value: '1.8' },
+  { label: '2.0', value: '2' },
+  { label: '2.5', value: '2.5' },
+  { label: '3.0', value: '3' },
+];
+
+const PARA_SPACING_OPTIONS = [
+  { label: 'Espaç. §', value: '' },
+  { label: 'Sem espaço', value: '0px' },
+  { label: 'Mínimo (4px)', value: '4px' },
+  { label: 'Pequeno (8px)', value: '8px' },
+  { label: 'Médio (12px)', value: '12px' },
+  { label: 'Normal (16px)', value: '16px' },
+  { label: 'Grande (24px)', value: '24px' },
+  { label: 'Extra (32px)', value: '32px' },
 ];
 
 const DEFAULT_TEMPLATE = `CONTRATO DE COMPROMISSO DE PAGAMENTO
@@ -90,6 +112,34 @@ export default function ContractTemplate() {
   const [saving, setSaving] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [template, setTemplate] = useState(null);
+  const quillRef = useRef(null);
+
+  const applyLineHeight = (value) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const selection = editor.getSelection(true);
+    if (!selection) return;
+    const [leaf] = editor.getLeaf(selection.index);
+    const block = leaf?.parent;
+    if (block?.domNode) {
+      block.domNode.style.lineHeight = value || '';
+    }
+    // Forçar re-leitura do HTML pelo React
+    setTemplateText(editor.root.innerHTML);
+  };
+
+  const applyParaSpacing = (value) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const selection = editor.getSelection(true);
+    if (!selection) return;
+    const [leaf] = editor.getLeaf(selection.index);
+    const block = leaf?.parent;
+    if (block?.domNode) {
+      block.domNode.style.marginBottom = value || '';
+    }
+    setTemplateText(editor.root.innerHTML);
+  };
   // Se o template salvo for texto puro (sem tags HTML), converte para HTML básico
   const toHtml = (text) => {
     if (!text) return '';
@@ -281,8 +331,41 @@ export default function ContractTemplate() {
         <style>{`
           .ql-editor { min-height: 420px; font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; }
         `}</style>
+
+        {/* Controles de espaçamento customizados */}
+        {isAdmin && (
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 whitespace-nowrap">Entrelinha:</span>
+              <select
+                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                defaultValue=""
+                onChange={(e) => applyLineHeight(e.target.value)}
+              >
+                {LINE_HEIGHT_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 whitespace-nowrap">Espaç. parágrafo:</span>
+              <select
+                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                defaultValue=""
+                onChange={(e) => applyParaSpacing(e.target.value)}
+              >
+                {PARA_SPACING_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-slate-400">↑ Selecione o parágrafo no editor, depois aplique o estilo</p>
+          </div>
+        )}
+
         <div className={`rounded-lg border border-slate-200 overflow-hidden ${!isAdmin ? 'pointer-events-none opacity-60' : ''}`}>
           <ReactQuill
+            ref={quillRef}
             theme="snow"
             value={templateText}
             onChange={setTemplateText}
