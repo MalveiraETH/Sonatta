@@ -290,8 +290,13 @@ export default function CarnePDFGenerator({ contract, sale }) {
       pdf.setFontSize(7);
       pdf.text(sl, cx + cw - 17, cy + 6.3, { align: 'center' });
 
+      // Constantes de layout do coupon — todos os gaps são GAP mm
+      const GAP = 0.7;   // ≈ 2px equivalente em mm
+      const FIELD_H = 11; // altura de cada bloco de campo
+      const fW = cw / 3;
+
       // ── Empresa (linha fina abaixo do header) ──
-      const compY = cy + 12;
+      const compY = cy + 11;
       pdf.setTextColor(120, 120, 120);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(6.5);
@@ -301,7 +306,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
       // Linha 1: CLIENTE | CPF | CONTRATO
       // Linha 2: VENDA   | VENCIMENTO | VALOR DA PARCELA
       const fields = [
-        { label: 'CLIENTE', value: pdf.splitTextToSize(contract.client_name || '—', (cw / 3) - 8)[0] },
+        { label: 'CLIENTE', value: pdf.splitTextToSize(contract.client_name || '—', fW - 8)[0] },
         { label: 'CPF', value: contract.client_cpf || '—' },
         { label: 'CONTRATO', value: contract.contract_number || '—' },
         { label: 'VENDA', value: sale.sale_number || '—' },
@@ -309,97 +314,96 @@ export default function CarnePDFGenerator({ contract, sale }) {
         { label: 'VALOR DA PARCELA', value: formatCurrency(inst.gross_amount) },
       ];
 
-      const fW = cw / 3;
-      const FIELD_H = 12; // altura de cada campo
-      const GRID_TOP = compY + 4;
+      const GRID_TOP = compY + 2;
 
       fields.forEach((f, fi) => {
         const fc = fi % 3;
         const fr = Math.floor(fi / 3);
         const fx = cx + fc * fW;
-        const fy = GRID_TOP + fr * (FIELD_H + 1);
+        const fy = GRID_TOP + fr * (FIELD_H + GAP);
 
         pdf.setFillColor(245, 243, 252);
         pdf.setDrawColor(...PURPLE);
-        pdf.roundedRect(fx + 0.5, fy, fW - 1, FIELD_H, 1, 1, 'FD');
+        pdf.roundedRect(fx + GAP / 2, fy, fW - GAP, FIELD_H, 1, 1, 'FD');
 
         pdf.setTextColor(...PURPLE);
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(6);
-        pdf.text(f.label, fx + 2.5, fy + 4);
+        pdf.setFontSize(5.5);
+        pdf.text(f.label, fx + 2.5, fy + 3.5);
 
         pdf.setTextColor(20, 20, 20);
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(8);
-        pdf.text(String(f.value), fx + 2.5, fy + 9.5);
+        pdf.text(String(f.value), fx + 2.5, fy + 9);
       });
 
       // ── Área de pagamento (valor pago + data) ──
-      const fillY = GRID_TOP + 2 * (FIELD_H + 1) + 2;
+      const fillY = GRID_TOP + 2 * (FIELD_H + GAP) + GAP;
       const fillH = 10;
+      const halfW = cw / 2 - GAP / 2;
 
       // Valor pago
       pdf.setFillColor(252, 252, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx, fillY, cw / 2 - 2, fillH, 1, 1, 'FD');
+      pdf.roundedRect(cx, fillY, halfW, fillH, 1, 1, 'FD');
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(6);
-      pdf.text('VALOR PAGO (R$)', cx + 2.5, fillY + 4);
+      pdf.setFontSize(5.5);
+      pdf.text('VALOR PAGO (R$)', cx + 2.5, fillY + 3.5);
       if (inst.paid_amount > 0) {
         pdf.setTextColor(34, 197, 94);
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(7.5);
-        pdf.text(formatCurrency(inst.paid_amount), cx + 2.5, fillY + 8.5);
+        pdf.text(formatCurrency(inst.paid_amount), cx + 2.5, fillY + 8.2);
       } else {
         pdf.setTextColor(210, 210, 210);
         pdf.setFontSize(7);
         pdf.setFont('helvetica', 'normal');
-        pdf.text('___________________', cx + 2.5, fillY + 8.5);
+        pdf.text('___________________', cx + 2.5, fillY + 8.2);
       }
 
       // Data do pagamento
       pdf.setFillColor(252, 252, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx + cw / 2 + 2, fillY, cw / 2 - 2, fillH, 1, 1, 'FD');
+      pdf.roundedRect(cx + halfW + GAP, fillY, halfW, fillH, 1, 1, 'FD');
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(6);
-      pdf.text('DATA DO PAGAMENTO', cx + cw / 2 + 4, fillY + 4);
+      pdf.setFontSize(5.5);
+      pdf.text('DATA DO PAGAMENTO', cx + halfW + GAP + 2.5, fillY + 3.5);
       if (inst.last_payment_date) {
         pdf.setTextColor(34, 197, 94);
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(7.5);
-        pdf.text(formatDate(inst.last_payment_date), cx + cw / 2 + 4, fillY + 8.5);
+        pdf.text(formatDate(inst.last_payment_date), cx + halfW + GAP + 2.5, fillY + 8.2);
       } else {
         pdf.setTextColor(210, 210, 210);
         pdf.setFontSize(7);
         pdf.setFont('helvetica', 'normal');
-        pdf.text('____/____/________', cx + cw / 2 + 4, fillY + 8.5);
+        pdf.text('____/____/________', cx + halfW + GAP + 2.5, fillY + 8.2);
       }
 
       // ── Instrução PIX ──
-      const instrY = fillY + fillH + 3;
+      const PIX_H = 9;
+      const instrY = fillY + fillH + GAP;
 
-      // Fundo destaque para instrução PIX
       pdf.setFillColor(240, 235, 252);
       pdf.setDrawColor(...PURPLE);
-      pdf.roundedRect(cx, instrY - 3, cw, 10, 1, 1, 'FD');
+      pdf.roundedRect(cx, instrY, cw, PIX_H, 1, 1, 'FD');
 
       pdf.setTextColor(...PURPLE);
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(6.5);
-      pdf.text('CHAVE PIX (CNPJ):', cx + 3, instrY + 1.5);
+      pdf.setFontSize(5.5);
+      pdf.text('CHAVE PIX (CNPJ):', cx + 2.5, instrY + 3);
 
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(8);
       pdf.setTextColor(30, 30, 30);
-      pdf.text(SONATTA.cnpj, cx + 3, instrY + 6.5);
+      pdf.text(SONATTA.cnpj, cx + 2.5, instrY + 7.5);
 
       pdf.setFont('helvetica', 'italic');
-      pdf.setFontSize(6);
+      pdf.setFontSize(5.5);
       pdf.setTextColor(100, 100, 100);
-      pdf.text('Guarde o comprovante e apresente junto a este carnê.', PW - margin - 3, instrY + 4, { align: 'right' });
+      pdf.text('Guarde o comprovante e apresente junto a este carnê.', cx + cw - 2.5, instrY + 5.5, { align: 'right' });
     });
 
     pdf.save(`carne_${contract.contract_number}.pdf`);
