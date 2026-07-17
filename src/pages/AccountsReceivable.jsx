@@ -47,6 +47,7 @@ import { formatLocalDate } from '@/components/utils/dateHelpers';
 
 export default function AccountsReceivable() {
   const [installments, setInstallments] = useState([]);
+  const [salesMap, setSalesMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
@@ -78,6 +79,21 @@ export default function AccountsReceivable() {
     setLoading(true);
     try {
       const data = await base44.entities.Installment.list('due_date');
+
+      // Buscar datas de venda para parcelas sem sale_date
+      const missingSaleDates = data.filter(inst => !inst.sale_date && inst.sale_id);
+      if (missingSaleDates.length > 0) {
+        const uniqueSaleIds = [...new Set(missingSaleDates.map(i => i.sale_id))];
+        const map = {};
+        await Promise.all(uniqueSaleIds.map(async (saleId) => {
+          try {
+            const sale = await base44.entities.Sale.get(saleId);
+            if (sale?.sale_date) map[saleId] = sale.sale_date;
+          } catch {}
+        }));
+        setSalesMap(map);
+      }
+
       // Ordenar: atrasados primeiro, depois pendentes, depois pagos
       const sortedData = data.sort((a, b) => {
         const today = new Date();
@@ -599,7 +615,7 @@ export default function AccountsReceivable() {
                      {inst.card_brand && <span className="ml-1 text-xs text-slate-500">({inst.card_brand})</span>}
                     </TableCell>
                     <TableCell>{inst.installment_number}</TableCell>
-                    <TableCell>{inst.sale_date ? formatLocalDate(inst.sale_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
+                    <TableCell>{(inst.sale_date || salesMap[inst.sale_id]) ? formatLocalDate(inst.sale_date || salesMap[inst.sale_id]) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
                     <TableCell>{formatLocalDate(inst.due_date)}</TableCell>
                     <TableCell>{inst.last_payment_date ? formatLocalDate(inst.last_payment_date) : <span className="text-slate-400 text-xs">—</span>}</TableCell>
                     <TableCell className="text-right">{formatCurrency(getGrossAmount(inst))}</TableCell>
@@ -689,9 +705,9 @@ export default function AccountsReceivable() {
                       <div className="text-sm text-slate-600">
                         {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'} • Parcela {inst.installment_number} • Venc. {formatLocalDate(inst.due_date)}
                       </div>
-                      {inst.sale_date && (
+                      {(inst.sale_date || salesMap[inst.sale_id]) && (
                         <div className="text-xs text-slate-400 mt-0.5">
-                          Venda: {formatLocalDate(inst.sale_date)}
+                          Venda: {formatLocalDate(inst.sale_date || salesMap[inst.sale_id])}
                         </div>
                       )}
                     </div>
