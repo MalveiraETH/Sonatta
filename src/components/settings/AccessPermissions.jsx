@@ -28,8 +28,19 @@ export default function AccessPermissions() {
     setLoading(true);
     const records = await base44.entities.PermissionSettings.list();
 
+    // Remove registros órfãos do banco (módulos/ações que não existem mais no DEFAULT_PERMISSIONS)
+    const validKeys = new Set(DEFAULT_PERMISSIONS.map(d => `${d.module}|${d.action}`));
+    const orphans = records.filter(r => !validKeys.has(`${r.module}|${r.action}`));
+    if (orphans.length > 0) {
+      await Promise.all(orphans.map(r => base44.entities.PermissionSettings.delete(r.id)));
+    }
+
     const idMap = {};
-    records.forEach(r => { idMap[`${r.module}|${r.action}`] = r.id; });
+    records.forEach(r => {
+      if (validKeys.has(`${r.module}|${r.action}`)) {
+        idMap[`${r.module}|${r.action}`] = r.id;
+      }
+    });
 
     // Merge saved records over defaults
     const merged = DEFAULT_PERMISSIONS.map(def => {
@@ -59,38 +70,58 @@ export default function AccessPermissions() {
 
   const handleSave = async () => {
     setSaving(true);
-    const newIds = { ...savedIds };
-    await Promise.all(
-      perms.map(async (p) => {
-        const key = `${p.module}|${p.action}`;
-        const data = { module: p.module, action: p.action, admin: true, fonoaudiologo: !!p.fonoaudiologo, comercial: !!p.comercial, recepcao: !!p.recepcao };
-        if (newIds[key]) {
-          await base44.entities.PermissionSettings.update(newIds[key], data);
-        } else {
-          const created = await base44.entities.PermissionSettings.create(data);
-          newIds[key] = created.id;
-        }
-      })
-    );
-    setSavedIds(newIds);
-    invalidatePermissionCache();
-    toast.success('Permissões salvas com sucesso!');
-    setSaving(false);
-    setDirty(false);
+    try {
+      const newIds = { ...savedIds };
+      await Promise.all(
+        perms.map(async (p) => {
+          const key = `${p.module}|${p.action}`;
+          const data = { module: p.module, action: p.action, admin: true, fonoaudiologo: !!p.fonoaudiologo, comercial: !!p.comercial, recepcao: !!p.recepcao };
+          if (newIds[key]) {
+            await base44.entities.PermissionSettings.update(newIds[key], data);
+          } else {
+            const created = await base44.entities.PermissionSettings.create(data);
+            newIds[key] = created.id;
+          }
+        })
+      );
+      setSavedIds(newIds);
+      invalidatePermissionCache();
+      toast.success('Permissões salvas com sucesso!');
+      setDirty(false);
+    } catch (e) {
+      toast.error('Erro ao salvar permissões. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = async () => {
     setSaving(true);
-    // Delete all saved records and reload defaults
-    await Promise.all(
-      Object.values(savedIds).map(id => base44.entities.PermissionSettings.delete(id))
-    );
-    setSavedIds({});
-    setPerms(DEFAULT_PERMISSIONS.map(d => ({ ...d })));
-    setDirty(true);
-    setSaving(false);
-    invalidatePermissionCache();
-    toast.success('Permissões restauradas para o padrão');
+    try {
+      // Busca todos os registros atuais do banco (inclui registros órfãos de nomes antigos)
+      const allRecords = await base44.entities.PermissionSettings.list();
+      await Promise.all(allRecords.map(r => base44.entities.PermissionSettings.delete(r.id)));
+      setSavedIds({});
+      const defaults = DEFAULT_PERMISSIONS.map(d => ({ ...d }));
+      setPerms(defaults);
+      // Persiste os defaults no banco imediatamente para evitar estado inconsistente
+      const newIds = {};
+      await Promise.all(
+        defaults.map(async (p) => {
+          const data = { module: p.module, action: p.action, admin: true, fonoaudiologo: !!p.fonoaudiologo, comercial: !!p.comercial, recepcao: !!p.recepcao };
+          const created = await base44.entities.PermissionSettings.create(data);
+          newIds[`${p.module}|${p.action}`] = created.id;
+        })
+      );
+      setSavedIds(newIds);
+      setDirty(false);
+      invalidatePermissionCache();
+      toast.success('Permissões restauradas para o padrão');
+    } catch (e) {
+      toast.error('Erro ao restaurar permissões. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Group perms by module
