@@ -110,10 +110,12 @@ export function invalidatePermissionCache() {
 
 export function usePermissions(user) {
   const [perms, setPerms] = useState([]);
+  // Começa true — só libera após o primeiro fetch completar (ou confirmar que não há user)
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    if (user === null || user === undefined) return; // aguarda o user ser resolvido
+    if (user.role === 'admin') { setLoading(false); return; } // admin não precisa buscar
     fetchPermissions().then(p => { setPerms(p); setLoading(false); });
   }, [user]);
 

@@ -276,12 +276,8 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0 bg-slate-50">
         <div className="p-4 lg:p-8">
-          {!user ? (
-            // Aguarda o user carregar antes de verificar permissões (evita flash de "acesso negado" para admin)
-            <div className="flex items-center justify-center h-64">
-              <div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" />
-            </div>
-          ) : (loading && user?.role !== 'admin') ? (
+          {(!user || (loading && user.role !== 'admin')) ? (
+            // Aguarda user carregar E permissões carregarem (evita flash de "acesso negado")
             <div className="flex items-center justify-center h-64">
               <div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" />
             </div>
