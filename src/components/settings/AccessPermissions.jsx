@@ -46,6 +46,7 @@ const DEFAULT_PERMISSIONS = [
   { module: 'Moldes & Tampões', action: 'Ver página',              admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Moldes & Tampões', action: 'Criar/Editar ordens',    admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
   { module: 'Moldes & Tampões', action: 'Excluir ordens',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Vendas Perdidas', action: 'Ver página',               admin: true, fonoaudiologo: false, comercial: true,  recepcao: false },
   { module: 'Assistente IA',  action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Relatórios',     action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Cadastros',      action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
