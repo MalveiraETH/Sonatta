@@ -67,7 +67,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [user, setUser] = useState(null);
-  const { canAccessPage } = usePermissions(user);
+  const { canAccessPage, loading } = usePermissions(user);
   const location = useLocation();
 
   // Atalho Cmd+K / Ctrl+K
@@ -278,6 +278,10 @@ export default function Layout({ children, currentPageName }) {
         <div className="p-4 lg:p-8">
           {!user ? (
             // Aguarda o user carregar antes de verificar permissões (evita flash de "acesso negado" para admin)
+            <div className="flex items-center justify-center h-64">
+              <div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" />
+            </div>
+          ) : (loading && user?.role !== 'admin') ? (
             <div className="flex items-center justify-center h-64">
               <div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" />
             </div>
