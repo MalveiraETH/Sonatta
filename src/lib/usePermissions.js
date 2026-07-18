@@ -27,8 +27,8 @@ export const PAGE_PERMISSION_MAP = {
   Settings:             'Configurações',
 };
 
-// Defaults caso não haja registros salvos
-const DEFAULT_PERMISSIONS = [
+// Defaults caso não haja registros salvos — fonte única de verdade
+export const DEFAULT_PERMISSIONS = [
   { module: 'Dashboard',      action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Clientes',       action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
   { module: 'Clientes',       action: 'Criar/Editar clientes',    admin: true, fonoaudiologo: true,  comercial: true,  recepcao: true },
@@ -58,6 +58,9 @@ const DEFAULT_PERMISSIONS = [
   { module: 'Consertos',      action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
   { module: 'Consertos',      action: 'Criar/Editar consertos',   admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
   { module: 'Consertos',      action: 'Excluir consertos',        admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Moldes & Tampões', action: 'Ver página',              admin: true, fonoaudiologo: true,  comercial: true,  recepcao: false },
+  { module: 'Moldes & Tampões', action: 'Criar/Editar ordens',    admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
+  { module: 'Moldes & Tampões', action: 'Excluir ordens',         admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Vendas Perdidas', action: 'Ver página',               admin: true, fonoaudiologo: false, comercial: true,  recepcao: false },
   { module: 'Assistente IA',  action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Relatórios',     action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
