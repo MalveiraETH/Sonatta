@@ -40,6 +40,21 @@ export default function CarnePDFGenerator({ contract, sale }) {
         website: company.website || 'www.sonatta.com.br',
       };
 
+      // Enriquecer dados do cliente no contrato caso CPF/endereço estejam vazios
+      let enrichedContract = { ...contract };
+      if (sale.client_id && (!enrichedContract.client_cpf || !enrichedContract.client_address)) {
+        try {
+          const client = await base44.entities.Client.get(sale.client_id);
+          enrichedContract = {
+            ...enrichedContract,
+            client_cpf: enrichedContract.client_cpf || client.cpf || '',
+            client_address: enrichedContract.client_address || client.address || '',
+          };
+        } catch (e) {
+          console.warn('Não foi possível buscar dados do cliente:', e.message);
+        }
+      }
+
       // Buscar parcelas já geradas para essa venda
       let installments = await base44.entities.Installment.filter({ sale_id: sale.id });
       installments = installments.filter(i => i.payment_method === 'pix_parcelado');
@@ -61,7 +76,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
         }));
       }
 
-      await buildPDF(contract, sale, pixPayment, installments, SONATTA);
+      await buildPDF(enrichedContract, sale, pixPayment, installments, SONATTA);
       toast.success('Carnê gerado com sucesso!');
     } catch (error) {
       console.error(error);

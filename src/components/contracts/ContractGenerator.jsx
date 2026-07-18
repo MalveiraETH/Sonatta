@@ -72,33 +72,34 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
     return conditions;
   };
 
-  const generateContractText = (contractData) => {
+  const generateContractText = (contractData, enrichedSale) => {
     if (!template) return '';
+    const s = enrichedSale || sale;
     
     // Buscar pagamento PIX parcelado
     // Tentar PIX parcelado primeiro, senão usar qualquer método de pagamento disponível
-    const pixParcelado = sale.payment_details?.find(p => p.method === 'pix_parcelado') ||
-      sale.payment_details?.find(p => p.installments > 1) ||
-      sale.payment_details?.[0];
+    const pixParcelado = s.payment_details?.find(p => p.method === 'pix_parcelado') ||
+      s.payment_details?.find(p => p.installments > 1) ||
+      s.payment_details?.[0];
     if (!pixParcelado) return template.template_text || '';
 
     const installmentValue = pixParcelado.installments > 1
       ? pixParcelado.amount / pixParcelado.installments
       : pixParcelado.amount;
-    const saleDate = new Date(sale.sale_date || sale.created_date);
+    const saleDate = new Date(s.sale_date || s.created_date);
     const firstPaymentDate = addDays(saleDate, 30);
 
     // Lista de produtos
-    const productsList = sale.items.map(item => 
+    const productsList = s.items.map(item => 
       `${item.quantity} ${item.product_name}${item.brand ? ` - ${item.brand}` : ''}${item.model ? ` ${item.model}` : ''}`
     ).join(', ');
 
     let text = template.template_text;
-    text = text.replace(/\{\{client_name\}\}/g, sale.client_name);
-    text = text.replace(/\{\{client_cpf\}\}/g, sale.client_cpf || '');
-    text = text.replace(/\{\{client_address\}\}/g, sale.client_address || '');
+    text = text.replace(/\{\{client_name\}\}/g, s.client_name);
+    text = text.replace(/\{\{client_cpf\}\}/g, s.client_cpf || '');
+    text = text.replace(/\{\{client_address\}\}/g, s.client_address || '');
     text = text.replace(/\{\{products_list\}\}/g, productsList);
-    text = text.replace(/\{\{total_value\}\}/g, formatCurrency(sale.total));
+    text = text.replace(/\{\{total_value\}\}/g, formatCurrency(s.total));
     text = text.replace(/\{\{installments_count\}\}/g, pixParcelado.installments);
     text = text.replace(/\{\{installment_value\}\}/g, formatCurrency(installmentValue));
     text = text.replace(/\{\{payment_day\}\}/g, firstPaymentDate.getDate());
@@ -121,17 +122,37 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
     setLoading(true);
     try {
       const contractNumber = generateContractNumber();
-      const contractText = generateContractText();
+
+      // Buscar dados atualizados do cliente para garantir CPF e endereço
+      let clientCpf = sale.client_cpf;
+      let clientAddress = sale.client_address;
+      if (sale.client_id && (!clientCpf || !clientAddress)) {
+        try {
+          const client = await base44.entities.Client.get(sale.client_id);
+          clientCpf = clientCpf || client.cpf || '';
+          clientAddress = clientAddress || client.address || '';
+        } catch (e) {
+          console.warn('Não foi possível buscar dados do cliente:', e.message);
+        }
+      }
+
+      // Montar sale enriquecido para geração do texto
+      const enrichedSale = {
+        ...sale,
+        client_cpf: clientCpf,
+        client_address: clientAddress,
+      };
+      const contractText = generateContractText(null, enrichedSale);
 
       const contractData = {
         contract_number: contractNumber,
         sale_id: sale.id,
         client_id: sale.client_id,
         client_name: sale.client_name,
-        client_cpf: sale.client_cpf,
+        client_cpf: clientCpf,
         client_phone: sale.client_phone,
         client_email: sale.client_email,
-        client_address: sale.client_address,
+        client_address: clientAddress,
         products: sale.items.map(item => ({
           product_name: item.product_name,
           serial_number: item.serial_number || '',
