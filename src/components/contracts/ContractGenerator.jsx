@@ -87,7 +87,10 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
       ? pixParcelado.amount / pixParcelado.installments
       : pixParcelado.amount;
     const saleDate = new Date(s.sale_date || s.created_date);
-    const firstPaymentDate = addDays(saleDate, 30);
+    // Usar data do 1º vencimento salva no pagamento, senão fallback para saleDate + 30 dias
+    const firstPaymentDate = pixParcelado.first_due_date
+      ? new Date(pixParcelado.first_due_date + 'T12:00:00')
+      : addDays(saleDate, 30);
 
     // Lista de produtos
     const productsList = s.items.map(item => 

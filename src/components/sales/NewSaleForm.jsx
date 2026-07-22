@@ -77,6 +77,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     if (open && sale) {
       // Preencher form com dados da venda para edição
       setSaleDate(sale.sale_date ? new Date(sale.sale_date + 'T12:00:00') : new Date());
+      // Restaurar data do 1º vencimento do PIX parcelado
+      const pixPayment = sale.payment_details?.find(p => p.method === 'pix_parcelado' && p.first_due_date);
+      if (pixPayment?.first_due_date) {
+        setFirstDueDate(new Date(pixPayment.first_due_date + 'T12:00:00'));
+      }
       setFormData({
         client_id: sale.client_id || '',
         client_name: sale.client_name || '',
@@ -491,7 +496,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         };
         await base44.entities.Sale.update(sale.id, dataToUpdate);
         // Sync installments (Contas a Receber) to reflect new payment_details
-        await syncInstallmentsForSale({ ...dataToUpdate, id: sale.id }, saleDate);
+        await syncInstallmentsForSale({ ...dataToUpdate, id: sale.id }, saleDate, firstDueDate);
         await logEdit('Venda', `${saleNumber} - ${formData.client_name}`, sale.id);
         toast.success('Venda atualizada com sucesso!');
         onOpenChange(false);
@@ -1071,15 +1076,22 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
                                 <span className="truncate">
-                                  {firstDueDate ? format(firstDueDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione..."}
+                                  {payment.first_due_date
+                                    ? format(new Date(payment.first_due_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
+                                    : firstDueDate
+                                      ? format(firstDueDate, "dd/MM/yyyy", { locale: ptBR })
+                                      : "Selecione..."}
                                 </span>
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                 mode="single"
-                                selected={firstDueDate}
-                                onSelect={(date) => setFirstDueDate(date)}
+                                selected={payment.first_due_date ? new Date(payment.first_due_date + 'T12:00:00') : firstDueDate}
+                                onSelect={(date) => {
+                                  setFirstDueDate(date);
+                                  updatePayment(index, 'first_due_date', date ? format(date, 'yyyy-MM-dd') : null);
+                                }}
                                 initialFocus
                                 locale={ptBR}
                               />
