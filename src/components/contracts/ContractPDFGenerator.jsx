@@ -4,7 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
-// html2canvas removido: PDF agora usa renderização nativa de texto (vetorial, selecionável)
+
+// Configurações padrão de PDF (mesmas do orçamento)
+const DEFAULT_PDF_CFG = {
+  logo_url: 'https://media.base44.com/images/public/694e93aa7609bf14847de917/073de81ba_SONATTA_CARDS-10.png',
+  address: 'Edif. Corporate Trade Center, Rod. Álvaro Maia, 2357 – 10º Andar, Sala 1007, Manaus – AM',
+  phone: '(92) 98464-5343',
+  email: 'atendimento@sonatta.store',
+  website: 'sonatta.store',
+  instagram: '@sonatta.store',
+};
 
 // Converte HTML do Quill em lista de blocos de texto estruturados
 function parseHtmlToBlocks(html) {
@@ -109,6 +118,15 @@ function loadImageAsBase64(url) {
   });
 }
 
+async function loadPdfCfg() {
+  try {
+    const all = await base44.entities.AppSettings.list();
+    const rec = all.find(r => r.setting_key === 'quote_pdf_config');
+    if (rec?.setting_value) return { ...DEFAULT_PDF_CFG, ...rec.setting_value };
+  } catch (e) { /* usa padrão */ }
+  return DEFAULT_PDF_CFG;
+}
+
 export default function ContractPDFGenerator({ contract, contractText }) {
   const [generating, setGenerating] = React.useState(false);
   const [contractTemplate, setContractTemplate] = React.useState(null);
@@ -122,63 +140,70 @@ export default function ContractPDFGenerator({ contract, contractText }) {
   const generatePDF = async () => {
     setGenerating(true);
     try {
-      const headerInfo = contractTemplate?.header_info || {};
-      const footerInfo = contractTemplate?.footer_info || {};
+      // Carregar configurações unificadas (mesma fonte do orçamento)
+      const cfg = await loadPdfCfg();
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW = 210;
       const pageH = 297;
-      const marginL = 20;
-      const marginR = 20;
-      const marginTop = 28;
-      const marginBottom = 22;
+      const marginL = 15;
+      const marginR = 15;
+      const marginTop = 5;
       const contentW = pageW - marginL - marginR;
-      const headerH = 22;
-      const footerY = pageH - marginBottom;
+      const FOOTER_H = 20;
+      const footerY = pageH - FOOTER_H;
 
-      // Carregar logo
-      let logoData = null;
-      if (headerInfo.logo_url) {
-        logoData = await loadImageAsBase64(headerInfo.logo_url);
+      // Carregar logo (mesma URL e lógica do orçamento)
+      let logoB64 = null;
+      if (cfg.logo_url) {
+        const res = await loadImageAsBase64(cfg.logo_url);
+        logoB64 = res?.dataUrl || null;
       }
 
-      const drawHeader = () => {
-        pdf.setDrawColor(107, 63, 160);
-        pdf.setLineWidth(0.5);
+      // Altura real do logo para calcular onde começa o conteúdo
+      let logoRenderedH = 16;
+      let logoRenderedW = 50;
+      if (logoB64) {
+        const tmpImg = new Image();
+        await new Promise(r => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = logoB64; });
+        const LOGO_MAX_H = 16, LOGO_MAX_W = 50;
+        const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
+        logoRenderedW = LOGO_MAX_H * ratio;
+        logoRenderedH = LOGO_MAX_H;
+        if (logoRenderedW > LOGO_MAX_W) { logoRenderedW = LOGO_MAX_W; logoRenderedH = logoRenderedW / ratio; }
+      }
 
-        if (logoData) {
-          const maxLogoH = 14;
-          const maxLogoW = 60;
-          const ratio = logoData.w / logoData.h;
-          let lh = maxLogoH;
-          let lw = lh * ratio;
-          if (lw > maxLogoW) { lw = maxLogoW; lh = lw / ratio; }
-          const logoX = marginL;
-          const logoY = (headerH - lh) / 2;
-          pdf.addImage(logoData.dataUrl, 'PNG', logoX, logoY, lw, lh);
+      // Linha verde abaixo do cabeçalho (igual orçamento): Y = 5 (logo) + 16 (altura) + 6 (gap)
+      const headerLineY = marginTop + logoRenderedH + 6;
+      const headerH = headerLineY + 5; // conteúdo começa abaixo da linha
+
+      const drawHeader = () => {
+        if (logoB64) {
+          pdf.addImage(logoB64, 'PNG', marginL, marginTop, logoRenderedW, logoRenderedH, undefined, 'NONE');
         } else {
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(14);
-          pdf.setTextColor(107, 63, 160);
-          pdf.text('SONATTA', marginL, 14);
+          pdf.setTextColor(98, 42, 126);
+          pdf.text('SONATTA', marginL, marginTop + 12);
         }
-
-        pdf.line(marginL, headerH, pageW - marginR, headerH);
+        // Linha verde separadora (igual orçamento)
+        pdf.setFillColor(136, 188, 7);
+        pdf.rect(marginL, headerLineY, contentW, 0.7, 'F');
       };
 
       const drawFooter = () => {
-        const fi = footerInfo;
-        const parts = [
-          fi.phone, fi.email, fi.website, fi.instagram
-        ].filter(Boolean).join('   |   ');
-
-        pdf.setDrawColor(107, 63, 160);
-        pdf.setLineWidth(0.3);
-        pdf.line(marginL, footerY - 4, pageW - marginR, footerY - 4);
+        // Linha verde no rodapé (igual orçamento)
+        const FY = pageH - 16;
+        pdf.setFillColor(136, 188, 7);
+        pdf.rect(marginL, FY, contentW, 0.6, 'F');
+        const FL = FY + 5;
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(parts, pageW / 2, footerY, { align: 'center' });
+        pdf.setFontSize(7);
+        pdf.setTextColor(66, 63, 51);
+        pdf.text((cfg.address || ''), marginL, FL);
+        pdf.text((cfg.phone || '') + '  ·  ' + (cfg.email || ''), marginL, FL + 4.5);
+        pdf.setTextColor(98, 42, 126);
+        pdf.text((cfg.website || '') + '  ·  ' + (cfg.instagram || ''), pageW - marginR, FL, { align: 'right' });
       };
 
       // Parse do HTML do contrato
@@ -193,13 +218,13 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       const FONT_SIZE_H2 = 11;
       const FONT_SIZE_H3 = 10;
 
-      let curY = marginTop + headerH;
+      let curY = headerH;
       let currentPage = 1;
 
       const initPage = () => {
         drawHeader();
         drawFooter();
-        curY = marginTop + headerH;
+        curY = headerH;
       };
 
       const checkPageBreak = (neededH) => {
