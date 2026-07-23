@@ -130,12 +130,19 @@ export default function Contracts() {
     }
   };
 
-  const sendWhatsApp = (contract) => {
-    if (!contract.client_phone) {
+  const sendWhatsApp = async (contract) => {
+    // Sempre busca o telefone atual do cliente
+    let phone = '';
+    try {
+      const client = await base44.entities.Client.get(contract.client_id);
+      phone = (client?.phone || contract.client_phone || '').replace(/\D/g, '');
+    } catch (e) {
+      phone = (contract.client_phone || '').replace(/\D/g, '');
+    }
+    if (!phone) {
       toast.error('Cliente não possui telefone cadastrado');
       return;
     }
-    const phone = contract.client_phone.replace(/\D/g, '');
     const message = encodeURIComponent(
       `Olá ${contract.client_name}!\n\nSeu contrato está disponível:\n\n*Nº ${contract.contract_number}*\nValor: ${formatCurrency(contract.total_value)}\n\nPor favor, entre em contato para assinatura.\n\n*Sonatta Soluções Auditivas*`
     );

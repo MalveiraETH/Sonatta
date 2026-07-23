@@ -173,11 +173,18 @@ export default function Sales() {
   };
 
   const sendWhatsApp = async (sale) => {
-    if (!sale.client_phone) {
+    // Sempre busca o telefone atual do cliente (evita usar número desatualizado da venda)
+    let phone = '';
+    try {
+      const client = await base44.entities.Client.get(sale.client_id);
+      phone = (client?.phone || sale.client_phone || '').replace(/\D/g, '');
+    } catch (e) {
+      phone = (sale.client_phone || '').replace(/\D/g, '');
+    }
+    if (!phone) {
       toast.error('Cliente não possui telefone');
       return;
     }
-    const phone = sale.client_phone.replace(/\D/g, '');
     
     let productsList = '';
     sale.items?.forEach((item, idx) => {
