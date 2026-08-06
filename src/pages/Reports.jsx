@@ -1401,13 +1401,15 @@ export default function Reports() {
                    const feeRate = i.fee_rate || 0;
                    const isCard = i.payment_method === 'cartao_credito';
                    const netAmount = isCard && feeRate > 0 ? (i.original_amount || 0) * (1 - feeRate / 100) : (i.original_amount || 0);
+                   const sale = sales.find(s => s.id === i.sale_id);
                    return {
-                     'Cliente': i.client_name,
-                     'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
-                     'Bandeira': i.card_brand || '',
-                     'Parcela': i.installment_number,
-                     'Vencimento': toExcelDate(i.due_date),
-                     'Data Pagamento': toExcelDate(i.last_payment_date),
+                      'Cliente': i.client_name,
+                      'Data da Venda': toExcelDate(sale?.sale_date || sale?.created_date),
+                      'Método': i.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito',
+                      'Bandeira': i.card_brand || '',
+                      'Parcela': i.installment_number,
+                      'Vencimento': toExcelDate(i.due_date),
+                      'Data Pagamento': toExcelDate(i.last_payment_date),
                      'Valor Bruto': toExcelNum(i.original_amount),
                      'Taxa Cartão (%)': feeRate || '',
                      'Valor Líquido': toExcelNum(netAmount),
@@ -1649,6 +1651,7 @@ export default function Reports() {
                   .map(e => ({
                    'Categoria': e.category_name,
                    'Fornecedor': e.counterparty_name || '',
+                   'Data da Compra': toExcelDate(e.event_date),
                    'Vencimento': toExcelDate(e.due_date),
                    'Data Pagamento': toExcelDate(e.payment_date),
                    'Valor': toExcelNum(e.amount),
