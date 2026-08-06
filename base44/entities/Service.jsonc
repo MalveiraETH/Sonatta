@@ -1,0 +1,54 @@
+{
+  "name": "Service",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do servi\u00e7o"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "manutencao",
+        "partes_e_pecas"
+      ],
+      "description": "Categoria do servi\u00e7o"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do servi\u00e7o"
+    },
+    "price": {
+      "type": "number",
+      "description": "Pre\u00e7o do servi\u00e7o"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o servi\u00e7o est\u00e1 ativo"
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "price"
+  ],
+  "rls": {
+    "read": true,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -20,7 +20,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Plus, Trash2, Calendar as CalendarIcon, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -31,6 +31,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
+  const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [referenceProducts, setReferenceProducts] = useState([]);
@@ -180,15 +181,17 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   const loadData = async () => {
     try {
-      const [clientsData, productsData, user, refProds, allSettings] = await Promise.all([
+      const [clientsData, productsData, servicesData, user, refProds, allSettings] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Product.list(),
+        base44.entities.Service.filter({ is_active: true }),
         base44.auth.me(),
         base44.entities.ReferenceProduct.list(),
         base44.entities.AppSettings.list()
       ]);
       setClients(clientsData);
       setProducts(productsData);
+      setServices(servicesData);
       setCurrentUser(user);
       setReferenceProducts(refProds);
       const billingRec = allSettings.find(r => r.setting_key === 'billing_config');
@@ -272,6 +275,41 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       ...formData,
       items: [{ product_id: '', product_name: '', brand: '', model: '', serial_number: '', quantity: 1, unit_price: 0, total: 0, stock_type: 'nao_serializado' }, ...formData.items]
     });
+  };
+
+  const addServiceItem = () => {
+    setFormData({
+      ...formData,
+      items: [{ product_id: '', product_name: '', product_category: 'servico', service_id: '', quantity: 1, unit_price: 0, total: 0, stock_type: 'servico' }, ...formData.items]
+    });
+  };
+
+  const updateServiceItem = (index, serviceId) => {
+    const service = services.find(s => s.id === serviceId);
+    const newItems = [...formData.items];
+    if (service) {
+      newItems[index] = {
+        ...newItems[index],
+        service_id: service.id,
+        product_id: '',
+        product_name: service.name,
+        product_category: 'servico',
+        unit_price: service.price,
+        quantity: 1,
+        total: service.price,
+        stock_type: 'servico'
+      };
+    } else {
+      newItems[index] = {
+        ...newItems[index],
+        service_id: '',
+        product_id: '',
+        product_name: '',
+        unit_price: 0,
+        total: 0
+      };
+    }
+    recalculateTotals(newItems, formData.payment_details);
   };
 
   const removeItem = (index) => {
@@ -456,8 +494,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       return;
     }
 
-    // Verificar se produtos já foram vendidos ou sem estoque
+    // Verificar se produtos já foram vendidos ou sem estoque (serviços não têm estoque)
     for (const item of formData.items) {
+      if (item.stock_type === 'servico') continue;
       const product = products.find(p => p.id === item.product_id);
       if (product) {
         if (product.stock_type === 'serializado' && product.status === 'vendido') {
@@ -701,7 +740,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
               <h3 className="text-sm font-semibold text-slate-700">Produtos <span className="text-red-500">*</span></h3>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button type="button" variant="outline" size="sm" onClick={addSerializedItem} className="text-xs sm:text-sm">
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Produto A
@@ -709,6 +748,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <Button type="button" variant="outline" size="sm" onClick={addNonSerializedItem} className="text-xs sm:text-sm">
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Produto B
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addServiceItem} className="text-xs sm:text-sm border-[#6B3FA0] text-[#6B3FA0] hover:bg-[#6B3FA0]/10">
+                  <Wrench className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  Serviço
                 </Button>
               </div>
             </div>
@@ -718,7 +761,30 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <div className="space-y-3">
                   <div className="flex gap-2 items-start">
                    <div className="flex-1 space-y-2">
-                     {item.stock_type === 'serializado' ? (
+                     {item.stock_type === 'servico' ? (
+                        <div>
+                          <Label className="text-xs">Serviço (Manutenção / Partes e Peças)</Label>
+                          <Select
+                            value={item.service_id || ''}
+                            onValueChange={(value) => updateServiceItem(index, value)}
+                          >
+                            <SelectTrigger className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow">
+                              <SelectValue placeholder="Selecione um serviço..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {services.length > 0 ? (
+                                services.map((service) => (
+                                  <SelectItem key={service.id} value={service.id}>
+                                    {service.name} — {formatCurrency(service.price)}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="__none__" disabled>Nenhum serviço cadastrado</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : item.stock_type === 'serializado' ? (
                        <div>
                          <Label className="text-xs">Produto A (Buscar por Número de Série)</Label>
                          <Input
@@ -820,17 +886,24 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  {item.product_id && (
+                  {(item.product_id || item.service_id) && (
                     <div className="space-y-2">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm bg-slate-50 p-2 sm:p-3 rounded-lg">
                         <div>
-                          <span className="text-slate-500 text-xs">Produto:</span>
+                          <span className="text-slate-500 text-xs">{item.stock_type === 'servico' ? 'Serviço:' : 'Produto:'}</span>
                           <p className="font-medium truncate">{item.product_name}</p>
                         </div>
-                        <div>
-                          <span className="text-slate-500 text-xs">Marca/Modelo:</span>
-                          <p className="font-medium truncate">{item.brand} {item.model}</p>
-                        </div>
+                        {item.stock_type === 'servico' ? (
+                          <div>
+                            <span className="text-slate-500 text-xs">Categoria:</span>
+                            <p className="font-medium truncate">Serviço</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-slate-500 text-xs">Marca/Modelo:</span>
+                            <p className="font-medium truncate">{item.brand} {item.model}</p>
+                          </div>
+                        )}
                         <div>
                           <span className="text-slate-500 text-xs">Valor Unit.:</span>
                           <p className="font-bold text-[#1e3a5f]">{formatCurrency(item.unit_price)}</p>
@@ -884,6 +957,36 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                               value={formatCurrency(item.total)}
                               disabled
                               className="text-sm font-bold"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {item.stock_type === 'servico' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Quantidade</Label>
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              min="1"
+                              value={item.quantity}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                              className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Valor Unit. (R$)</Label>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              step="0.01"
+                              min="0"
+                              value={item.unit_price === 0 ? '' : item.unit_price}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => updateItem(index, 'unit_price', e.target.value === '' ? 0 : Number(e.target.value))}
+                              placeholder="0.00"
+                              className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                             />
                           </div>
                         </div>

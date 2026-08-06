@@ -44,6 +44,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SerializedProductForm from '@/components/inventory/SerializedProductForm';
 import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
+import ServicesTab from '@/components/inventory/ServicesTab';
 import { 
   Search, 
   Filter, 
@@ -62,7 +63,8 @@ import {
   Box,
   ArrowUpCircle,
   ArrowDownCircle,
-  Edit3
+  Edit3,
+  Wrench
 } from 'lucide-react';
 import { useTabs } from '@/lib/TabsContext';
 import { toast } from 'sonner';
@@ -363,10 +365,11 @@ export default function Inventory() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto">
+        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-5 h-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="serialized">Produto (A)</TabsTrigger>
           <TabsTrigger value="non-serialized">Produto (B)</TabsTrigger>
+          <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="movements">Movim.</TabsTrigger>
         </TabsList>
 
@@ -973,6 +976,11 @@ export default function Inventory() {
               ))
             )}
           </div>
+        </TabsContent>
+
+        {/* SERVIÇOS */}
+        <TabsContent value="services" className="space-y-4">
+          <ServicesTab />
         </TabsContent>
 
         {/* MOVIMENTAÇÕES */}
