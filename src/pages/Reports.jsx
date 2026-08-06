@@ -1657,6 +1657,7 @@ export default function Reports() {
                    'Valor': toExcelNum(e.amount),
                    'Método': e.payment_method,
                    'Parcela': e.installment_number ? `${e.installment_number}/${e.installments}` : '-',
+                   'Nota Fiscal': e.invoice_number || '',
                    'Status': e.status === 'pago' ? 'Pago' : 'A Pagar'
                   }));
                 exportToExcel(data, 'relatorio_contas_pagar');
@@ -1677,6 +1678,7 @@ export default function Reports() {
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Método</TableHead>
                       <TableHead>Parcela</TableHead>
+                      <TableHead>Nota Fiscal</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1736,6 +1738,7 @@ export default function Reports() {
                             <TableCell>
                               {exp.installment_number ? `${exp.installment_number}/${exp.installments}` : '-'}
                             </TableCell>
+                            <TableCell className="text-sm text-slate-600">{exp.invoice_number || '-'}</TableCell>
                             <TableCell>
                               <span className={`text-xs px-2 py-1 rounded-full ${
                                 status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 
