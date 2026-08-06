@@ -6,13 +6,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tag, Plus } from 'lucide-react';
+import { Tag, Plus, Pencil, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 export default function CategoriesTab() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [formData, setFormData] = useState({ name: '', type: 'despesa' });
 
   useEffect(() => {
@@ -61,14 +73,45 @@ export default function CategoriesTab() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await base44.entities.ExpenseCategory.create(formData);
-      toast.success('Categoria criada!');
+      if (editingCategory) {
+        await base44.entities.ExpenseCategory.update(editingCategory.id, formData);
+        toast.success('Categoria atualizada!');
+      } else {
+        await base44.entities.ExpenseCategory.create(formData);
+        toast.success('Categoria criada!');
+      }
       setShowForm(false);
+      setEditingCategory(null);
       setFormData({ name: '', type: 'despesa' });
       loadCategories();
     } catch (error) {
-      console.error('Erro ao criar categoria:', error);
-      toast.error('Erro ao criar categoria');
+      console.error('Erro ao salvar categoria:', error);
+      toast.error('Erro ao salvar categoria');
+    }
+  };
+
+  const openEdit = (category) => {
+    setEditingCategory(category);
+    setFormData({ name: category.name, type: category.type });
+    setShowForm(true);
+  };
+
+  const openNew = () => {
+    setEditingCategory(null);
+    setFormData({ name: '', type: 'despesa' });
+    setShowForm(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await base44.entities.ExpenseCategory.delete(deleteTarget.id);
+      toast.success('Categoria excluída!');
+      setDeleteTarget(null);
+      loadCategories();
+    } catch (error) {
+      console.error('Erro ao excluir categoria:', error);
+      toast.error('Erro ao excluir categoria');
     }
   };
 
@@ -82,7 +125,7 @@ export default function CategoriesTab() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Categorias de Despesas</CardTitle>
             <Button
-              onClick={() => setShowForm(true)}
+              onClick={openNew}
               className="bg-[#6B3FA0] hover:bg-[#834CB8]"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -108,9 +151,19 @@ export default function CategoriesTab() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {expenseCategories.map(category => (
-                  <div key={category.id} className="flex items-center gap-2 p-3 border rounded-lg">
-                    <Tag className="h-4 w-4 text-slate-400" />
-                    <span className="text-sm">{category.name}</span>
+                  <div key={category.id} className="flex items-center justify-between gap-2 p-3 border rounded-lg group">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Tag className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                      <span className="text-sm truncate">{category.name}</span>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(category)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => setDeleteTarget(category)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -131,9 +184,19 @@ export default function CategoriesTab() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {revenueCategories.map(category => (
-                  <div key={category.id} className="flex items-center gap-2 p-3 border rounded-lg">
-                    <Tag className="h-4 w-4 text-emerald-400" />
-                    <span className="text-sm">{category.name}</span>
+                  <div key={category.id} className="flex items-center justify-between gap-2 p-3 border rounded-lg group">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Tag className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                      <span className="text-sm truncate">{category.name}</span>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(category)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => setDeleteTarget(category)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -142,10 +205,10 @@ export default function CategoriesTab() {
         </Card>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditingCategory(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova Categoria</DialogTitle>
+            <DialogTitle>{editingCategory ? 'Editar Categoria' : 'Nova Categoria'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -183,6 +246,23 @@ export default function CategoriesTab() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir categoria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a categoria <strong>{deleteTarget?.name}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
