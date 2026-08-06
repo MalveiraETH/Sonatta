@@ -143,9 +143,9 @@ export default function Reports() {
   };
 
   const filteredSales = filterSalesByDate().slice().sort((a, b) => {
-    const dateA = new Date(a.sale_date || a.created_date);
-    const dateB = new Date(b.sale_date || b.created_date);
-    return dateA - dateB;
+    const dateA = (a.sale_date || a.created_date || '').toString().split('T')[0];
+    const dateB = (b.sale_date || b.created_date || '').toString().split('T')[0];
+    return dateA.localeCompare(dateB);
   });
 
   // Estatísticas de Estoque
@@ -1393,9 +1393,9 @@ export default function Reports() {
                     return true;
                   })
                   .sort((a, b) => {
-                    const dateA = a.last_payment_date ? new Date(a.last_payment_date) : new Date(a.due_date);
-                    const dateB = b.last_payment_date ? new Date(b.last_payment_date) : new Date(b.due_date);
-                    return dateA - dateB;
+                    const dateA = (a.last_payment_date || a.due_date || '').toString().split('T')[0];
+                    const dateB = (b.last_payment_date || b.due_date || '').toString().split('T')[0];
+                    return dateA.localeCompare(dateB);
                   })
                   .map(i => {
                    const feeRate = i.fee_rate || 0;
@@ -1469,9 +1469,9 @@ export default function Reports() {
                         return true;
                       })
                       .sort((a, b) => {
-                        const dateA = a.last_payment_date ? new Date(a.last_payment_date) : new Date(a.due_date);
-                        const dateB = b.last_payment_date ? new Date(b.last_payment_date) : new Date(b.due_date);
-                        return dateA - dateB;
+                        const dateA = (a.last_payment_date || a.due_date || '').toString().split('T')[0];
+                        const dateB = (b.last_payment_date || b.due_date || '').toString().split('T')[0];
+                        return dateA.localeCompare(dateB);
                       })
                       .map(inst => (
                         <TableRow key={inst.id}>
@@ -1642,9 +1642,9 @@ export default function Reports() {
                     return true;
                   })
                   .sort((a, b) => {
-                    const dateA = a.payment_date ? new Date(a.payment_date) : new Date(a.due_date);
-                    const dateB = b.payment_date ? new Date(b.payment_date) : new Date(b.due_date);
-                    return dateA - dateB;
+                    const dateA = (a.payment_date || a.due_date || '').toString().split('T')[0];
+                    const dateB = (b.payment_date || b.due_date || '').toString().split('T')[0];
+                    return dateA.localeCompare(dateB);
                   })
                   .map(e => ({
                    'Categoria': e.category_name,
@@ -1711,9 +1711,9 @@ export default function Reports() {
                         return true;
                       })
                       .sort((a, b) => {
-                        const dateA = a.payment_date ? new Date(a.payment_date) : new Date(a.due_date);
-                        const dateB = b.payment_date ? new Date(b.payment_date) : new Date(b.due_date);
-                        return dateA - dateB;
+                        const dateA = (a.payment_date || a.due_date || '').toString().split('T')[0];
+                        const dateB = (b.payment_date || b.due_date || '').toString().split('T')[0];
+                        return dateA.localeCompare(dateB);
                       })
                       .map(exp => {
                         const today = new Date();
