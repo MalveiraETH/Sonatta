@@ -250,18 +250,22 @@ export default function AccountsReceivable() {
 
   const handleEdit = async () => {
     try {
-      await base44.entities.Installment.update(selectedInstallment.id, {
+      const updateData = {
         due_date: editData.due_date,
         original_amount: Number(editData.original_amount),
         paid_amount: Number(editData.paid_amount),
         remaining_amount: Number(editData.original_amount) - Number(editData.paid_amount),
         payment_status: Number(editData.paid_amount) >= Number(editData.original_amount) ? 'pago' : Number(editData.paid_amount) > 0 ? 'parcialmente_pago' : selectedInstallment.payment_status === 'pago' ? 'pendente' : selectedInstallment.payment_status,
-        last_payment_date: editData.last_payment_date || null,
-      });
+      };
+      if (editData.last_payment_date) {
+        updateData.last_payment_date = editData.last_payment_date;
+      }
+      await base44.entities.Installment.update(selectedInstallment.id, updateData);
       toast.success('Parcela atualizada!');
       setEditOpen(false);
       loadInstallments();
     } catch (error) {
+      console.error('Erro ao atualizar parcela:', error);
       toast.error('Erro ao atualizar parcela');
     }
   };
