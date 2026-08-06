@@ -256,7 +256,7 @@ export default function AccountsReceivable() {
         paid_amount: Number(editData.paid_amount),
         remaining_amount: Number(editData.original_amount) - Number(editData.paid_amount),
         payment_status: Number(editData.paid_amount) >= Number(editData.original_amount) ? 'pago' : Number(editData.paid_amount) > 0 ? 'parcialmente_pago' : selectedInstallment.payment_status === 'pago' ? 'pendente' : selectedInstallment.payment_status,
-        last_payment_date: editData.last_payment_date || selectedInstallment.last_payment_date,
+        last_payment_date: editData.last_payment_date || null,
       });
       toast.success('Parcela atualizada!');
       setEditOpen(false);
@@ -266,13 +266,18 @@ export default function AccountsReceivable() {
     }
   };
 
+  const toDateInput = (value) => {
+    if (!value) return '';
+    return value.toString().split('T')[0];
+  };
+
   const openEdit = (inst) => {
     setSelectedInstallment(inst);
     setEditData({
-      due_date: inst.due_date,
+      due_date: toDateInput(inst.due_date),
       original_amount: inst.original_amount,
       paid_amount: inst.paid_amount || 0,
-      last_payment_date: inst.last_payment_date || '',
+      last_payment_date: toDateInput(inst.last_payment_date),
     });
     setEditOpen(true);
   };
