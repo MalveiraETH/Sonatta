@@ -142,7 +142,11 @@ export default function Reports() {
     });
   };
 
-  const filteredSales = filterSalesByDate();
+  const filteredSales = filterSalesByDate().slice().sort((a, b) => {
+    const dateA = new Date(a.sale_date || a.created_date);
+    const dateB = new Date(b.sale_date || b.created_date);
+    return dateA - dateB;
+  });
 
   // Estatísticas de Estoque
   const stockStats = {
@@ -1388,6 +1392,11 @@ export default function Reports() {
 
                     return true;
                   })
+                  .sort((a, b) => {
+                    const dateA = a.last_payment_date ? new Date(a.last_payment_date) : new Date(a.due_date);
+                    const dateB = b.last_payment_date ? new Date(b.last_payment_date) : new Date(b.due_date);
+                    return dateA - dateB;
+                  })
                   .map(i => {
                    const feeRate = i.fee_rate || 0;
                    const isCard = i.payment_method === 'cartao_credito';
@@ -1458,6 +1467,11 @@ export default function Reports() {
                         if (statusFilter === 'pendente' && inst.payment_status === 'pago') return false;
 
                         return true;
+                      })
+                      .sort((a, b) => {
+                        const dateA = a.last_payment_date ? new Date(a.last_payment_date) : new Date(a.due_date);
+                        const dateB = b.last_payment_date ? new Date(b.last_payment_date) : new Date(b.due_date);
+                        return dateA - dateB;
                       })
                       .map(inst => (
                         <TableRow key={inst.id}>
@@ -1627,6 +1641,11 @@ export default function Reports() {
 
                     return true;
                   })
+                  .sort((a, b) => {
+                    const dateA = a.payment_date ? new Date(a.payment_date) : new Date(a.due_date);
+                    const dateB = b.payment_date ? new Date(b.payment_date) : new Date(b.due_date);
+                    return dateA - dateB;
+                  })
                   .map(e => ({
                    'Categoria': e.category_name,
                    'Fornecedor': e.counterparty_name || '',
@@ -1690,6 +1709,11 @@ export default function Reports() {
                         if (statusFilter === 'atrasado' && actualStatus !== 'atrasado') return false;
 
                         return true;
+                      })
+                      .sort((a, b) => {
+                        const dateA = a.payment_date ? new Date(a.payment_date) : new Date(a.due_date);
+                        const dateB = b.payment_date ? new Date(b.payment_date) : new Date(b.due_date);
+                        return dateA - dateB;
                       })
                       .map(exp => {
                         const today = new Date();
