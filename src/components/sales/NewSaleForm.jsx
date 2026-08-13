@@ -38,6 +38,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const [billingCfg, setBillingCfg] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountInput, setDiscountInput] = useState('');
   const [saleDate, setSaleDate] = useState(new Date());
   const [firstDueDate, setFirstDueDate] = useState(null);
   const [formData, setFormData] = useState({
@@ -70,6 +71,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       if (!sale) {
         setFirstDueDate(null);
         setSaleDate(new Date());
+        setDiscountInput('');
+        setDiscountPercent(0);
       }
     }
   }, [open]);
@@ -110,7 +113,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       const originalSubtotal = sale.subtotal || 0;
       const originalDiscount = sale.discount || 0;
       if (originalSubtotal > 0) {
-        setDiscountPercent(((originalDiscount / originalSubtotal) * 100));
+        const pct = (originalDiscount / originalSubtotal) * 100;
+        setDiscountPercent(pct);
+        setDiscountInput(String(pct).replace('.', ','));
+      } else {
+        setDiscountInput('');
       }
     }
   }, [open, sale]);
@@ -150,6 +157,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         category_name: ''
       });
       setDiscountPercent(0);
+      setDiscountInput('');
     } catch (e) {
       console.error(e);
       setFormData({
@@ -176,6 +184,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         category_name: ''
       });
       setDiscountPercent(0);
+      setDiscountInput('');
     }
   };
 
@@ -462,9 +471,19 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     }));
   };
 
-  const updateDiscount = (percent) => {
-    setDiscountPercent(percent);
-    const discountValue = (formData.subtotal * percent) / 100;
+  // Parser que aceita vírgula ou ponto como separador decimal (compatível com teclado mobile BR)
+  const parseDecimal = (value) => {
+    if (value === '' || value === null || value === undefined) return 0;
+    const normalized = String(value).replace(/\./g, '').replace(',', '.');
+    const num = Number(normalized);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const updateDiscount = (rawValue) => {
+    setDiscountInput(rawValue);
+    const parsedPercent = parseDecimal(rawValue);
+    setDiscountPercent(parsedPercent);
+    const discountValue = (formData.subtotal * parsedPercent) / 100;
     const total = formData.subtotal - discountValue;
     setFormData(prev => ({
       ...prev,
@@ -1011,14 +1030,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                 <Label className="text-xs">Desconto (%)</Label>
                 <div className="relative">
                   <Input
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    step="0.0000001"
-                    min="-100"
-                    max="100"
-                    value={discountPercent === 0 ? '' : discountPercent}
+                    value={discountInput}
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => updateDiscount(e.target.value === '' ? 0 : Number(e.target.value))}
+                    onChange={(e) => updateDiscount(e.target.value)}
                     placeholder="0"
                     className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow pr-6"
                   />
