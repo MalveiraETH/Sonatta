@@ -86,6 +86,7 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [movements, setMovements] = useState([]);
+  const [tests, setTests] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [filteredMovements, setFilteredMovements] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,13 +134,15 @@ export default function Inventory() {
 
   const loadData = async () => {
     try {
-      const [productsData, movementsData, user] = await Promise.all([
+      const [productsData, movementsData, testsData, user] = await Promise.all([
         base44.entities.Product.list('-created_date'),
         base44.entities.StockMovement.list('-created_date', 100),
+        base44.entities.Test.list('-created_date', 500),
         base44.auth.me()
       ]);
       setProducts(productsData);
       setMovements(movementsData);
+      setTests(testsData);
       setCurrentUser(user);
     } catch (error) {
       console.error(error);
@@ -274,8 +277,23 @@ export default function Inventory() {
   const serializedProducts = products.filter(p => p.stock_type === 'serializado');
   const nonSerializedProducts = products.filter(p => p.stock_type === 'nao_serializado');
 
-  // Apenas produtos disponíveis (não vendidos/reservados)
-  const serializedAvailable = serializedProducts.filter(p => p.status === 'disponivel');
+  // Produtos em trial: serializados referenciados em testes ativos (não finalizados)
+  const activeTestStatuses = ['em_teste', 'teste_estendido', 'teste_agendado', 'teste_pendente'];
+  const trialProductMap = {}; // product_id -> { test, device }
+  tests
+    .filter(t => activeTestStatuses.includes(t.status))
+    .forEach(test => {
+      (test.devices || []).forEach(device => {
+        if (device.product_id && !trialProductMap[device.product_id]) {
+          trialProductMap[device.product_id] = { test, device };
+        }
+      });
+    });
+  const trialProductIds = Object.keys(trialProductMap);
+  const trialProducts = serializedProducts.filter(p => trialProductIds.includes(p.id));
+
+  // Apenas produtos disponíveis (não vendidos/reservados) e não em trial
+  const serializedAvailable = serializedProducts.filter(p => p.status === 'disponivel' && !trialProductIds.includes(p.id));
   const serializedReserved = serializedProducts.filter(p => p.status === 'reservado');
   const serializedSold = serializedProducts.filter(p => p.status === 'vendido');
   const nonSerializedInStock = nonSerializedProducts.filter(p => (p.quantity || 0) > 0);
@@ -384,9 +402,10 @@ export default function Inventory() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-5 h-auto">
+        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-6 h-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="serialized">Produto (A)</TabsTrigger>
+          <TabsTrigger value="trial">Trial</TabsTrigger>
           <TabsTrigger value="non-serialized">Produto (B)</TabsTrigger>
           <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="movements">Movim.</TabsTrigger>
@@ -745,12 +764,12 @@ export default function Inventory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.filter(p => p.stock_type === 'serializado').length === 0 ? (
+                {filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12 text-slate-500">Nenhum produto encontrado</TableCell>
                   </TableRow>
                 ) : (
-                  filteredProducts.filter(p => p.stock_type === 'serializado').map(product => (
+                  filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).map(product => (
                     <TableRow key={product.id} className="hover:bg-slate-50">
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
@@ -804,10 +823,10 @@ export default function Inventory() {
 
           {/* Cards - Mobile */}
           <div className="lg:hidden space-y-3">
-            {filteredProducts.filter(p => p.stock_type === 'serializado').length === 0 ? (
+            {filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).length === 0 ? (
               <Card className="p-8 text-center text-slate-500">Nenhum produto encontrado</Card>
             ) : (
-              filteredProducts.filter(p => p.stock_type === 'serializado').map(product => (
+              filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).map(product => (
                 <Card key={product.id} className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
@@ -859,6 +878,152 @@ export default function Inventory() {
               ))
             )}
           </div>
+        </TabsContent>
+
+        {/* TRIAL - Produtos serializados em testes ativos */}
+        <TabsContent value="trial" className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <p className="text-sm text-slate-600">Aparelhos serializados em testes ativos</p>
+              <p className="text-xs text-slate-400">Estes produtos não aparecem na aba Produto (A)</p>
+            </div>
+          </div>
+
+          {trialProducts.length === 0 ? (
+            <Card className="p-8 text-center text-slate-500">
+              <Ear className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+              <p className="font-medium">Nenhum aparelho em trial</p>
+              <p className="text-sm text-slate-400 mt-1">Aparelhos em testes ativos aparecerão aqui</p>
+            </Card>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <Card className="hidden lg:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead>Produto</TableHead>
+                      <TableHead>NS</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Status Teste</TableHead>
+                      <TableHead>Período</TableHead>
+                      <TableHead className="text-right">Preço Venda</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {trialProducts.map(product => {
+                      const trialInfo = trialProductMap[product.id];
+                      const test = trialInfo?.test;
+                      return (
+                        <TableRow key={product.id} className="hover:bg-slate-50">
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
+                          <TableCell className="text-sm">{test?.client_name || '-'}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                              test?.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
+                              test?.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
+                              test?.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {test?.status === 'em_teste' ? 'Em Teste' :
+                               test?.status === 'teste_estendido' ? 'Estendido' :
+                               test?.status === 'teste_agendado' ? 'Agendado' :
+                               test?.status === 'teste_pendente' ? 'Pendente' : '-'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm text-slate-600">
+                            {test ? `${formatLocalDate(test.start_date)} → ${formatLocalDate(test.end_date)}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</TableCell>
+                          <TableCell className="text-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab: 'trial' } })}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Ver Detalhes
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
+
+              {/* Mobile Cards */}
+              <div className="lg:hidden space-y-3">
+                {trialProducts.map(product => {
+                  const trialInfo = trialProductMap[product.id];
+                  const test = trialInfo?.test;
+                  return (
+                    <Card key={product.id} className="p-4">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-slate-900">{product.name}</span>
+                              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                                test?.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
+                                test?.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
+                                test?.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {test?.status === 'em_teste' ? 'Em Teste' :
+                                 test?.status === 'teste_estendido' ? 'Estendido' :
+                                 test?.status === 'teste_agendado' ? 'Agendado' : 'Pendente'}
+                              </span>
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              NS: {product.serial_number}
+                            </div>
+                            <div className="text-sm text-slate-600 mt-1">
+                              Cliente: {test?.client_name || '-'}
+                            </div>
+                            <div className="text-xs text-slate-500 mt-1">
+                              {test ? `${formatLocalDate(test.start_date)} → ${formatLocalDate(test.end_date)}` : ''}
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab: 'trial' } })}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-slate-500">Venda: <span className="font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</span></span>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* PRODUTO (B) QUANTIDADE */}
