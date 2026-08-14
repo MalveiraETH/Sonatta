@@ -44,6 +44,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SerializedProductForm from '@/components/inventory/SerializedProductForm';
 import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
+import TrialProductForm from '@/components/inventory/TrialProductForm';
 import ServicesTab from '@/components/inventory/ServicesTab';
 import { 
   Search, 
@@ -95,6 +96,7 @@ export default function Inventory() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [serializedFormOpen, setSerializedFormOpen] = useState(false);
   const [nonSerializedFormOpen, setNonSerializedFormOpen] = useState(false);
+  const [trialFormOpen, setTrialFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -277,7 +279,7 @@ export default function Inventory() {
   const serializedProducts = products.filter(p => p.stock_type === 'serializado');
   const nonSerializedProducts = products.filter(p => p.stock_type === 'nao_serializado');
 
-  // Produtos em trial: serializados referenciados em testes ativos (não finalizados)
+  // Produtos em trial: marcados como is_trial OU serializados referenciados em testes ativos (não finalizados)
   const activeTestStatuses = ['em_teste', 'teste_estendido', 'teste_agendado', 'teste_pendente'];
   const trialProductMap = {}; // product_id -> { test, device }
   tests
@@ -290,10 +292,13 @@ export default function Inventory() {
       });
     });
   const trialProductIds = Object.keys(trialProductMap);
-  const trialProducts = serializedProducts.filter(p => trialProductIds.includes(p.id));
+  // Produtos de trial = marcados como is_trial OU referenciados em testes ativos
+  const trialProducts = serializedProducts.filter(p => p.is_trial || trialProductIds.includes(p.id));
+  // IDs de todos os produtos de trial (para excluir da aba Produto A)
+  const allTrialIds = new Set(trialProducts.map(p => p.id));
 
   // Apenas produtos disponíveis (não vendidos/reservados) e não em trial
-  const serializedAvailable = serializedProducts.filter(p => p.status === 'disponivel' && !trialProductIds.includes(p.id));
+  const serializedAvailable = serializedProducts.filter(p => p.status === 'disponivel' && !allTrialIds.has(p.id));
   const serializedReserved = serializedProducts.filter(p => p.status === 'reservado');
   const serializedSold = serializedProducts.filter(p => p.status === 'vendido');
   const nonSerializedInStock = nonSerializedProducts.filter(p => (p.quantity || 0) > 0);
@@ -764,12 +769,12 @@ export default function Inventory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).length === 0 ? (
+                {filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12 text-slate-500">Nenhum produto encontrado</TableCell>
                   </TableRow>
                 ) : (
-                  filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).map(product => (
+                  filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).map(product => (
                     <TableRow key={product.id} className="hover:bg-slate-50">
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
@@ -823,10 +828,10 @@ export default function Inventory() {
 
           {/* Cards - Mobile */}
           <div className="lg:hidden space-y-3">
-            {filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).length === 0 ? (
+            {filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).length === 0 ? (
               <Card className="p-8 text-center text-slate-500">Nenhum produto encontrado</Card>
             ) : (
-              filteredProducts.filter(p => p.stock_type === 'serializado' && !trialProductIds.includes(p.id)).map(product => (
+              filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).map(product => (
                 <Card key={product.id} className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
@@ -880,20 +885,29 @@ export default function Inventory() {
           </div>
         </TabsContent>
 
-        {/* TRIAL - Produtos serializados em testes ativos */}
+        {/* TRIAL - Produtos de trial (não vendáveis) e em testes ativos */}
         <TabsContent value="trial" className="space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <p className="text-sm text-slate-600">Aparelhos serializados em testes ativos</p>
+              <p className="text-sm text-slate-600">Aparelhos de trial — destinados a testes, não à venda</p>
               <p className="text-xs text-slate-400">Estes produtos não aparecem na aba Produto (A)</p>
             </div>
+            {currentUser?.role === 'admin' && (
+              <Button
+                onClick={() => { setSelectedProduct(null); setTrialFormOpen(true); }}
+                className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Trial
+              </Button>
+            )}
           </div>
 
           {trialProducts.length === 0 ? (
             <Card className="p-8 text-center text-slate-500">
               <Ear className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-              <p className="font-medium">Nenhum aparelho em trial</p>
-              <p className="text-sm text-slate-400 mt-1">Aparelhos em testes ativos aparecerão aqui</p>
+              <p className="font-medium">Nenhum aparelho de trial cadastrado</p>
+              <p className="text-sm text-slate-400 mt-1">Clique em "Novo Trial" para cadastrar um aparelho de teste</p>
             </Card>
           ) : (
             <>
@@ -907,7 +921,7 @@ export default function Inventory() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Status Teste</TableHead>
                       <TableHead>Período</TableHead>
-                      <TableHead className="text-right">Preço Venda</TableHead>
+                      <TableHead className="text-right">Custo</TableHead>
                       <TableHead className="text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -925,18 +939,20 @@ export default function Inventory() {
                               test?.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
                               test?.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
                               test?.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
-                              'bg-red-100 text-red-700'
+                              test?.status === 'teste_pendente' ? 'bg-red-100 text-red-700' :
+                              'bg-violet-100 text-violet-700'
                             }`}>
                               {test?.status === 'em_teste' ? 'Em Teste' :
                                test?.status === 'teste_estendido' ? 'Estendido' :
                                test?.status === 'teste_agendado' ? 'Agendado' :
-                               test?.status === 'teste_pendente' ? 'Pendente' : '-'}
+                               test?.status === 'teste_pendente' ? 'Pendente' :
+                               'Trial'}
                             </span>
                           </TableCell>
                           <TableCell className="text-sm text-slate-600">
                             {test ? `${formatLocalDate(test.start_date)} → ${formatLocalDate(test.end_date)}` : '-'}
                           </TableCell>
-                          <TableCell className="text-right font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</TableCell>
+                          <TableCell className="text-right font-semibold text-slate-600">{formatCurrency(product.cost_price)}</TableCell>
                           <TableCell className="text-center">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -949,10 +965,16 @@ export default function Inventory() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   Ver Detalhes
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                <DropdownMenuItem onClick={() => { setSelectedProduct(product); setTrialFormOpen(true); }}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Editar
                                 </DropdownMenuItem>
+                                {currentUser?.role === 'admin' && (
+                                  <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -979,11 +1001,13 @@ export default function Inventory() {
                                 test?.status === 'em_teste' ? 'bg-blue-100 text-blue-700' :
                                 test?.status === 'teste_estendido' ? 'bg-amber-100 text-amber-700' :
                                 test?.status === 'teste_agendado' ? 'bg-purple-100 text-purple-700' :
-                                'bg-red-100 text-red-700'
+                                test?.status === 'teste_pendente' ? 'bg-red-100 text-red-700' :
+                                'bg-violet-100 text-violet-700'
                               }`}>
                                 {test?.status === 'em_teste' ? 'Em Teste' :
                                  test?.status === 'teste_estendido' ? 'Estendido' :
-                                 test?.status === 'teste_agendado' ? 'Agendado' : 'Pendente'}
+                                 test?.status === 'teste_agendado' ? 'Agendado' :
+                                 test?.status === 'teste_pendente' ? 'Pendente' : 'Trial'}
                               </span>
                             </div>
                             <div className="text-sm text-slate-600">
@@ -1007,15 +1031,21 @@ export default function Inventory() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 Detalhes
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(product)}>
+                              <DropdownMenuItem onClick={() => { setSelectedProduct(product); setTrialFormOpen(true); }}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
+                              {currentUser?.role === 'admin' && (
+                                <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                         <div className="text-sm">
-                          <span className="text-slate-500">Venda: <span className="font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</span></span>
+                          <span className="text-slate-500">Custo: <span className="font-semibold text-slate-700">{formatCurrency(product.cost_price)}</span></span>
                         </div>
                       </div>
                     </Card>
@@ -1416,6 +1446,14 @@ export default function Inventory() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Trial Product Form */}
+      <TrialProductForm
+        open={trialFormOpen}
+        onOpenChange={setTrialFormOpen}
+        product={selectedProduct}
+        onSuccess={loadData}
+      />
     </div>
   );
 }

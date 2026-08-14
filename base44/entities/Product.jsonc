@@ -130,6 +130,11 @@
         "bateria_recarregavel"
       ],
       "description": "Tipo de funcionamento (para aparelhos)"
+    },
+    "is_trial": {
+      "type": "boolean",
+      "default": false,
+      "description": "Produto destinado apenas a testes/trial (n\u00e3o ser\u00e1 vendido)"
     }
   },
   "required": [
