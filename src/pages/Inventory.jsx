@@ -274,28 +274,47 @@ export default function Inventory() {
   const serializedProducts = products.filter(p => p.stock_type === 'serializado');
   const nonSerializedProducts = products.filter(p => p.stock_type === 'nao_serializado');
 
+  // Apenas produtos disponíveis (não vendidos/reservados)
+  const serializedAvailable = serializedProducts.filter(p => p.status === 'disponivel');
+  const serializedReserved = serializedProducts.filter(p => p.status === 'reservado');
+  const serializedSold = serializedProducts.filter(p => p.status === 'vendido');
+  const nonSerializedInStock = nonSerializedProducts.filter(p => (p.quantity || 0) > 0);
+
   const stats = {
-    serialized: serializedProducts.length,
-    nonSerialized: nonSerializedProducts.length,
+    serializedAvailable: serializedAvailable.length,
+    serializedTotal: serializedProducts.length,
+    nonSerializedSkus: nonSerializedProducts.length,
+    nonSerializedQty: nonSerializedProducts.reduce((sum, p) => sum + (p.quantity || 0), 0),
     lowStock: products.filter(p => 
-      (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5)) ||
+      (p.stock_type === 'nao_serializado' && (p.quantity || 0) <= (p.min_stock || 5)) ||
       (p.stock_type === 'serializado' && p.status === 'baixo_estoque')
     ).length,
-    totalValue: products.filter(p => p.status === 'disponivel' || p.stock_type === 'nao_serializado').reduce((sum, p) => {
+    totalValue: [
+      ...serializedAvailable,
+      ...nonSerializedProducts
+    ].reduce((sum, p) => {
       if (p.stock_type === 'serializado') return sum + (p.cost_price || 0);
       return sum + ((p.quantity || 0) * (p.cost_price || 0));
     }, 0)
   };
 
+  // Distribuição por categoria — apenas itens em estoque
   const categoryDistribution = Object.entries(
-    products.reduce((acc, p) => {
+    [
+      ...serializedAvailable,
+      ...nonSerializedProducts.filter(p => (p.quantity || 0) > 0)
+    ].reduce((acc, p) => {
       const cat = categoryLabels[p.category] || 'Outros';
-      acc[cat] = (acc[cat] || 0) + 1;
+      if (!acc[cat]) acc[cat] = { count: 0, qty: 0 };
+      acc[cat].count += 1;
+      acc[cat].qty += p.stock_type === 'serializado' ? 1 : (p.quantity || 0);
       return acc;
     }, {})
-  ).map(([name, value]) => ({ name, value }));
+  )
+    .map(([name, { count, qty }]) => ({ name, value: qty, count }))
+    .sort((a, b) => b.value - a.value);
 
-  const COLORS = ['#6B3FA0', '#A4D233', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+  const COLORS = ['#6B3FA0', '#A4D233', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1', '#14b8a6'];
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -377,47 +396,52 @@ export default function Inventory() {
         <TabsContent value="dashboard" className="space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <Card className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-slate-500 mb-1">Estoque A</p>
-                  <p className="text-lg sm:text-2xl font-bold text-[#6B3FA0]">{stats.serialized}</p>
-                  <p className="text-xs text-slate-500">serializados</p>
+            <Card className="p-4 border-l-4 border-l-[#6B3FA0]">
+              <div className="flex items-start justify-between mb-1">
+                <p className="text-xs sm:text-sm text-slate-500">Estoque A</p>
+                <div className="w-9 h-9 rounded-lg bg-[#6B3FA0]/10 flex items-center justify-center">
+                  <Ear className="h-4 w-4 sm:h-5 sm:w-5 text-[#6B3FA0]" />
                 </div>
-                <Ear className="h-5 w-5 sm:h-6 sm:w-6 text-[#6B3FA0] opacity-60" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-800">{stats.serializedAvailable}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-xs text-emerald-600 font-medium">{stats.serializedAvailable} disp.</span>
+                {serializedReserved.length > 0 && <span className="text-xs text-amber-600">{serializedReserved.length} reserv.</span>}
+                {serializedSold.length > 0 && <span className="text-xs text-slate-400">{serializedSold.length} vend.</span>}
               </div>
             </Card>
 
-            <Card className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-slate-500 mb-1">Estoque B</p>
-                  <p className="text-lg sm:text-2xl font-bold text-blue-600">{stats.nonSerialized}</p>
-                  <p className="text-xs text-slate-500">SKUs</p>
+            <Card className="p-4 border-l-4 border-l-blue-500">
+              <div className="flex items-start justify-between mb-1">
+                <p className="text-xs sm:text-sm text-slate-500">Estoque B</p>
+                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <Box className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
                 </div>
-                <Box className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500 opacity-60" />
               </div>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-800">{stats.nonSerializedQty}</p>
+              <p className="text-xs text-slate-500 mt-1">{stats.nonSerializedSkus} SKUs • {nonSerializedInStock.length} ativos</p>
             </Card>
 
-            <Card className="p-4 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-slate-500 mb-1">Alertas</p>
-                  <p className="text-lg sm:text-2xl font-bold text-amber-600">{stats.lowStock}</p>
-                  <p className="text-xs text-slate-500">baixo estoque</p>
+            <Card className="p-4 border-l-4 border-l-amber-500">
+              <div className="flex items-start justify-between mb-1">
+                <p className="text-xs sm:text-sm text-slate-500">Alertas</p>
+                <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
                 </div>
-                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 opacity-60" />
               </div>
+              <p className="text-2xl sm:text-3xl font-bold text-amber-600">{stats.lowStock}</p>
+              <p className="text-xs text-slate-500 mt-1">baixo estoque</p>
             </Card>
 
-            <Card className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-slate-500 mb-1">Valor Estoque</p>
-                  <p className="text-base sm:text-xl font-bold text-emerald-600">{formatCurrency(stats.totalValue)}</p>
+            <Card className="p-4 border-l-4 border-l-emerald-500">
+              <div className="flex items-start justify-between mb-1">
+                <p className="text-xs sm:text-sm text-slate-500">Valor Estoque</p>
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500" />
                 </div>
-                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500 opacity-60" />
               </div>
+              <p className="text-lg sm:text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalValue)}</p>
+              <p className="text-xs text-slate-500 mt-1">custo total</p>
             </Card>
           </div>
 
@@ -425,29 +449,49 @@ export default function Inventory() {
             {/* Distribuição por Categoria */}
             <Card>
               <div className="p-4 sm:p-6">
-                <h3 className="text-lg font-semibold mb-4">Distribuição por Categoria</h3>
+                <h3 className="text-lg font-semibold mb-1">Distribuição por Categoria</h3>
+                <p className="text-xs text-slate-500 mb-4">Apenas itens em estoque</p>
                 {categoryDistribution.length > 0 ? (
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={categoryDistribution}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={80}
-                          paddingAngle={3}
-                          dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {categoryDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
+                  <>
+                    <div className="h-56">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={categoryDistribution}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={80}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {categoryDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip
+                            formatter={(value, name, props) => [
+                              `${value} unidade${value !== 1 ? 's' : ''} (${props.payload.count} tipo${props.payload.count !== 1 ? 's' : ''})`,
+                              name
+                            ]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Legenda customizada */}
+                    <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1.5 max-h-40 overflow-y-auto">
+                      {categoryDistribution.map((entry, index) => (
+                        <div key={entry.name} className="flex items-center gap-2 text-xs">
+                          <div
+                            className="w-3 h-3 rounded-sm flex-shrink-0"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <span className="text-slate-700 truncate flex-1">{entry.name}</span>
+                          <span className="text-slate-500 font-medium">{entry.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-center text-slate-500 py-12">Sem dados</p>
                 )}
@@ -457,33 +501,72 @@ export default function Inventory() {
             {/* Alertas de Estoque */}
             <Card>
               <div className="p-4 sm:p-6">
-                <h3 className="text-lg font-semibold mb-4">Alertas de Estoque</h3>
-                <div className="space-y-2">
-                  {products
-                    .filter(p => 
-                      (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5)) ||
-                      (p.stock_type === 'serializado' && p.status === 'baixo_estoque')
-                    )
-                    .slice(0, 5)
-                    .map(product => (
-                      <div key={product.id} className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-100">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{product.name}</p>
-                          <p className="text-xs text-slate-600">
-                            {product.stock_type === 'serializado' ? product.serial_number : `Qtd: ${product.quantity}`}
-                          </p>
-                        </div>
-                        <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
-                          {product.stock_type === 'serializado' ? 'A' : 'B'}
-                        </span>
-                      </div>
-                    ))}
-                  {products.filter(p => 
-                    (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5)) ||
-                    (p.stock_type === 'serializado' && p.status === 'baixo_estoque')
-                  ).length === 0 && (
-                    <p className="text-center text-slate-500 py-8">Nenhum alerta</p>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Alertas de Estoque</h3>
+                    <p className="text-xs text-slate-500">Itens abaixo do estoque mínimo</p>
+                  </div>
+                  {stats.lowStock > 0 && (
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-semibold">
+                      {stats.lowStock} {stats.lowStock === 1 ? 'item' : 'itens'}
+                    </span>
                   )}
+                </div>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {(() => {
+                    const alertItems = products
+                      .filter(p => 
+                        (p.stock_type === 'nao_serializado' && (p.quantity || 0) <= (p.min_stock || 5)) ||
+                        (p.stock_type === 'serializado' && p.status === 'baixo_estoque')
+                      )
+                      .sort((a, b) => (a.quantity || 0) - (b.quantity || 0));
+
+                    if (alertItems.length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center py-10 text-center">
+                          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-2">
+                            <Package className="h-6 w-6 text-emerald-500" />
+                          </div>
+                          <p className="text-sm text-slate-500">Tudo em ordem!</p>
+                          <p className="text-xs text-slate-400">Nenhum alerta de estoque</p>
+                        </div>
+                      );
+                    }
+
+                    return alertItems.slice(0, 8).map(product => {
+                      const isZero = product.stock_type === 'nao_serializado' && (product.quantity || 0) === 0;
+                      return (
+                        <div
+                          key={product.id}
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            isZero
+                              ? 'bg-red-50 border-red-200'
+                              : 'bg-amber-50 border-amber-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isZero ? 'bg-red-500' : 'bg-amber-500'}`} />
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{product.name}</p>
+                              <p className="text-xs text-slate-500">
+                                {product.stock_type === 'serializado' ? `NS: ${product.serial_number}` : `Qtd: ${product.quantity || 0} / mín: ${product.min_stock || 5}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              isZero ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {isZero ? 'Zerado' : 'Baixo'}
+                            </span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
+                              {product.stock_type === 'serializado' ? 'A' : 'B'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </Card>
@@ -492,7 +575,8 @@ export default function Inventory() {
           {/* Tabela de Aparelhos por Modelo */}
           <Card>
             <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold mb-4">Aparelhos em Estoque por Modelo</h3>
+              <h3 className="text-lg font-semibold mb-1">Aparelhos em Estoque por Modelo</h3>
+              <p className="text-xs text-slate-500 mb-4">Apenas aparelhos auditivos disponíveis</p>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -507,7 +591,7 @@ export default function Inventory() {
                     {(() => {
                       const hearingAids = products.filter(p => 
                         p.category === 'aparelho_auditivo' && 
-                        (p.stock_type === 'nao_serializado' || p.status === 'disponivel')
+                        (p.stock_type === 'nao_serializado' ? (p.quantity || 0) > 0 : p.status === 'disponivel')
                       );
                       const modelGroups = hearingAids.reduce((acc, product) => {
                         const key = `${product.brand}-${product.model}`;
