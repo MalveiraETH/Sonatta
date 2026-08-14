@@ -95,7 +95,8 @@
         "disponivel",
         "reservado",
         "vendido",
-        "baixo_estoque"
+        "baixo_estoque",
+        "indisponivel"
       ],
       "default": "disponivel",
       "description": "Status do produto"

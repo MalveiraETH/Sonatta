@@ -250,6 +250,7 @@ export default function ProductForm({ open, onOpenChange, product, onSuccess }) 
                   <SelectItem value="disponivel">Disponível</SelectItem>
                   <SelectItem value="reservado">Reservado</SelectItem>
                   <SelectItem value="vendido">Vendido</SelectItem>
+                  <SelectItem value="indisponivel">Indisponível</SelectItem>
                 </SelectContent>
               </Select>
             </div>

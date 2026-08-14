@@ -867,10 +867,11 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                              if (searchValue.length > 0) {
                                const searchTerm = searchValue.toLowerCase();
                                const foundProduct = products.find(p => 
-                                 p.name?.toLowerCase().includes(searchTerm) && 
-                                 p.stock_type === 'nao_serializado' &&
-                                 p.quantity > 0
-                               );
+                                   p.name?.toLowerCase().includes(searchTerm) && 
+                                   p.stock_type === 'nao_serializado' &&
+                                   p.quantity > 0 &&
+                                   p.status !== 'indisponivel'
+                                 );
                                if (foundProduct && foundProduct.name?.toLowerCase() === searchTerm) {
                                  updateItem(index, 'product_id', foundProduct.id);
                                }
@@ -882,7 +883,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                          <datalist id={`name-list-${index}`}>
                            {products
                              .filter(p => {
-                               if (p.stock_type !== 'nao_serializado' || p.quantity <= 0) return false;
+                               if (p.stock_type !== 'nao_serializado' || p.quantity <= 0 || p.status === 'indisponivel') return false;
                                if (!item.product_name) return true;
                                return p.name?.toLowerCase().includes(item.product_name.toLowerCase());
                              })

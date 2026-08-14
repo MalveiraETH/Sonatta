@@ -28,6 +28,12 @@ Deno.serve(async (req) => {
       if (!product) continue;
 
       if (mode === 'sale') {
+        // Bloquear venda de produtos indisponíveis
+        if (product.status === 'indisponivel') {
+          results.push({ product_id: product.id, product_name: product.name, done: false, error: 'indisponivel' });
+          continue;
+        }
+
         // Baixar estoque
         if (product.stock_type === 'serializado') {
           await base44.asServiceRole.entities.Product.update(product.id, { status: 'vendido' });

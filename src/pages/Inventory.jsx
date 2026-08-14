@@ -374,6 +374,7 @@ export default function Inventory() {
               <SelectItem value="disponivel">Disponível</SelectItem>
               <SelectItem value="reservado">Reservado</SelectItem>
               <SelectItem value="vendido">Vendido</SelectItem>
+              <SelectItem value="indisponivel">Indisponível</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -716,6 +717,7 @@ export default function Inventory() {
                     <SelectItem value="disponivel">Disponível</SelectItem>
                     <SelectItem value="reservado">Reservado</SelectItem>
                     <SelectItem value="vendido">Vendido</SelectItem>
+                    <SelectItem value="indisponivel">Indisponível</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -787,11 +789,13 @@ export default function Inventory() {
                           product.status === 'disponivel' ? 'bg-emerald-100 text-emerald-700' :
                           product.status === 'reservado' ? 'bg-amber-100 text-amber-700' :
                           product.status === 'vendido' ? 'bg-slate-100 text-slate-700' :
+                          product.status === 'indisponivel' ? 'bg-zinc-200 text-zinc-700' :
                           'bg-red-100 text-red-700'
                         }`}>
                           {product.status === 'disponivel' ? 'Disponível' :
                            product.status === 'reservado' ? 'Reservado' :
-                           product.status === 'vendido' ? 'Vendido' : 'Baixo'}
+                           product.status === 'vendido' ? 'Vendido' :
+                           product.status === 'indisponivel' ? 'Indisponível' : 'Baixo'}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
@@ -841,9 +845,10 @@ export default function Inventory() {
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                             product.status === 'disponivel' ? 'bg-emerald-100 text-emerald-700' :
                             product.status === 'reservado' ? 'bg-amber-100 text-amber-700' :
+                            product.status === 'indisponivel' ? 'bg-zinc-200 text-zinc-700' :
                             'bg-slate-100 text-slate-700'
                           }`}>
-                            {product.status === 'disponivel' ? 'Disponível' : product.status === 'reservado' ? 'Reservado' : 'Vendido'}
+                            {product.status === 'disponivel' ? 'Disponível' : product.status === 'reservado' ? 'Reservado' : product.status === 'indisponivel' ? 'Indisponível' : 'Vendido'}
                           </span>
                         </div>
                         <div className="text-sm text-slate-600">
