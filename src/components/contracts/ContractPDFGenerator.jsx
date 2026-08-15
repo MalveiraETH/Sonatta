@@ -186,22 +186,22 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           pdf.setTextColor(98, 42, 126);
           pdf.text('SONATTA', marginL, marginTop + 12);
         }
-        // Linha verde separadora — mais fina e leve
+        // Linha verde separadora (igual orçamento)
         pdf.setFillColor(136, 188, 7);
-        pdf.rect(marginL, headerLineY, contentW, 0.5, 'F');
+        pdf.rect(marginL, headerLineY, contentW, 0.7, 'F');
       };
 
       const drawFooter = () => {
-        // Linha verde no rodapé — mais fina
+        // Linha verde no rodapé (igual orçamento)
         const FY = pageH - 16;
         pdf.setFillColor(136, 188, 7);
-        pdf.rect(marginL, FY, contentW, 0.4, 'F');
+        pdf.rect(marginL, FY, contentW, 0.6, 'F');
         const FL = FY + 5;
         pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(6.5);
-        pdf.setTextColor(120, 120, 120);
+        pdf.setFontSize(7);
+        pdf.setTextColor(66, 63, 51);
         pdf.text((cfg.address || ''), marginL, FL);
-        pdf.text((cfg.phone || '') + '  ·  ' + (cfg.email || ''), marginL, FL + 4);
+        pdf.text((cfg.phone || '') + '  ·  ' + (cfg.email || ''), marginL, FL + 4.5);
         pdf.setTextColor(98, 42, 126);
         pdf.text((cfg.website || '') + '  ·  ' + (cfg.instagram || ''), pageW - marginR, FL, { align: 'right' });
       };
@@ -209,15 +209,14 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       // Parse do HTML do contrato
       const blocks = parseHtmlToBlocks(contractText);
 
-      // Configurações de layout de texto — otimizadas para legibilidade
-      const LINE_HEIGHT_NORMAL = 6.2;   // mm por linha (espaçamento ~1.5x para fonte 10pt)
-      const LINE_HEIGHT_HEADING = 7.5;
-      const PARA_SPACING = 3.5;         // espaço depois de parágrafo normal
-      const HEADING_TOP_SPACING = 4;   // espaço extra antes de títulos de seção
+      // Configurações de layout de texto
+      const LINE_HEIGHT_NORMAL = 5.5;   // mm por linha (fonte 11pt)
+      const LINE_HEIGHT_HEADING = 7;
+      const PARA_SPACING = 2.5;         // espaço depois de parágrafo normal
       const FONT_SIZE_NORMAL = 10;
-      const FONT_SIZE_H1 = 14;
-      const FONT_SIZE_H2 = 12;
-      const FONT_SIZE_H3 = 11;
+      const FONT_SIZE_H1 = 13;
+      const FONT_SIZE_H2 = 11;
+      const FONT_SIZE_H3 = 10;
 
       let curY = headerH;
       let currentPage = 1;
@@ -229,7 +228,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       };
 
       const checkPageBreak = (neededH) => {
-        if (curY + neededH > footerY - 10) {
+        if (curY + neededH > footerY - 6) {
           pdf.addPage();
           currentPage++;
           initPage();
@@ -257,8 +256,6 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           pdf.setFontSize(fs);
           pdf.setTextColor(30, 30, 30);
           const lines = splitWords(block.text, contentW);
-          // Espaço extra antes do título para separá-lo do parágrafo anterior
-          curY += HEADING_TOP_SPACING;
           checkPageBreak(lines.length * LINE_HEIGHT_HEADING + PARA_SPACING);
           pdf.text(lines, marginL, curY);
           curY += lines.length * LINE_HEIGHT_HEADING + PARA_SPACING;
@@ -272,9 +269,9 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           const prefix = block.ordered ? `${block.index}.` : '\u2022';
           const indent = 4;
           const lines = splitWords(`${prefix} ${block.text}`, contentW - indent);
-          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + 2);
+          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + 1.5);
           pdf.text(lines, marginL + indent, curY);
-          curY += lines.length * LINE_HEIGHT_NORMAL + 2;
+          curY += lines.length * LINE_HEIGHT_NORMAL + 1.5;
           continue;
         }
 
@@ -300,8 +297,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           const textX = align === 'center' ? pageW / 2 : align === 'right' ? pageW - marginR : marginL;
 
           // line-height do editor (ex: 1.5) → mm; marginBottom px → mm (1px ≈ 0.264mm)
-          // Default 1.5x para melhor legibilidade quando o template não especifica
-          const effectiveLH = blockLH ? LINE_HEIGHT_NORMAL * blockLH : LINE_HEIGHT_NORMAL * 1.15;
+          const effectiveLH = blockLH ? LINE_HEIGHT_NORMAL * blockLH : LINE_HEIGHT_NORMAL;
           const effectiveMB = blockMB ? Math.min(blockMB * 0.264, 8) : PARA_SPACING;
 
           const lines = splitWords(fullText, contentW);
