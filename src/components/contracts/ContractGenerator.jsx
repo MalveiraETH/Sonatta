@@ -72,7 +72,7 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
     return conditions;
   };
 
-  const generateContractText = (contractData, enrichedSale) => {
+  const generateContractText = (contractData, enrichedSale, firstInstallmentDueDate = null) => {
     if (!template) return '';
     const s = enrichedSale || sale;
     
@@ -87,10 +87,13 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
       ? pixParcelado.amount / pixParcelado.installments
       : pixParcelado.amount;
     const saleDate = new Date(s.sale_date || s.created_date);
-    // Usar data do 1º vencimento salva no pagamento, senão fallback para saleDate + 30 dias
-    const firstPaymentDate = pixParcelado.first_due_date
-      ? new Date(pixParcelado.first_due_date + 'T12:00:00')
-      : addDays(saleDate, 30);
+    // Prioridade: 1º parcela real do banco > first_due_date do pagamento > saleDate + 30 dias
+    // Isso garante consistência com o carnê, que usa as parcelas do banco
+    const firstPaymentDate = firstInstallmentDueDate
+      ? new Date(firstInstallmentDueDate + 'T12:00:00')
+      : pixParcelado.first_due_date
+        ? new Date(pixParcelado.first_due_date + 'T12:00:00')
+        : addDays(saleDate, 30);
 
     // Lista de produtos
     const productsList = s.items.map(item => 
@@ -139,13 +142,27 @@ export default function ContractGenerator({ open, onOpenChange, sale, onSuccess 
         }
       }
 
+      // Buscar a 1ª parcela real do banco (mesma fonte de verdade do carnê)
+      let firstInstallmentDueDate = null;
+      try {
+        const installments = await base44.entities.Installment.filter({ sale_id: sale.id });
+        const pixInstallments = installments
+          .filter(i => i.payment_method === 'pix_parcelado')
+          .sort((a, b) => a.installment_number - b.installment_number);
+        if (pixInstallments.length > 0) {
+          firstInstallmentDueDate = pixInstallments[0].due_date;
+        }
+      } catch (e) {
+        console.warn('Não foi possível buscar parcelas:', e.message);
+      }
+
       // Montar sale enriquecido para geração do texto
       const enrichedSale = {
         ...sale,
         client_cpf: clientCpf,
         client_address: clientAddress,
       };
-      const contractText = generateContractText(null, enrichedSale);
+      const contractText = generateContractText(null, enrichedSale, firstInstallmentDueDate);
 
       const contractData = {
         contract_number: contractNumber,
