@@ -552,16 +552,18 @@ export default function Contracts() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Contrato {selectedContract?.contract_number}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg pr-6 break-words">
+              Contrato {selectedContract?.contract_number}
+            </DialogTitle>
           </DialogHeader>
           {selectedContract && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                 <div>
                   <span className="text-slate-500">Cliente:</span>
-                  <p className="font-medium">{selectedContract.client_name}</p>
+                  <p className="font-medium break-words">{selectedContract.client_name}</p>
                 </div>
                 <div>
                   <span className="text-slate-500">Valor:</span>
@@ -569,15 +571,15 @@ export default function Contracts() {
                 </div>
               </div>
               {selectedContract.contract_text && selectedContract.contract_text !== 'Template não configurado' && (
-                <div className="bg-slate-50 p-4 rounded max-h-60 overflow-y-auto text-sm">
+                <div className="bg-slate-50 p-3 sm:p-4 rounded max-h-60 overflow-y-auto text-sm">
                   {selectedContract.contract_text.includes('<') 
-                    ? <div dangerouslySetInnerHTML={{ __html: selectedContract.contract_text }} className="prose prose-sm max-w-none" />
-                    : <pre className="text-xs whitespace-pre-wrap">{selectedContract.contract_text}</pre>
+                    ? <div dangerouslySetInnerHTML={{ __html: selectedContract.contract_text }} className="prose prose-sm max-w-none break-words" />
+                    : <pre className="text-xs whitespace-pre-wrap break-words overflow-hidden">{selectedContract.contract_text}</pre>
                   }
                 </div>
               )}
               {/* Botões de exportação */}
-              <div className="flex flex-wrap gap-3 pt-2 border-t">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t">
                 <ContractPDFGenerator
                   contract={selectedContract}
                   contractText={selectedContract.contract_text || ''}

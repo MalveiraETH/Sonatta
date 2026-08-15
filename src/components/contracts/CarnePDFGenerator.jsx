@@ -524,7 +524,7 @@ export default function CarnePDFGenerator({ contract, sale }) {
       onClick={generateCarne}
       disabled={generating}
       variant="outline"
-      className="border-[#6B3FA0] text-[#6B3FA0] hover:bg-[#6B3FA0] hover:text-white"
+      className="border-[#6B3FA0] text-[#6B3FA0] hover:bg-[#6B3FA0] hover:text-white w-full sm:w-auto"
     >
       {generating ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

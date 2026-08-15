@@ -322,7 +322,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
     <Button
       onClick={generatePDF}
       disabled={generating}
-      className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+      className="bg-[#6B3FA0] hover:bg-[#834CB8] w-full sm:w-auto"
     >
       {generating ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
