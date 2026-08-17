@@ -320,9 +320,19 @@ export default function Reports() {
       const prof = professionals.find(p => p.id === clientTest.referral_professional_id);
       if (prof) return prof;
     }
-    // 3. Nome salvo no teste (sem ID)
+    // 3. Nome salvo no teste — tentar casar com profissional cadastrado (preserva o id para o filtro)
     if (clientTest?.referral_professional_name) {
+      const profByName = professionals.find(p =>
+        (p.full_name || '').toLowerCase().trim() === clientTest.referral_professional_name.toLowerCase().trim()
+      );
+      if (profByName) return profByName;
       return { full_name: clientTest.referral_professional_name, specialty: '-' };
+    }
+    // 4. Fallback: profissional de indicação no cadastro do cliente
+    const client = clients.find(c => c.id === sale.client_id);
+    if (client?.referral_professional) {
+      const prof = professionals.find(p => p.id === client.referral_professional);
+      if (prof) return prof;
     }
     return null;
   };
