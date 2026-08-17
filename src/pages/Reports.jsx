@@ -66,14 +66,14 @@ export default function Reports() {
   const loadData = async () => {
     try {
       const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData, testsData, movementsData] = await Promise.all([
-        base44.entities.Product.list(),
-        base44.entities.Client.list(),
-        base44.entities.Sale.list('-created_date'),
-        base44.entities.Professional.list(),
-        base44.entities.Appointment.list(),
-        base44.entities.Installment.list(),
-        base44.entities.Expense.list(),
-        base44.entities.Test.list(),
+        base44.entities.Product.list('-created_date', 10000),
+        base44.entities.Client.list('-created_date', 10000),
+        base44.entities.Sale.list('-created_date', 10000),
+        base44.entities.Professional.list('-created_date', 10000),
+        base44.entities.Appointment.list('-created_date', 10000),
+        base44.entities.Installment.list('-created_date', 10000),
+        base44.entities.Expense.list('-created_date', 10000),
+        base44.entities.Test.list('-created_date', 10000),
         base44.entities.StockMovement.filter({ type: 'saida' })
       ]);
       setProducts(productsData);
