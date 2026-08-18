@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Loader2, Save, ChevronUp, ChevronDown } from 'lucide-react';
+import { FileText, Loader2, Save, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -28,7 +28,7 @@ const QUILL_FORMATS = [
 ];
 
 const LINE_HEIGHT_OPTIONS = [
-  { label: 'Entrelinha padrão', value: '' },
+  { label: 'Padrão (1.5)', value: '' },
   { label: '1.0', value: '1' },
   { label: '1.2', value: '1.2' },
   { label: '1.5', value: '1.5' },
@@ -39,14 +39,14 @@ const LINE_HEIGHT_OPTIONS = [
 ];
 
 const PARA_SPACING_OPTIONS = [
-  { label: 'Espaç. §', value: '' },
+  { label: 'Padrão (2.5mm)', value: '' },
   { label: 'Sem espaço', value: '0px' },
-  { label: 'Mínimo (4px)', value: '4px' },
-  { label: 'Pequeno (8px)', value: '8px' },
-  { label: 'Médio (12px)', value: '12px' },
-  { label: 'Normal (16px)', value: '16px' },
-  { label: 'Grande (24px)', value: '24px' },
-  { label: 'Extra (32px)', value: '32px' },
+  { label: '4px', value: '4px' },
+  { label: '8px', value: '8px' },
+  { label: '12px', value: '12px' },
+  { label: '16px', value: '16px' },
+  { label: '24px', value: '24px' },
+  { label: '32px', value: '32px' },
 ];
 
 const DEFAULT_TEMPLATE = `CONTRATO DE COMPROMISSO DE PAGAMENTO
@@ -114,34 +114,6 @@ export default function ContractTemplate() {
   const [template, setTemplate] = useState(null);
   const quillRef = useRef(null);
 
-  // Aplica estilos no HTML como string usando um parser DOM temporário (não toca no editor do Quill).
-  // Isso evita o conflito onde setTemplateText re-renderiza o Quill e apaga os estilos inline.
-  const applyStyleToAllBlocks = (html, styleProperty, styleValue) => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
-    const blocks = doc.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6');
-    blocks.forEach(b => { b.style[styleProperty] = styleValue; });
-    return doc.querySelector('div').innerHTML;
-  };
-
-  const applyLineHeight = (value) => {
-    if (!value) return;
-    setTemplateText(prev => applyStyleToAllBlocks(prev, 'lineHeight', value));
-  };
-
-  const applyParaSpacing = (value) => {
-    if (!value) return;
-    setTemplateText(prev => applyStyleToAllBlocks(prev, 'marginBottom', value));
-  };
-
-  const applyToAll = (lineHeight, paraSpacing) => {
-    setTemplateText(prev => {
-      let html = applyStyleToAllBlocks(prev, 'lineHeight', lineHeight);
-      html = applyStyleToAllBlocks(html, 'marginBottom', paraSpacing);
-      return html;
-    });
-  };
-  // Se o template salvo for texto puro (sem tags HTML), converte para HTML básico
   const toHtml = (text) => {
     if (!text) return '';
     if (text.includes('<') && text.includes('>')) return text;
@@ -225,6 +197,57 @@ export default function ContractTemplate() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // ── Espaçamento: atua diretamente no DOM do Quill (WYSIWYG) ──
+  // Retorna os blocos (p, li, h1-h6) que estão dentro da seleção atual.
+  // Se não há seleção, retorna array vazio (sinal para aplicar a tudo).
+  const getSelectedBlocks = () => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return [];
+    const range = quill.getSelection();
+    if (!range || range.length === 0) return [];
+    const allBlocks = Array.from(quill.root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6'));
+    return allBlocks.filter(b => {
+      const blot = quill.scroll.find(b);
+      if (!blot) return false;
+      const offset = quill.getIndex(blot);
+      const length = blot.length();
+      return offset < range.index + range.length && offset + length > range.index;
+    });
+  };
+
+  // Aplica um estilo CSS a um conjunto de blocos.
+  // Se há seleção ativa, aplica apenas aos blocos selecionados.
+  // Se não há seleção, aplica a todos os blocos do documento.
+  const applyToBlocks = (styleProp, value) => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+    const selected = getSelectedBlocks();
+    const blocks = selected.length > 0
+      ? selected
+      : Array.from(quill.root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6'));
+    blocks.forEach(b => {
+      if (value) b.style[styleProp] = value;
+      else b.style.removeProperty(styleProp);
+    });
+    // Sincroniza o estado com o DOM modificado para persistir ao salvar
+    setTemplateText(quill.root.innerHTML);
+  };
+
+  const applyLineHeight = (value) => applyToBlocks('lineHeight', value);
+  const applyParaSpacing = (value) => applyToBlocks('marginBottom', value);
+
+  const resetAllSpacing = () => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+    const blocks = quill.root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6');
+    blocks.forEach(b => {
+      b.style.removeProperty('lineHeight');
+      b.style.removeProperty('marginBottom');
+    });
+    setTemplateText(quill.root.innerHTML);
+    toast.success('Espaçamento restaurado ao padrão');
   };
 
   if (loading) {
@@ -328,22 +351,90 @@ export default function ContractTemplate() {
             <code>{'{{contract_date}}'}</code>
           </div>
         </div>
-        
+
+        {/* CSS WYSIWYG: editor com aparência idêntica ao PDF gerado */}
         <style>{`
-          .ql-editor { min-height: 420px; font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; }
+          .contract-editor .ql-toolbar {
+            border-radius: 8px 8px 0 0;
+            border-color: #cbd5e1;
+            background: #f8fafc;
+          }
+          .contract-editor .ql-container {
+            border-radius: 0 0 8px 8px;
+            border-color: #cbd5e1;
+            background: #e8e8e8;
+            padding: 16px 0;
+          }
+          .contract-editor .ql-editor {
+            /* Dimensões de página A4 com margens de 15mm */
+            min-height: 250mm;
+            max-width: 180mm;
+            margin: 0 auto;
+            padding: 15mm 15mm;
+            background: white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            /* Tipografia idêntica ao PDF */
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #1e1e1e;
+          }
+          .contract-editor .ql-editor p {
+            margin-bottom: 2.5mm;
+            line-height: 1.5;
+          }
+          .contract-editor .ql-editor h1 {
+            font-size: 13pt;
+            font-weight: bold;
+            margin-top: 5mm;
+            margin-bottom: 2.5mm;
+            line-height: 1.4;
+          }
+          .contract-editor .ql-editor h2 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-top: 4mm;
+            margin-bottom: 2.5mm;
+            line-height: 1.4;
+          }
+          .contract-editor .ql-editor h3 {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-top: 3mm;
+            margin-bottom: 2.5mm;
+            line-height: 1.4;
+          }
+          .contract-editor .ql-editor li {
+            margin-bottom: 1.5mm;
+            line-height: 1.5;
+          }
+          .contract-editor .ql-editor.ql-blank::before {
+            font-size: 10pt;
+            color: #9ca3af;
+          }
         `}</style>
 
-        {/* Controles de espaçamento customizados */}
+        {/* Controles de espaçamento WYSIWYG */}
         {isAdmin && (
-          <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-2">
-            <p className="text-xs font-semibold text-slate-600">Controle de Espaçamento</p>
+          <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-600">Controle de Espaçamento</p>
+              <button
+                type="button"
+                onClick={resetAllSpacing}
+                className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-600 transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Restaurar padrão
+              </button>
+            </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500 whitespace-nowrap">Entrelinha:</span>
                 <select
                   className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
                   defaultValue=""
-                  onChange={(e) => applyLineHeight(e.target.value)}
+                  onChange={(e) => { applyLineHeight(e.target.value); e.target.value = ''; }}
                 >
                   {LINE_HEIGHT_OPTIONS.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -355,7 +446,7 @@ export default function ContractTemplate() {
                 <select
                   className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
                   defaultValue=""
-                  onChange={(e) => applyParaSpacing(e.target.value)}
+                  onChange={(e) => { applyParaSpacing(e.target.value); e.target.value = ''; }}
                 >
                   {PARA_SPACING_OPTIONS.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -363,29 +454,14 @@ export default function ContractTemplate() {
                 </select>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-slate-500">Aplicar a todo o documento:</span>
-              <button
-                type="button"
-                onClick={() => applyToAll('1.2', '4px')}
-                className="text-xs bg-[#6B3FA0] text-white px-2 py-1 rounded hover:bg-[#834CB8]"
-              >Compacto</button>
-              <button
-                type="button"
-                onClick={() => applyToAll('1.5', '8px')}
-                className="text-xs bg-[#6B3FA0] text-white px-2 py-1 rounded hover:bg-[#834CB8]"
-              >Normal</button>
-              <button
-                type="button"
-                onClick={() => applyToAll('1.8', '16px')}
-                className="text-xs bg-slate-400 text-white px-2 py-1 rounded hover:bg-slate-500"
-              >Espaçado</button>
-            </div>
-            <p className="text-xs text-slate-400">Selecione trechos no editor para aplicar por parágrafo, ou use os botões acima para o documento inteiro.</p>
+            <p className="text-xs text-slate-400">
+              Selecione trechos no editor para aplicar apenas aos parágrafos selecionados.
+              Sem seleção, aplica a todo o documento. A pré-visualização acima reflete exatamente o PDF gerado.
+            </p>
           </div>
         )}
 
-        <div className={`rounded-lg border border-slate-200 overflow-hidden ${!isAdmin ? 'pointer-events-none opacity-60' : ''}`}>
+        <div className={`contract-editor rounded-lg overflow-hidden ${!isAdmin ? 'pointer-events-none opacity-60' : ''}`}>
           <ReactQuill
             ref={quillRef}
             theme="snow"
