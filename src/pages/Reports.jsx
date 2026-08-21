@@ -23,6 +23,7 @@ import {
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import StatCard from '@/components/ui/StatCard';
+import ReferralReportPDFButton from '@/components/reports/ReferralReportPDF';
 import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -1820,10 +1821,36 @@ export default function Reports() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Repasse de Indicação (10%)</CardTitle>
-              <Button onClick={exportReferralReport} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Exportar CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={exportReferralReport} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </Button>
+                <ReferralReportPDFButton
+                  rows={filteredSales.map(sale => {
+                    if (!hasSerializedItem(sale)) return null;
+                    const prof = getReferralProfForSale(sale);
+                    if (!prof) return null;
+                    if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return null;
+                    const total = getTotalPayments(sale);
+                    return {
+                      professional: prof.full_name,
+                      specialty: prof.specialty,
+                      patient: sale.client_name,
+                      saleDate: sale.sale_date || sale.created_date,
+                      totalValue: total,
+                      referralValue: total * 0.10,
+                    };
+                  }).filter(Boolean)}
+                  filters={{
+                    dateStart,
+                    dateEnd,
+                    professionalName: referralProfFilter !== 'todos'
+                      ? professionals.find(p => p.id === referralProfFilter)?.full_name || 'Todos'
+                      : 'Todos',
+                  }}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
