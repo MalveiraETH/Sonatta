@@ -194,6 +194,7 @@ export async function buildReferralPDF(rows, filters) {
     COLS.forEach(c => {
       let val = row[c.key];
       if (c.key === 'specialty') val = (val || '-').replace(/_/g, ' ');
+      if (c.key === 'totalValue' || c.key === 'referralValue') val = BRL(val);
       const opts = c.align === 'right' ? { align: 'right' } : c.align === 'center' ? { align: 'center' } : {};
       const tx = c.align === 'right' ? cx + c.w - 2 : c.align === 'center' ? cx + c.w / 2 : cx + 2;
       // Trunca texto longo para caber na coluna
