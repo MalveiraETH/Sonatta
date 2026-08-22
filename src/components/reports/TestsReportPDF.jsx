@@ -22,14 +22,12 @@ export async function buildTestsPDF(rows, filters) {
     await initPdfDoc('RELATÓRIO DE TESTES');
 
   const COLS = [
-    { key: 'testNumber',  label: 'Número',      w: 22 },
-    { key: 'client',      label: 'Paciente',     w: 38 },
-    { key: 'startDate',   label: 'Início',       w: 20, align: 'center' },
-    { key: 'endDate',     label: 'Fim',          w: 20, align: 'center' },
-    { key: 'professional',label: 'Profissional',w: 34 },
-    { key: 'referral',    label: 'Indicação',    w: 34 },
-    { key: 'devices',     label: 'Aparelhos',    w: 30 },
-    { key: 'status',      label: 'Status',       w: 22 },
+    { key: 'client',      label: 'Paciente',     w: 50 },
+    { key: 'startDate',   label: 'Início',       w: 26, align: 'center' },
+    { key: 'endDate',     label: 'Fim',          w: 26, align: 'center' },
+    { key: 'professional',label: 'Profissional',w: 50 },
+    { key: 'referral',    label: 'Indicação',    w: 50 },
+    { key: 'status',      label: 'Status',       w: 28 },
   ];
   const totalW = COLS.reduce((s, c) => s + c.w, 0);
   const tableX = ML + (CW - totalW) / 2;
@@ -48,7 +46,7 @@ export async function buildTestsPDF(rows, filters) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...P.purple);
-    const labelW = COLS.slice(0, 7).reduce((s, c) => s + c.w, 0);
+    const labelW = COLS.slice(0, 5).reduce((s, c) => s + c.w, 0);
     doc.text('TOTAL DE TESTES: ' + totals.count, tableX + labelW / 2, y + 5.3, { align: 'center' });
     // Contagem por status na célula final
     doc.setTextColor(...P.textMain);
@@ -58,7 +56,7 @@ export async function buildTestsPDF(rows, filters) {
       .map(([k, n]) => (STATUS_LABEL[k] || k) + ': ' + n)
       .join('  ');
     doc.setFontSize(7);
-    doc.text(summary || '-', tableX + labelW + COLS[7].w - 2, y + 5.3, { align: 'right' });
+    doc.text(summary || '-', tableX + labelW + COLS[5].w - 2, y + 5.3, { align: 'right' });
     return y + 8;
   };
 
