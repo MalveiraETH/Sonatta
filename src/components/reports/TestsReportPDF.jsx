@@ -3,31 +3,41 @@ import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  P, BRL, buildFileName, initPdfDoc, drawTableHeader, drawRow,
+  P, fmtDate, buildFileName, initPdfDoc, drawTableHeader, drawRow,
 } from '@/components/reports/pdfHelpers';
 
-// Gera o PDF do relatório de repasse.
-// rows: array de { professional, specialty, patient, saleDate, totalValue, referralValue }
+const STATUS_LABEL = {
+  teste_agendado: 'Agendado',
+  em_teste: 'Em Teste',
+  teste_estendido: 'Estendido',
+  teste_finalizado: 'Finalizado',
+  teste_pendente: 'Pendente',
+};
+
+// Gera o PDF do relatório de testes.
+// rows: array de { testNumber, client, startDate, endDate, professional, referral, devices, status }
 // filters: { dateStart, dateEnd, professionalName }
-export async function buildReferralPDF(rows, filters) {
+export async function buildTestsPDF(rows, filters) {
   const { doc, ML, CW, MAX_Y, contentStartY, drawHeader, drawFooter, drawFilters } =
-    await initPdfDoc('REPASSE DE INDICAÇÃO (10%)');
+    await initPdfDoc('RELATÓRIO DE TESTES');
 
   const COLS = [
-    { key: 'professional', label: 'Profissional', w: 42 },
-    { key: 'specialty',    label: 'Especialidade', w: 38 },
-    { key: 'patient',      label: 'Paciente',     w: 42 },
-    { key: 'saleDate',     label: 'Data Venda',    w: 22, align: 'center' },
-    { key: 'totalValue',   label: 'Valor Total',  w: 28, align: 'right' },
-    { key: 'referralValue',label: 'Repasse 10%',  w: 28, align: 'right' },
+    { key: 'testNumber',  label: 'Número',      w: 22 },
+    { key: 'client',      label: 'Paciente',     w: 38 },
+    { key: 'startDate',   label: 'Início',       w: 20, align: 'center' },
+    { key: 'endDate',     label: 'Fim',          w: 20, align: 'center' },
+    { key: 'professional',label: 'Profissional',w: 34 },
+    { key: 'referral',    label: 'Indicação',    w: 34 },
+    { key: 'devices',     label: 'Aparelhos',    w: 30 },
+    { key: 'status',      label: 'Status',       w: 22 },
   ];
   const totalW = COLS.reduce((s, c) => s + c.w, 0);
   const tableX = ML + (CW - totalW) / 2;
 
   const formatter = {
-    specialty: (v) => (v || '-').replace(/_/g, ' '),
-    totalValue: (v) => BRL(v),
-    referralValue: (v) => BRL(v),
+    startDate: (v) => fmtDate(v),
+    endDate: (v) => fmtDate(v),
+    status: (v) => STATUS_LABEL[v] || v || '-',
   };
 
   const drawTotals = (y, totals) => {
@@ -38,12 +48,17 @@ export async function buildReferralPDF(rows, filters) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...P.purple);
-    const labelW = COLS.slice(0, 4).reduce((s, c) => s + c.w, 0);
-    doc.text('TOTAL (' + totals.count + ' venda' + (totals.count !== 1 ? 's' : '') + ')', tableX + labelW / 2, y + 5.3, { align: 'center' });
+    const labelW = COLS.slice(0, 7).reduce((s, c) => s + c.w, 0);
+    doc.text('TOTAL DE TESTES: ' + totals.count, tableX + labelW / 2, y + 5.3, { align: 'center' });
+    // Contagem por status na célula final
     doc.setTextColor(...P.textMain);
-    doc.text(BRL(totals.totalValue), tableX + labelW + COLS[4].w - 2, y + 5.3, { align: 'right' });
-    doc.setTextColor(...[80, 140, 0]);
-    doc.text(BRL(totals.referralValue), tableX + labelW + COLS[4].w + COLS[5].w - 2, y + 5.3, { align: 'right' });
+    const byStatus = totals.byStatus;
+    const summary = Object.entries(byStatus)
+      .filter(([, n]) => n > 0)
+      .map(([k, n]) => (STATUS_LABEL[k] || k) + ': ' + n)
+      .join('  ');
+    doc.setFontSize(7);
+    doc.text(summary || '-', tableX + labelW + COLS[7].w - 2, y + 5.3, { align: 'right' });
     return y + 8;
   };
 
@@ -53,12 +68,11 @@ export async function buildReferralPDF(rows, filters) {
   y = drawTableHeader(doc, tableX, y, COLS, totalW);
 
   let zebra = false;
-  const totals = { count: 0, totalValue: 0, referralValue: 0 };
+  const totals = { count: 0, byStatus: {} };
 
   for (const row of rows) {
     totals.count++;
-    totals.totalValue += row.totalValue || 0;
-    totals.referralValue += row.referralValue || 0;
+    totals.byStatus[row.status] = (totals.byStatus[row.status] || 0) + 1;
 
     if (y + 6 > MAX_Y - 12) {
       doc.addPage();
@@ -79,10 +93,10 @@ export async function buildReferralPDF(rows, filters) {
   }
   drawTotals(y, totals);
 
-  doc.save(buildFileName('repasse_indicacao', filters));
+  doc.save(buildFileName('relatorio_testes', filters));
 }
 
-export default function ReferralReportPDFButton({ rows, filters }) {
+export default function TestsReportPDFButton({ rows, filters }) {
   const [loading, setLoading] = useState(false);
 
   const handle = async () => {
@@ -92,7 +106,7 @@ export default function ReferralReportPDFButton({ rows, filters }) {
     }
     setLoading(true);
     try {
-      await buildReferralPDF(rows, filters);
+      await buildTestsPDF(rows, filters);
       toast.success('PDF gerado com sucesso!');
     } catch (e) {
       console.error(e);

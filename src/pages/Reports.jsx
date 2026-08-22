@@ -24,6 +24,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import StatCard from '@/components/ui/StatCard';
 import ReferralReportPDFButton from '@/components/reports/ReferralReportPDF';
+import TestsReportPDFButton from '@/components/reports/TestsReportPDF';
 import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -615,38 +616,65 @@ export default function Reports() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Testes Cadastrados</CardTitle>
-              <Button onClick={() => {
-                const filteredForExport = tests.filter(t => {
-                  if (testStatusFilter !== 'todos' && t.status !== testStatusFilter) return false;
-                  if (testDateStart) {
-                    const startDate = new Date(t.start_date);
-                    if (startDate < new Date(testDateStart)) return false;
-                  }
-                  if (testDateEnd) {
-                    const endDate = new Date(t.end_date);
-                    if (endDate > new Date(testDateEnd)) return false;
-                  }
-                  if (testProfFilter !== 'todos' && t.referral_professional_id !== testProfFilter && t.referral_professional_name !== professionals.find(p => p.id === testProfFilter)?.full_name) return false;
-                  return true;
-                });
-                const data = filteredForExport.map(t => ({
-                  'Número': t.test_number,
-                  'Cliente': t.client_name,
-                  'Data Início': toExcelDate(t.start_date),
-                  'Data Final': toExcelDate(t.end_date),
-                  'Profissional': t.professional_name || '',
-                  'Profissional Indicação': t.referral_professional_name || '',
-                  'Aparelhos': t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
-                  'Status': t.status === 'em_teste' ? 'Em Teste' :
-                           t.status === 'teste_estendido' ? 'Teste Estendido' :
-                           t.status === 'teste_finalizado' ? 'Teste Finalizado' : 'Teste Pendente',
-                  'Observações': t.notes || ''
-                }));
-                exportToExcel(data, 'relatorio_testes');
-              }} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Excel
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => {
+                  const filteredForExport = tests.filter(t => {
+                    if (testStatusFilter !== 'todos' && t.status !== testStatusFilter) return false;
+                    if (testDateStart) {
+                      const startDate = new Date(t.start_date);
+                      if (startDate < new Date(testDateStart)) return false;
+                    }
+                    if (testDateEnd) {
+                      const endDate = new Date(t.end_date);
+                      if (endDate > new Date(testDateEnd)) return false;
+                    }
+                    if (testProfFilter !== 'todos' && t.referral_professional_id !== testProfFilter && t.referral_professional_name !== professionals.find(p => p.id === testProfFilter)?.full_name) return false;
+                    return true;
+                  });
+                  const data = filteredForExport.map(t => ({
+                    'Número': t.test_number,
+                    'Cliente': t.client_name,
+                    'Data Início': toExcelDate(t.start_date),
+                    'Data Final': toExcelDate(t.end_date),
+                    'Profissional': t.professional_name || '',
+                    'Profissional Indicação': t.referral_professional_name || '',
+                    'Aparelhos': t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
+                    'Status': t.status === 'em_teste' ? 'Em Teste' :
+                             t.status === 'teste_estendido' ? 'Teste Estendido' :
+                             t.status === 'teste_finalizado' ? 'Teste Finalizado' : 'Teste Pendente',
+                    'Observações': t.notes || ''
+                  }));
+                  exportToExcel(data, 'relatorio_testes');
+                }} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Excel
+                </Button>
+                <TestsReportPDFButton
+                  rows={tests.filter(t => {
+                    if (testStatusFilter !== 'todos' && t.status !== testStatusFilter) return false;
+                    if (testDateStart && new Date(t.start_date) < new Date(testDateStart)) return false;
+                    if (testDateEnd && new Date(t.end_date) > new Date(testDateEnd)) return false;
+                    if (testProfFilter !== 'todos' && t.referral_professional_id !== testProfFilter && t.referral_professional_name !== professionals.find(p => p.id === testProfFilter)?.full_name) return false;
+                    return true;
+                  }).map(t => ({
+                    testNumber: t.test_number,
+                    client: t.client_name,
+                    startDate: t.start_date,
+                    endDate: t.end_date,
+                    professional: t.professional_name || '',
+                    referral: t.referral_professional_name || '',
+                    devices: t.devices?.map(d => d.serial_number || d.product_name).filter(Boolean).join(', ') || '',
+                    status: t.status,
+                  }))}
+                  filters={{
+                    dateStart: testDateStart,
+                    dateEnd: testDateEnd,
+                    professionalName: testProfFilter !== 'todos'
+                      ? professionals.find(p => p.id === testProfFilter)?.full_name || 'Todos'
+                      : 'Todos',
+                  }}
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
