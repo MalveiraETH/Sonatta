@@ -11,15 +11,13 @@ import {
 // filters: { dateStart, dateEnd, professionalName }
 export async function buildReferralPDF(rows, filters) {
   const { doc, ML, CW, MAX_Y, contentStartY, drawHeader, drawFooter, drawFilters } =
-    await initPdfDoc('REPASSE DE INDICAÇÃO (10%)');
+    await initPdfDoc('REPASSE DE INDICAÇÃO');
 
   const COLS = [
-    { key: 'professional', label: 'Profissional', w: 42 },
-    { key: 'specialty',    label: 'Especialidade', w: 38 },
-    { key: 'patient',      label: 'Paciente',     w: 42 },
-    { key: 'saleDate',     label: 'Data Venda',    w: 22, align: 'center' },
-    { key: 'totalValue',   label: 'Valor Total',  w: 28, align: 'right' },
-    { key: 'referralValue',label: 'Repasse 10%',  w: 28, align: 'right' },
+    { key: 'patient',      label: 'Paciente',     w: 70 },
+    { key: 'saleDate',     label: 'Data Venda',    w: 35, align: 'center' },
+    { key: 'totalValue',   label: 'Valor Total',  w: 45, align: 'right' },
+    { key: 'referralValue',label: 'Repasse 10%',  w: 45, align: 'right' },
   ];
   const totalW = COLS.reduce((s, c) => s + c.w, 0);
   const tableX = ML + (CW - totalW) / 2;
@@ -38,12 +36,12 @@ export async function buildReferralPDF(rows, filters) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...P.purple);
-    const labelW = COLS.slice(0, 4).reduce((s, c) => s + c.w, 0);
+    const labelW = COLS.slice(0, 2).reduce((s, c) => s + c.w, 0);
     doc.text('TOTAL (' + totals.count + ' venda' + (totals.count !== 1 ? 's' : '') + ')', tableX + labelW / 2, y + 5.3, { align: 'center' });
     doc.setTextColor(...P.textMain);
-    doc.text(BRL(totals.totalValue), tableX + labelW + COLS[4].w - 2, y + 5.3, { align: 'right' });
+    doc.text(BRL(totals.totalValue), tableX + labelW + COLS[2].w - 2, y + 5.3, { align: 'right' });
     doc.setTextColor(...[80, 140, 0]);
-    doc.text(BRL(totals.referralValue), tableX + labelW + COLS[4].w + COLS[5].w - 2, y + 5.3, { align: 'right' });
+    doc.text(BRL(totals.referralValue), tableX + labelW + COLS[2].w + COLS[3].w - 2, y + 5.3, { align: 'right' });
     return y + 8;
   };
 
