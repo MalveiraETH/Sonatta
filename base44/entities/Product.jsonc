@@ -136,6 +136,11 @@
       "type": "boolean",
       "default": false,
       "description": "Produto destinado apenas a testes/trial (n\u00e3o ser\u00e1 vendido)"
+    },
+    "include_fixed_cost": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o custo operacional (fixo mensal) est\u00e1 inclu\u00eddo no custo total"
     }
   },
   "required": [
