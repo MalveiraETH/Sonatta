@@ -38,14 +38,22 @@ function parseHtmlToBlocks(html) {
     }
     if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
       const text = node.textContent.trim();
-      blocks.push({ type: 'heading', text, level: parseInt(tag[1]) });
+      const lhRaw = node.style?.lineHeight || '';
+      const lh = lhRaw ? parseFloat(lhRaw) : null;
+      const mbRaw = node.style?.marginBottom || '';
+      const mb = mbRaw ? parseFloat(mbRaw) : null;
+      blocks.push({ type: 'heading', text, level: parseInt(tag[1]), lineHeight: lh, marginBottom: mb });
       return;
     }
     if (tag === 'ul' || tag === 'ol') {
       const items = Array.from(node.querySelectorAll('li'));
       items.forEach((li, idx) => {
         const text = li.textContent.trim();
-        blocks.push({ type: 'listitem', text, ordered: tag === 'ol', index: idx + 1 });
+        const lhRaw = li.style?.lineHeight || '';
+        const lh = lhRaw ? parseFloat(lhRaw) : null;
+        const mbRaw = li.style?.marginBottom || '';
+        const mb = mbRaw ? parseFloat(mbRaw) : null;
+        blocks.push({ type: 'listitem', text, ordered: tag === 'ol', index: idx + 1, lineHeight: lh, marginBottom: mb });
       });
       return;
     }
@@ -71,9 +79,9 @@ function extractInlineText(node) {
 
   // Ler line-height e margin-bottom do estilo inline (gerado pelo Quill)
   const lineHeightRaw = node.style?.lineHeight || '';
-  const lineHeight = parseFloat(lineHeightRaw) || null;
+  const lineHeight = lineHeightRaw ? parseFloat(lineHeightRaw) : null;
   const marginBottomRaw = node.style?.marginBottom || '';
-  const marginBottom = parseFloat(marginBottomRaw) || null; // em px
+  const marginBottom = marginBottomRaw ? parseFloat(marginBottomRaw) : null; // em px
 
   const walk = (n, ctx = { bold: false, italic: false }) => {
     if (n.nodeType === Node.TEXT_NODE) {
@@ -175,7 +183,7 @@ export default function ContractPDFGenerator({ contract, contractText }) {
 
       // Linha verde abaixo do cabeçalho (igual orçamento): Y = 5 (logo) + 16 (altura) + 6 (gap)
       const headerLineY = marginTop + logoRenderedH + 6;
-      const headerH = headerLineY + 5; // conteúdo começa abaixo da linha
+      const headerH = headerLineY + 8; // conteúdo começa abaixo da linha (gap maior)
 
       const drawHeader = () => {
         if (logoB64) {
@@ -235,10 +243,25 @@ export default function ContractPDFGenerator({ contract, contractText }) {
         }
       };
 
-      // Quebra texto respeitando palavras (sem cortar no meio da palavra)
-      const splitWords = (text, maxW) => {
-        // usa splitTextToSize do jsPDF que já respeita palavras
-        return pdf.splitTextToSize(text, maxW);
+      // Quebra texto respeitando palavras (NUNCA corta no meio de uma palavra)
+      const wrapText = (text, maxW) => {
+        const result = [];
+        for (const para of String(text).split('\n')) {
+          if (!para) { result.push(''); continue; }
+          const words = para.trim().split(/\s+/);
+          let line = '';
+          for (const word of words) {
+            const test = line ? line + ' ' + word : word;
+            if (pdf.getTextWidth(test) <= maxW) {
+              line = test;
+            } else {
+              if (line) result.push(line);
+              line = word; // palavra vai para a próxima linha (nunca parte)
+            }
+          }
+          if (line) result.push(line);
+        }
+        return result.length > 0 ? result : [''];
       };
 
       // Inicia primeira página
@@ -255,10 +278,12 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           pdf.setFont('helvetica', 'bold');
           pdf.setFontSize(fs);
           pdf.setTextColor(30, 30, 30);
-          const lines = splitWords(block.text, contentW);
-          checkPageBreak(lines.length * LINE_HEIGHT_HEADING + PARA_SPACING);
+          const lines = wrapText(block.text, contentW);
+          const effLH = block.lineHeight ? LINE_HEIGHT_HEADING * block.lineHeight : LINE_HEIGHT_HEADING;
+          const effMB = block.marginBottom != null ? Math.min(block.marginBottom * 0.264, 8) : PARA_SPACING;
+          checkPageBreak(lines.length * effLH + effMB);
           pdf.text(lines, marginL, curY);
-          curY += lines.length * LINE_HEIGHT_HEADING + PARA_SPACING;
+          curY += lines.length * effLH + effMB;
           continue;
         }
 
@@ -268,10 +293,12 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           pdf.setTextColor(30, 30, 30);
           const prefix = block.ordered ? `${block.index}.` : '\u2022';
           const indent = 4;
-          const lines = splitWords(`${prefix} ${block.text}`, contentW - indent);
-          checkPageBreak(lines.length * LINE_HEIGHT_NORMAL + 1.5);
+          const lines = wrapText(`${prefix} ${block.text}`, contentW - indent);
+          const effLH = block.lineHeight ? LINE_HEIGHT_NORMAL * block.lineHeight : LINE_HEIGHT_NORMAL;
+          const effMB = block.marginBottom != null ? Math.min(block.marginBottom * 0.264, 8) : 1.5;
+          checkPageBreak(lines.length * effLH + effMB);
           pdf.text(lines, marginL + indent, curY);
-          curY += lines.length * LINE_HEIGHT_NORMAL + 1.5;
+          curY += lines.length * effLH + effMB;
           continue;
         }
 
@@ -297,10 +324,10 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           const textX = align === 'center' ? pageW / 2 : align === 'right' ? pageW - marginR : marginL;
 
           // line-height do editor (ex: 1.5) → mm; marginBottom px → mm (1px ≈ 0.264mm)
-          const effectiveLH = blockLH ? LINE_HEIGHT_NORMAL * blockLH : LINE_HEIGHT_NORMAL;
-          const effectiveMB = blockMB ? Math.min(blockMB * 0.264, 8) : PARA_SPACING;
+          const effectiveLH = blockLH != null ? LINE_HEIGHT_NORMAL * blockLH : LINE_HEIGHT_NORMAL;
+          const effectiveMB = blockMB != null ? Math.min(blockMB * 0.264, 8) : PARA_SPACING;
 
-          const lines = splitWords(fullText, contentW);
+          const lines = wrapText(fullText, contentW);
           checkPageBreak(lines.length * effectiveLH + effectiveMB);
           pdf.text(lines, textX, curY, { align: jsPDFAlign });
           curY += lines.length * effectiveLH + effectiveMB;

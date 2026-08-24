@@ -3,10 +3,23 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Loader2, Save, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
+import { FileText, Loader2, Save, ChevronUp, ChevronDown, RotateCcw, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+
+// Registrar formatos customizados no Quill para preservar line-height e
+// margin-bottom como atributos de bloco. Sem isso, o Quill remove os estilos
+// inline ao re-renderizar, e os controles de espaçamento não persistem.
+const _Quill = ReactQuill.Quill;
+if (_Quill) {
+  try {
+    const Parchment = _Quill.import('parchment');
+    const StyleAttr = Parchment.Attributor.Style;
+    _Quill.register(new StyleAttr('lineHeight', 'line-height', { scope: Parchment.Scope.BLOCK_ATTRIBUTE }), true);
+    _Quill.register(new StyleAttr('marginBottom', 'margin-bottom', { scope: Parchment.Scope.BLOCK_ATTRIBUTE }), true);
+  } catch (e) { /* já registrado */ }
+}
 
 const QUILL_MODULES = {
   toolbar: [
@@ -25,6 +38,7 @@ const QUILL_FORMATS = [
   'bold', 'italic', 'underline', 'strike',
   'color', 'background',
   'list', 'align',
+  'lineHeight', 'marginBottom',
 ];
 
 const LINE_HEIGHT_OPTIONS = [
@@ -131,6 +145,7 @@ export default function ContractTemplate() {
     logo_url: ''
   });
   const [headerOpen, setHeaderOpen] = useState(true);
+  const [savedAt, setSavedAt] = useState(null);
 
   useEffect(() => {
     loadTemplate();
@@ -190,6 +205,8 @@ export default function ContractTemplate() {
         });
       }
       toast.success('Template salvo com sucesso!');
+      setSavedAt(Date.now());
+      setTimeout(() => setSavedAt(null), 5000);
       loadTemplate();
     } catch (error) {
       toast.error('Erro ao salvar template');
@@ -273,20 +290,28 @@ export default function ContractTemplate() {
               <p className="text-sm text-red-600">Somente visualização - Apenas administradores podem editar</p>
             )}
           </div>
-          {isAdmin && (
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-[#6B3FA0] hover:bg-[#834CB8]"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Salvar Template
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {savedAt && (
+              <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium animate-in fade-in">
+                <CheckCircle className="h-4 w-4" />
+                Template salvo!
+              </span>
+            )}
+            {isAdmin && (
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-[#6B3FA0] hover:bg-[#834CB8]"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Salvar Template
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
