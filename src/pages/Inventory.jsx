@@ -614,12 +614,25 @@ export default function Inventory() {
                   </TableHeader>
                   <TableBody>
                     {(() => {
-                      const hearingAids = products.filter(p => 
-                        p.category === 'aparelho_auditivo' && 
+                      const hearingAids = products.filter(p =>
+                        p.category === 'aparelho_auditivo' &&
+                        !allTrialIds.has(p.id) &&
                         (p.stock_type === 'nao_serializado' ? (p.quantity || 0) > 0 : p.status === 'disponivel')
                       );
+                      const normalize = (s) => (s || '')
+                        .toString()
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toUpperCase()
+                        .trim();
                       const modelGroups = hearingAids.reduce((acc, product) => {
-                        const key = `${product.brand}-${product.model}`;
+                        const brandNorm = normalize(product.brand);
+                        let modelNorm = normalize(product.model);
+                        // Remove prefixo da marca do modelo, se presente (ex: "ARGOSY VISTA V5-R" -> "VISTA V5-R")
+                        if (brandNorm && modelNorm.startsWith(brandNorm + ' ')) {
+                          modelNorm = modelNorm.slice(brandNorm.length + 1);
+                        }
+                        const key = `${brandNorm}-${modelNorm}`;
                         if (!acc[key]) {
                           acc[key] = {
                             brand: product.brand,
