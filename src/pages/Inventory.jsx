@@ -558,7 +558,7 @@ export default function Inventory() {
                       );
                     }
 
-                    return alertItems.slice(0, 8).map(product => {
+                    return alertItems.map(product => {
                       const isZero = product.stock_type === 'nao_serializado' && (product.quantity || 0) === 0;
                       return (
                         <div
