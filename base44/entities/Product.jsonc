@@ -96,7 +96,8 @@
         "reservado",
         "vendido",
         "baixo_estoque",
-        "indisponivel"
+        "indisponivel",
+        "descartado"
       ],
       "default": "disponivel",
       "description": "Status do produto"
@@ -141,6 +142,36 @@
       "type": "boolean",
       "default": true,
       "description": "Se o custo operacional (fixo mensal) est\u00e1 inclu\u00eddo no custo total"
+    },
+    "discard_reason": {
+      "type": "string",
+      "enum": [
+        "quebra",
+        "descarte",
+        "fim_de_vida"
+      ],
+      "description": "Motivo da baixa do aparelho"
+    },
+    "discard_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da baixa/descarte"
+    },
+    "discard_protocol": {
+      "type": "string",
+      "description": "N\u00ba de NF ou protocolo de descarte"
+    },
+    "discard_notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00e3o sobre a baixa"
+    },
+    "discarded_by_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que registrou a baixa"
+    },
+    "discarded_by_name": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio que registrou a baixa"
     }
   },
   "required": [

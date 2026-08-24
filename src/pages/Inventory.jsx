@@ -46,6 +46,8 @@ import SerializedProductForm from '@/components/inventory/SerializedProductForm'
 import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
 import TrialProductForm from '@/components/inventory/TrialProductForm';
 import ServicesTab from '@/components/inventory/ServicesTab';
+import DiscardsTab from '@/components/inventory/DiscardsTab';
+import DiscardProductDialog from '@/components/inventory/DiscardProductDialog';
 import { 
   Search, 
   Filter, 
@@ -65,7 +67,8 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Edit3,
-  Wrench
+  Wrench,
+  PackageX
 } from 'lucide-react';
 import { useTabs } from '@/lib/TabsContext';
 import { toast } from 'sonner';
@@ -103,6 +106,7 @@ export default function Inventory() {
   const [adjustmentData, setAdjustmentData] = useState({ type: 'entrada', quantity: '', reason: '', notes: '' });
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -292,12 +296,12 @@ export default function Inventory() {
       });
     });
   const trialProductIds = Object.keys(trialProductMap);
-  // Produtos de trial = marcados como is_trial OU referenciados em testes ativos
-  const trialProducts = serializedProducts.filter(p => p.is_trial || trialProductIds.includes(p.id));
+  // Produtos de trial = marcados como is_trial OU referenciados em testes ativos (exclui descartados)
+  const trialProducts = serializedProducts.filter(p => p.status !== 'descartado' && (p.is_trial || trialProductIds.includes(p.id)));
   // IDs de todos os produtos de trial (para excluir da aba Produto A)
   const allTrialIds = new Set(trialProducts.map(p => p.id));
 
-  // Apenas produtos disponíveis (não vendidos/reservados) e não em trial
+  // Apenas produtos disponíveis (não vendidos/reservados/descartados) e não em trial
   const serializedAvailable = serializedProducts.filter(p => p.status === 'disponivel' && !allTrialIds.has(p.id));
   const serializedReserved = serializedProducts.filter(p => p.status === 'reservado');
   const serializedSold = serializedProducts.filter(p => p.status === 'vendido');
@@ -408,12 +412,13 @@ export default function Inventory() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-6 h-auto">
+        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-7 h-auto">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="serialized">Produto (A)</TabsTrigger>
           <TabsTrigger value="trial">Trial</TabsTrigger>
           <TabsTrigger value="non-serialized">Produto (B)</TabsTrigger>
           <TabsTrigger value="services">Serviços</TabsTrigger>
+          <TabsTrigger value="discards">Baixas</TabsTrigger>
           <TabsTrigger value="movements">Movim.</TabsTrigger>
         </TabsList>
 
@@ -784,12 +789,12 @@ export default function Inventory() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).length === 0 ? (
+                {filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12 text-slate-500">Nenhum produto encontrado</TableCell>
                   </TableRow>
                 ) : (
-                  filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).map(product => (
+                  filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').map(product => (
                     <TableRow key={product.id} className="hover:bg-slate-50">
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
@@ -828,6 +833,12 @@ export default function Inventory() {
                               Editar
                             </DropdownMenuItem>
                             {currentUser?.role === 'admin' && (
+                              <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
+                                <PackageX className="h-4 w-4 mr-2" />
+                                Dar Baixa
+                              </DropdownMenuItem>
+                            )}
+                            {currentUser?.role === 'admin' && (
                               <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Excluir
@@ -845,10 +856,10 @@ export default function Inventory() {
 
           {/* Cards - Mobile */}
           <div className="lg:hidden space-y-3">
-            {filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).length === 0 ? (
+            {filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').length === 0 ? (
               <Card className="p-8 text-center text-slate-500">Nenhum produto encontrado</Card>
             ) : (
-              filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id)).map(product => (
+              filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').map(product => (
                 <Card key={product.id} className="p-4">
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
@@ -883,6 +894,12 @@ export default function Inventory() {
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
+                              <PackageX className="h-4 w-4 mr-2" />
+                              Dar Baixa
+                            </DropdownMenuItem>
+                          )}
                           {currentUser?.role === 'admin' && (
                             <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -988,6 +1005,12 @@ export default function Inventory() {
                                   Editar
                                 </DropdownMenuItem>
                                 {currentUser?.role === 'admin' && (
+                                  <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
+                                    <PackageX className="h-4 w-4 mr-2" />
+                                    Dar Baixa
+                                  </DropdownMenuItem>
+                                )}
+                                {currentUser?.role === 'admin' && (
                                   <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Excluir
@@ -1053,6 +1076,12 @@ export default function Inventory() {
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
+                              {currentUser?.role === 'admin' && (
+                                <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
+                                  <PackageX className="h-4 w-4 mr-2" />
+                                  Dar Baixa
+                                </DropdownMenuItem>
+                              )}
                               {currentUser?.role === 'admin' && (
                                 <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -1280,6 +1309,15 @@ export default function Inventory() {
           <ServicesTab />
         </TabsContent>
 
+        {/* BAIXAS */}
+        <TabsContent value="discards" className="space-y-4">
+          <DiscardsTab
+            products={products}
+            currentUser={currentUser}
+            onDelete={(product) => { setSelectedProduct(product); setDeleteOpen(true); }}
+          />
+        </TabsContent>
+
         {/* MOVIMENTAÇÕES */}
         <TabsContent value="movements" className="space-y-4">
           {/* Filters - Desktop */}
@@ -1469,6 +1507,14 @@ export default function Inventory() {
       <TrialProductForm
         open={trialFormOpen}
         onOpenChange={setTrialFormOpen}
+        product={selectedProduct}
+        onSuccess={loadData}
+      />
+
+      {/* Discard Product Dialog */}
+      <DiscardProductDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
         product={selectedProduct}
         onSuccess={loadData}
       />
