@@ -24,6 +24,7 @@ import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { recalculateClientStatus } from '@/components/utils/clientStatusSync';
 
 export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
@@ -341,11 +342,8 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
           await base44.entities.Quote.update(formData.quote_id, { status: 'convertido' });
         }
 
-        // Atualizar status do cliente para Cliente Ativo
-        const client = clients.find(c => c.id === formData.client_id);
-        if (client) {
-          await base44.entities.Client.update(client.id, { status: 'cliente_ativo' });
-        }
+        // Recalcular status do cliente com base nas vendas válidas
+        await recalculateClientStatus(formData.client_id);
 
         toast.success('Venda registrada com sucesso!');
       }

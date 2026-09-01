@@ -55,6 +55,7 @@ import { formatLocalDate } from '@/components/utils/dateHelpers';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { logDeletion } from '@/components/utils/auditLogger';
 import PaginationControls from '@/components/ui/PaginationControls';
+import { recalculateClientStatus } from '@/components/utils/clientStatusSync';
 
 const PAGE_SIZE = 50;
 
@@ -282,6 +283,8 @@ Obrigado pela preferência!
       }
 
       await base44.entities.Sale.update(sale.id, { status: 'cancelado' });
+      // Reavaliar status do cliente (pode voltar para lead se não houver outras vendas válidas)
+      await recalculateClientStatus(sale.client_id);
       toast.success('Venda cancelada e produtos devolvidos ao estoque');
       setCancelConfirmOpen(false);
       setSaleToCancel(null);
@@ -326,6 +329,8 @@ Obrigado pela preferência!
     try {
       await base44.entities.Sale.delete(sale.id);
       await logDeletion('Venda', `Venda ${sale.sale_number} do cliente ${sale.client_name} excluída`, sale.id);
+      // Reavaliar status do cliente (pode voltar para lead se não houver outras vendas válidas)
+      await recalculateClientStatus(sale.client_id);
       toast.success('Venda excluída com sucesso');
       loadData();
     } catch (error) {

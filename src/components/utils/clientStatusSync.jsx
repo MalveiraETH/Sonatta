@@ -37,20 +37,41 @@ export const syncClientStatusFromTest = async (clientId, testStatus) => {
 };
 
 /**
- * Atualiza o status do cliente para "cliente_ativo" após uma venda
- * Esta função é chamada sempre que uma venda é criada
+ * Recalcula o status do cliente com base nas vendas válidas (pago ou pendente).
+ * - Sem vendas válidas → lead
+ * - Com vendas válidas e era lead → cliente_ativo
+ * - Com vendas válidas e já era cliente_ativo/pos_venda → mantém
+ * Esta função deve ser chamada após criar, cancelar ou excluir vendas.
+ */
+export const recalculateClientStatus = async (clientId) => {
+  if (!clientId) return;
+  try {
+    const [paidSales, pendingSales] = await Promise.all([
+      base44.entities.Sale.filter({ client_id: clientId, status: 'pago' }),
+      base44.entities.Sale.filter({ client_id: clientId, status: 'pendente' })
+    ]);
+    const validSales = [...paidSales, ...pendingSales];
+
+    if (validSales.length === 0) {
+      await base44.entities.Client.update(clientId, { status: 'lead' });
+    } else {
+      const client = await base44.entities.Client.get(clientId);
+      if (client && client.status === 'lead') {
+        await base44.entities.Client.update(clientId, { status: 'cliente_ativo' });
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao recalcular status do cliente:', error);
+  }
+};
+
+/**
+ * Sincroniza o status do cliente após uma venda — agora usa recalculateClientStatus
  */
 export const syncClientStatusFromSale = async (clientId) => {
   if (!clientId) {
     console.warn('Client ID ausente');
     return;
   }
-  
-  try {
-    await base44.entities.Client.update(clientId, { status: 'cliente_ativo' });
-    console.log('Status do cliente atualizado para: cliente_ativo');
-  } catch (error) {
-    console.error('Erro ao atualizar status do cliente após venda:', error);
-    throw error;
-  }
+  await recalculateClientStatus(clientId);
 };

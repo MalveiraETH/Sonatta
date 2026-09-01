@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logCreation, logEdit } from '@/components/utils/auditLogger';
 import { createInstallmentsForSale, syncInstallmentsForSale } from '@/components/sales/syncInstallments';
+import { recalculateClientStatus } from '@/components/utils/clientStatusSync';
 
 export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
   const [loading, setLoading] = useState(false);
@@ -600,10 +601,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         console.warn('Aviso: não foi possível atualizar estoque automaticamente:', stockError.message);
       }
 
-      // Atualizar status do cliente para "cliente_ativo" após venda
+      // Recalcular status do cliente com base nas vendas válidas
       if (formData.client_id) {
         try {
-          await base44.entities.Client.update(formData.client_id, { status: 'cliente_ativo' });
+          await recalculateClientStatus(formData.client_id);
         } catch (e) {
           console.warn('Aviso: não foi possível atualizar status do cliente:', e.message);
         }
