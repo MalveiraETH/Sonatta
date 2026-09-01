@@ -42,6 +42,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import TestForm from '@/components/tests/TestForm';
+import { recalculateClientStatus } from '@/components/utils/clientStatusSync';
 import { TEST_TEMPLATES_DEFAULTS } from '@/components/settings/WhatsAppTestTemplate';
 import { 
   Search, 
@@ -159,12 +160,6 @@ export default function Tests() {
   const handleFinalize = async (test) => {
     try {
       await base44.entities.Test.update(test.id, { status: 'teste_finalizado' });
-      
-      // Sincronizar status do cliente
-      if (test.client_id) {
-        await base44.entities.Client.update(test.client_id, { status: 'teste_finalizado' });
-      }
-      
       toast.success('Teste finalizado');
       loadData();
     } catch (error) {
@@ -180,7 +175,11 @@ export default function Tests() {
 
   const handleDelete = async () => {
     try {
+      const clientId = selectedTest.client_id;
       await base44.entities.Test.delete(selectedTest.id);
+      if (clientId) {
+        await recalculateClientStatus(clientId);
+      }
       toast.success('Teste excluído');
       setDeleteOpen(false);
       loadData();

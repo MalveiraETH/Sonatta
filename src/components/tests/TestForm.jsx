@@ -156,19 +156,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
     }
   };
 
-  const updateClientStatus = async (clientId, testStatus) => {
-    try {
-      // Status do cliente é independente do teste: só altera para cliente_ativo ao finalizar
-      // Nos demais casos, mantém o status atual (não toca no status lead/cliente_ativo/pos_venda)
-      if (testStatus === 'teste_finalizado') {
-        await base44.entities.Client.update(clientId, { status: 'cliente_ativo' });
-      }
-      // Para outros status de teste (em_teste, teste_estendido, teste_pendente), não altera o status do cliente
-    } catch (error) {
-      console.error('Erro ao atualizar status do cliente:', error);
-    }
-  };
-
   const addToMedicalRecord = async () => {
     if (!formData.notes?.trim() || !formData.client_id) return;
     setAddingRecord(true);
@@ -213,9 +200,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
       if (test) {
         await base44.entities.Test.update(test.id, testData);
 
-        // Atualizar status do cliente baseado no status do teste
-        await updateClientStatus(formData.client_id, testData.status);
-
         toast.success('Teste atualizado');
       } else {
         // Gerar número único buscando o maior existente e incrementando
@@ -227,9 +211,6 @@ export default function TestForm({ open, onClose, test, onSuccess, extendMode = 
         }
         testData.test_number = `TST-${String(maxNum + 1).padStart(4, '0')}`;
         await base44.entities.Test.create(testData);
-
-        // Atualizar status do cliente baseado no status do teste
-        await updateClientStatus(formData.client_id, testData.status);
 
         toast.success('Teste cadastrado');
       }
