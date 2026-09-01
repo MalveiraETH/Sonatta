@@ -1,0 +1,59 @@
+{
+  "name": "ClientObservation",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nome do cliente"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da observa\u00e7\u00e3o"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "recepcao",
+        "comercial",
+        "queixa_cliente",
+        "agendamento",
+        "outros"
+      ],
+      "default": "recepcao",
+      "description": "Categoria da observa\u00e7\u00e3o"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Autor da observa\u00e7\u00e3o"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Assunto/resumo da observa\u00e7\u00e3o"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado detalhado da observa\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "client_id",
+    "date",
+    "category",
+    "content"
+  ],
+  "rls": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

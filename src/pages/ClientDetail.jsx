@@ -17,6 +17,7 @@ const ClientForm = lazy(() => import('@/components/clients/ClientForm'));
 const MoldOrderForm = lazy(() => import('@/components/molds/MoldOrderForm'));
 const MoldStatusBadge = lazy(() => import('@/components/molds/MoldStatusBadge'));
 const MedicalRecordsTimeline = lazy(() => import('@/components/clients/MedicalRecordsTimeline'));
+const ObservationsTimeline = lazy(() => import('@/components/clients/ObservationsTimeline'));
 import {
   Table,
   TableBody,
@@ -389,6 +390,7 @@ export default function ClientDetail() {
           <TabsTrigger value="products">Produtos</TabsTrigger>
           <TabsTrigger value="molds">Moldes & Tampões</TabsTrigger>
           <TabsTrigger value="records">Prontuários</TabsTrigger>
+          <TabsTrigger value="observations">Observações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="devices">
@@ -793,6 +795,12 @@ export default function ClientDetail() {
         <TabsContent value="records">
           <Suspense fallback={<div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" /></div>}>
             <MedicalRecordsTimeline clientId={client.id} clientName={client.full_name} />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="observations">
+          <Suspense fallback={<div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" /></div>}>
+            <ObservationsTimeline clientId={client.id} clientName={client.full_name} />
           </Suspense>
         </TabsContent>
 
