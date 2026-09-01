@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 
 const SUPPLIERS = ['Phonak', 'Widex', 'Oticon', 'Signia', 'Starkey', 'ReSound', 'Unitron', 'Outro'];
 
-export default function RepairForm({ open, onClose, repair, onSaved }) {
+export default function RepairForm({ open, onClose, repair, onSaved, preselectedClient }) {
   const [clients, setClients] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [serializedProducts, setSerializedProducts] = useState([]);
@@ -37,12 +37,17 @@ export default function RepairForm({ open, onClose, repair, onSaved }) {
         status: 'aberto',
         warranty_repair: false,
         repair_cost: 0,
+        ...(preselectedClient ? {
+          client_id: preselectedClient.id,
+          client_name: preselectedClient.full_name,
+          client_phone: preselectedClient.phone,
+        } : {}),
       });
       setSnSearch('');
     }
     setSnError('');
     setClientSearch('');
-  }, [repair, open]);
+  }, [repair, open, preselectedClient]);
 
   const handleProductSelect = (product) => {
     setForm(prev => ({

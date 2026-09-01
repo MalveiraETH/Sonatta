@@ -9,6 +9,7 @@ import { Plus, Search, Wrench, Package, Truck, CheckCircle2, Clock, AlertCircle,
 import RepairForm from '@/components/repairs/RepairForm';
 import RepairTimeline from '@/components/repairs/RepairTimeline';
 import PaginationControls from '@/components/ui/PaginationControls';
+import { Link } from 'react-router-dom';
 
 const PAGE_SIZE = 50;
 
@@ -153,7 +154,7 @@ export default function DeviceRepairs() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-slate-800">{repair.client_name}</span>
+                          <Link to={`/ClientDetail?id=${repair.client_id}`} className="font-semibold text-slate-800 hover:text-[#6B3FA0]">{repair.client_name}</Link>
                           {repair.warranty_repair && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Garantia</span>
                           )}

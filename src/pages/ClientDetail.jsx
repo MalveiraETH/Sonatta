@@ -18,6 +18,7 @@ const MoldOrderForm = lazy(() => import('@/components/molds/MoldOrderForm'));
 const MoldStatusBadge = lazy(() => import('@/components/molds/MoldStatusBadge'));
 const MedicalRecordsTimeline = lazy(() => import('@/components/clients/MedicalRecordsTimeline'));
 const ObservationsTimeline = lazy(() => import('@/components/clients/ObservationsTimeline'));
+const RepairForm = lazy(() => import('@/components/repairs/RepairForm'));
 import {
   Table,
   TableBody,
@@ -42,7 +43,8 @@ import {
   BeakerIcon,
   Package,
   Edit,
-  Layers
+  Layers,
+  Wrench
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -71,12 +73,14 @@ export default function ClientDetail() {
   const [clientDevices, setClientDevices] = useState([]);
   const [tests, setTests] = useState([]);
   const [moldOrders, setMoldOrders] = useState([]);
+  const [repairs, setRepairs] = useState([]);
   const [moldFormOpen, setMoldFormOpen] = useState(false);
   const [appointmentFormOpen, setAppointmentFormOpen] = useState(false);
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
   const [saleFormOpen, setSaleFormOpen] = useState(false);
   const [newSaleFormOpen, setNewSaleFormOpen] = useState(false);
   const [testFormOpen, setTestFormOpen] = useState(false);
+  const [repairFormOpen, setRepairFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
@@ -95,7 +99,7 @@ export default function ClientDetail() {
     }
 
     try {
-      const [clientData, appointmentsData, quotesData, salesData, historyData, testsData, moldOrdersData, user] = await Promise.all([
+      const [clientData, appointmentsData, quotesData, salesData, historyData, testsData, moldOrdersData, repairsData, user] = await Promise.all([
         base44.entities.Client.filter({ id: clientId }),
         base44.entities.Appointment.filter({ client_id: clientId }, '-date'),
         base44.entities.Quote.filter({ client_id: clientId }, '-created_date'),
@@ -103,6 +107,7 @@ export default function ClientDetail() {
         base44.entities.ServiceHistory.filter({ client_id: clientId }, '-created_date'),
         base44.entities.Test.filter({ client_id: clientId }, '-created_date'),
         base44.entities.MoldOrder.filter({ client_id: clientId }, '-created_date'),
+        base44.entities.DeviceRepair.filter({ client_id: clientId }, '-created_date'),
         base44.auth.me()
       ]);
 
@@ -113,6 +118,7 @@ export default function ClientDetail() {
       setHistory(historyData);
       setTests(testsData);
       setMoldOrders(moldOrdersData);
+      setRepairs(repairsData);
       setCurrentUser(user);
 
       // Extrair aparelhos comprados pelo cliente
@@ -176,6 +182,16 @@ export default function ClientDetail() {
   const getWarrantyDaysRemaining = (warrantyEnd) => {
     const diff = new Date(warrantyEnd) - new Date();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const REPAIR_STATUS_CONFIG = {
+    aberto: { label: 'Aberto', color: 'bg-blue-100 text-blue-700' },
+    enviado_ao_fornecedor: { label: 'Enviado', color: 'bg-orange-100 text-orange-700' },
+    em_reparo: { label: 'Em Reparo', color: 'bg-yellow-100 text-yellow-700' },
+    reparado: { label: 'Reparado', color: 'bg-teal-100 text-teal-700' },
+    aguardando_retirada: { label: 'Aguard. Retirada', color: 'bg-purple-100 text-purple-700' },
+    devolvido_ao_cliente: { label: 'Devolvido', color: 'bg-green-100 text-green-700' },
+    cancelado: { label: 'Cancelado', color: 'bg-slate-100 text-slate-500' },
   };
 
   const typeLabels = {
@@ -391,6 +407,7 @@ export default function ClientDetail() {
           <TabsTrigger value="molds">Moldes & Tampões</TabsTrigger>
           <TabsTrigger value="records">Prontuários</TabsTrigger>
           <TabsTrigger value="observations">Observações</TabsTrigger>
+          <TabsTrigger value="repairs">Consertos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="devices">
@@ -804,6 +821,54 @@ export default function ClientDetail() {
           </Suspense>
         </TabsContent>
 
+        <TabsContent value="repairs">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Wrench className="h-5 w-5" />
+                Consertos
+              </CardTitle>
+              <Button size="sm" onClick={() => setRepairFormOpen(true)} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
+                <Plus className="h-4 w-4 mr-1" />
+                Nova OS
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {repairs.length > 0 ? (
+                <div className="space-y-3">
+                  {repairs.map((repair) => {
+                    const cfg = REPAIR_STATUS_CONFIG[repair.status] || REPAIR_STATUS_CONFIG.aberto;
+                    return (
+                      <Link
+                        key={repair.id}
+                        to={`/DeviceRepairs?search=${repair.service_order_number || repair.serial_number || ''}`}
+                        className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center">
+                            <Wrench className="h-5 w-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{repair.device_name}</p>
+                            <p className="text-sm text-slate-500">
+                              {repair.service_order_number || 'Sem OS'} · {repair.supplier_name || '—'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${cfg.color}`}>
+                          {cfg.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-4">Nenhum conserto registrado</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
       </Tabs>
 
       <Suspense fallback={null}>
@@ -854,6 +919,13 @@ export default function ClientDetail() {
           onOpenChange={setMoldFormOpen}
           preselectedClient={client}
           onSuccess={loadData}
+        />
+
+        <RepairForm
+          open={repairFormOpen}
+          onClose={() => setRepairFormOpen(false)}
+          preselectedClient={client}
+          onSaved={loadData}
         />
       </Suspense>
 
