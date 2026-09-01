@@ -52,9 +52,11 @@ Deno.serve(async (req) => {
           sale_date: sale_date
         });
       } else if (mode === 'cancel') {
-        // Devolver ao estoque
+        // Devolver ao estoque (não sobrescreve status 'descartado')
         if (product.stock_type === 'serializado') {
-          await base44.asServiceRole.entities.Product.update(product.id, { status: 'disponivel' });
+          if (product.status === 'vendido') {
+            await base44.asServiceRole.entities.Product.update(product.id, { status: 'disponivel' });
+          }
         } else {
           await base44.asServiceRole.entities.Product.update(product.id, {
             quantity: (product.quantity || 0) + (item.quantity || 1)

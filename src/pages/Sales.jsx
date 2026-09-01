@@ -299,6 +299,20 @@ Obrigado pela preferência!
     const sale = selectedSale;
     setDeleteOpen(false);
 
+    // Devolver produtos ao estoque apenas se a venda não estava já cancelada
+    if (sale.status !== 'cancelado') {
+      try {
+        await base44.functions.invoke('processSaleStock', {
+          items: sale.items,
+          sale_id: sale.id,
+          sale_number: sale.sale_number,
+          mode: 'cancel'
+        });
+      } catch (stockError) {
+        console.warn('Aviso: não foi possível devolver estoque automaticamente:', stockError.message);
+      }
+    }
+
     // Excluir parcelas vinculadas via função backend (usa service role)
     try {
       await base44.functions.invoke('deleteInstallmentsBySaleId', { sale_id: sale.id });
