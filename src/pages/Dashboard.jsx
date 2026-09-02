@@ -23,6 +23,16 @@ import {
 } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -33,10 +43,12 @@ export default function Dashboard() {
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [filterMonthStart, setFilterMonthStart] = useState(new Date().getMonth());
   const [filterMonthEnd, setFilterMonthEnd] = useState(new Date().getMonth());
+  const [chartYear, setChartYear] = useState(new Date().getFullYear());
+  const [yearlyChartData, setYearlyChartData] = useState([]);
 
   useEffect(() => {
     loadDashboardData();
-  }, [filterYear, filterMonthStart, filterMonthEnd]);
+  }, [filterYear, filterMonthStart, filterMonthEnd, chartYear]);
 
   const loadDashboardData = async () => {
     try {
@@ -196,6 +208,40 @@ export default function Dashboard() {
         overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
         testsActive: tests.filter(t => t.status === 'em_teste' || t.status === 'teste_estendido').length
       });
+
+      // DADOS ANUAIS PARA GRÁFICO (receitas x despesas por mês)
+      const monthlyRevenue = Array.from({ length: 12 }, () => 0);
+      const monthlyExpensesArr = Array.from({ length: 12 }, () => 0);
+
+      // Receitas: vendas à vista (data venda) + parcelas pagas (data pagamento)
+      sales.forEach(s => {
+        const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
+        if (saleDate.getFullYear() !== chartYear) return;
+        const cashPayments = s.payment_details?.filter(p =>
+          ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
+        ) || [];
+        monthlyRevenue[saleDate.getMonth()] += cashPayments.reduce((pSum, p) => pSum + (p.net_amount || p.amount || 0), 0);
+      });
+      installments.forEach(i => {
+        if (i.payment_status !== 'pago' || !i.last_payment_date) return;
+        const paymentDate = parseLocalDate(i.last_payment_date);
+        if (!paymentDate || paymentDate.getFullYear() !== chartYear) return;
+        monthlyRevenue[paymentDate.getMonth()] += (i.net_amount || i.paid_amount || 0);
+      });
+
+      // Despesas (data vencimento)
+      expenses.forEach(e => {
+        const dueDate = parseLocalDate(e.due_date);
+        if (!dueDate || dueDate.getFullYear() !== chartYear) return;
+        monthlyExpensesArr[dueDate.getMonth()] += (e.amount || 0);
+      });
+
+      const chartData = months.map((m, idx) => ({
+        month: m.label.slice(0, 3),
+        receitas: Math.round(monthlyRevenue[idx] * 100) / 100,
+        despesas: Math.round(monthlyExpensesArr[idx] * 100) / 100,
+      }));
+      setYearlyChartData(chartData);
 
       setTodayAppointments(todayAppts.slice(0, 5));
       setRecentSales(sales.slice(0, 5));
@@ -388,6 +434,43 @@ export default function Dashboard() {
           </Card>
         </Link>
       </div>
+
+      {/* Gráfico Anual: Receitas x Despesas */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <CardTitle className="text-lg font-semibold">Receitas x Despesas (Anual)</CardTitle>
+            <Select value={chartYear.toString()} onValueChange={(v) => setChartYear(parseInt(v))}>
+              <SelectTrigger className="w-full sm:w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(year => (
+                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={yearlyChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  formatter={(value) => formatCurrency(value)}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                />
+                <Legend />
+                <Line type="monotone" dataKey="receitas" name="Receitas" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="despesas" name="Despesas" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Alertas Críticos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
