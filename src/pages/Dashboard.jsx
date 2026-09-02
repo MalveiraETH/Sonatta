@@ -65,8 +65,17 @@ export default function Dashboard() {
         return inst.payment_method === 'cartao_credito' && inst.payment_status !== 'pago' && dueDate < todayDate;
       });
 
+      const parseLocalDate = (dateStr) => {
+        if (!dateStr) return null;
+        const str = String(dateStr);
+        // Strings date-only (YYYY-MM-DD) viriam UTC meia-noite → deslocam de mês no fuso local.
+        // Anexa T00:00:00 para interpretar no horário local.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return new Date(str + 'T00:00:00');
+        return new Date(str);
+      };
+
       const monthSalesData = sales.filter(s => {
-        const saleDate = new Date(s.sale_date || s.created_date);
+        const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
         const saleMonth = saleDate.getMonth();
         const saleYear = saleDate.getFullYear();
         return saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
@@ -79,7 +88,8 @@ export default function Dashboard() {
 
       const billedFromInstallments = installments
         .filter(i => {
-          const dueDate = new Date(i.due_date);
+          const dueDate = parseLocalDate(i.due_date);
+          if (!dueDate) return false;
           const dueMonth = dueDate.getMonth();
           const dueYear = dueDate.getFullYear();
           return dueYear === filterYear && dueMonth >= filterMonthStart && dueMonth <= filterMonthEnd;
@@ -102,7 +112,8 @@ export default function Dashboard() {
       const revenueFromInstallmentsPaid = installments
         .filter(i => {
           if (i.payment_status !== 'pago' || !i.last_payment_date) return false;
-          const paymentDate = new Date(i.last_payment_date);
+          const paymentDate = parseLocalDate(i.last_payment_date);
+          if (!paymentDate) return false;
           const paymentMonth = paymentDate.getMonth();
           const paymentYear = paymentDate.getFullYear();
           return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
@@ -117,7 +128,8 @@ export default function Dashboard() {
       // APARELHOS VENDIDOS (categoria aparelho_auditivo, data de saída)
       const devicesExitMovements = stockMovements.filter(m => {
         if (m.type !== 'saida' || !m.sale_date) return false;
-        const exitDate = new Date(m.sale_date);
+        const exitDate = parseLocalDate(m.sale_date);
+        if (!exitDate) return false;
         const exitMonth = exitDate.getMonth();
         const exitYear = exitDate.getFullYear();
         if (exitYear !== filterYear || exitMonth < filterMonthStart || exitMonth > filterMonthEnd) return false;
@@ -130,7 +142,8 @@ export default function Dashboard() {
       // BATERIAS VENDIDAS (categoria bateria, data de saída)
       const batteriesExitMovements = stockMovements.filter(m => {
         if (m.type !== 'saida' || !m.sale_date) return false;
-        const exitDate = new Date(m.sale_date);
+        const exitDate = parseLocalDate(m.sale_date);
+        if (!exitDate) return false;
         const exitMonth = exitDate.getMonth();
         const exitYear = exitDate.getFullYear();
         if (exitYear !== filterYear || exitMonth < filterMonthStart || exitMonth > filterMonthEnd) return false;
@@ -147,7 +160,8 @@ export default function Dashboard() {
 
       const monthExpenses = expenses
         .filter(e => {
-          const dueDate = new Date(e.due_date);
+          const dueDate = parseLocalDate(e.due_date);
+          if (!dueDate) return false;
           const expenseMonth = dueDate.getMonth();
           const expenseYear = dueDate.getFullYear();
           return expenseYear === filterYear && expenseMonth >= filterMonthStart && expenseMonth <= filterMonthEnd;
