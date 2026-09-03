@@ -163,6 +163,11 @@ export default function DeviceRepairs() {
                         <p className="text-sm text-slate-600 mt-0.5">
                           {repair.device_name} {repair.serial_number ? `· SN: ${repair.serial_number}` : ''}
                         </p>
+                        {repair.products && repair.products.length > 1 && (
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            +{repair.products.length - 1} aparelho(s) adicional(is) nesta OS
+                          </p>
+                        )}
                         <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-400">
                           {repair.service_order_number && <span>OS: {repair.service_order_number}</span>}
                           {repair.supplier_name && <span>Fornecedor: {repair.supplier_name}</span>}

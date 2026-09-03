@@ -12,7 +12,8 @@ import {
   Clock,
   CheckCircle2,
   Ear,
-  Package
+  Package,
+  Wrench
 } from 'lucide-react';
 import {
   Select,
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({});
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentSales, setRecentSales] = useState([]);
+  const [repairs, setRepairs] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [filterMonthStart, setFilterMonthStart] = useState(new Date().getMonth());
@@ -52,7 +54,7 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses, tests, stockMovements] = await Promise.all([
+      const [clients, appointments, sales, products, installments, expenses, tests, stockMovements, repairsData] = await Promise.all([
         base44.entities.Client.list(),
         base44.entities.Appointment.list('-created_date'),
         base44.entities.Sale.list('-created_date', 100),
@@ -60,7 +62,8 @@ export default function Dashboard() {
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
         base44.entities.Test.list(),
-        base44.entities.StockMovement.list()
+        base44.entities.StockMovement.list(),
+        base44.entities.DeviceRepair.list('-created_date', 200)
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
@@ -246,6 +249,7 @@ export default function Dashboard() {
       setTodayAppointments(todayAppts.slice(0, 5));
       setRecentSales(sales.slice(0, 5));
       setLowStockProducts(lowStock.slice(0, 5));
+      setRepairs(repairsData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -589,6 +593,110 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Gestão de Consertos */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Wrench className="h-5 w-5 text-[#6B3FA0]" />
+              Gestão de Consertos
+            </span>
+            <Link to={createPageUrl('DeviceRepairs')}>
+              <p className="text-sm text-[#6B3FA0] hover:underline">Ver todos →</p>
+            </Link>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const repairKpis = {
+              abertos: repairs.filter(r => r.status === 'aberto').length,
+              emAndamento: repairs.filter(r => ['enviado_ao_fornecedor', 'em_reparo', 'reparado', 'aguardando_retirada'].includes(r.status)).length,
+              devolvidos: repairs.filter(r => r.status === 'devolvido_ao_cliente').length,
+              garantia: repairs.filter(r => r.warranty_repair).length,
+              custoTotal: repairs.reduce((s, r) => s + (r.repair_cost || 0), 0),
+            };
+            const recentRepairs = repairs.slice(0, 5);
+            const statusCfg = {
+              aberto: { label: 'Aberto', color: 'bg-blue-100 text-blue-700' },
+              enviado_ao_fornecedor: { label: 'Enviado', color: 'bg-orange-100 text-orange-700' },
+              em_reparo: { label: 'Em Reparo', color: 'bg-yellow-100 text-yellow-700' },
+              reparado: { label: 'Reparado', color: 'bg-teal-100 text-teal-700' },
+              aguardando_retirada: { label: 'Aguardando', color: 'bg-purple-100 text-purple-700' },
+              devolvido_ao_cliente: { label: 'Devolvido', color: 'bg-green-100 text-green-700' },
+              cancelado: { label: 'Cancelado', color: 'bg-slate-100 text-slate-500' },
+            };
+
+            return (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+                  <div className="p-3 rounded-lg bg-blue-50 text-center">
+                    <p className="text-xs text-slate-500">Abertas</p>
+                    <p className="text-2xl font-bold text-blue-600">{repairKpis.abertos}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-orange-50 text-center">
+                    <p className="text-xs text-slate-500">Em Andamento</p>
+                    <p className="text-2xl font-bold text-orange-600">{repairKpis.emAndamento}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-green-50 text-center">
+                    <p className="text-xs text-slate-500">Devolvidos</p>
+                    <p className="text-2xl font-bold text-green-600">{repairKpis.devolvidos}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-purple-50 text-center">
+                    <p className="text-xs text-slate-500">Garantia</p>
+                    <p className="text-2xl font-bold text-purple-600">{repairKpis.garantia}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-red-50 text-center">
+                    <p className="text-xs text-slate-500">Custo Total</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(repairKpis.custoTotal)}</p>
+                  </div>
+                </div>
+
+                {recentRepairs.length > 0 ? (
+                  <div className="space-y-2">
+                    {recentRepairs.map(r => {
+                      const cfg = statusCfg[r.status] || statusCfg.aberto;
+                      const aparelhos = (r.products && r.products.length > 0
+                        ? r.products
+                        : [{ serial_number: r.serial_number, device_name: r.device_name }]);
+                      return (
+                        <Link key={r.id} to={createPageUrl('DeviceRepairs')} className="block">
+                          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-slate-800 truncate">{r.client_name}</p>
+                                {r.warranty_repair && (
+                                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Garantia</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-500 truncate">
+                                {aparelhos.map(p => p.device_name).filter(Boolean).join(', ') || '-'}
+                                {aparelhos.length > 1 && <span className="text-slate-400"> ({aparelhos.length} aparelhos)</span>}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {r.supplier_name && `Fornecedor: ${r.supplier_name}`}
+                                {r.date_opened && ` · Abertura: ${new Date(r.date_opened + 'T00:00:00').toLocaleDateString('pt-BR')}`}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                              <span className={`text-xs px-2 py-1 rounded-full ${cfg.color}`}>{cfg.label}</span>
+                              {r.repair_cost > 0 && (
+                                <span className="text-xs font-medium text-slate-600">{formatCurrency(r.repair_cost)}</span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-center text-slate-500 py-8">Nenhuma ordem de serviço registrada</p>
+                )}
+              </>
+            );
+          })()}
+        </CardContent>
+      </Card>
     </div>
   );
 }

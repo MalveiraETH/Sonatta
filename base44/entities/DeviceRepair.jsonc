@@ -20,11 +20,32 @@
     },
     "device_name": {
       "type": "string",
-      "description": "Nome do aparelho"
+      "description": "Nome do aparelho principal"
     },
     "serial_number": {
       "type": "string",
-      "description": "N\u00famero de s\u00e9rie do aparelho"
+      "description": "N\u00famero de s\u00e9rie do aparelho principal"
+    },
+    "products": {
+      "type": "array",
+      "description": "Lista de aparelhos inclu\u00eddos na OS",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "ID do produto no estoque"
+          },
+          "serial_number": {
+            "type": "string",
+            "description": "N\u00famero de s\u00e9rie"
+          },
+          "device_name": {
+            "type": "string",
+            "description": "Nome do aparelho"
+          }
+        }
+      }
     },
     "professional_id": {
       "type": "string",
@@ -110,8 +131,6 @@
   },
   "required": [
     "client_id",
-    "device_name",
-    "serial_number",
     "supplier_name",
     "description_problem",
     "date_opened"

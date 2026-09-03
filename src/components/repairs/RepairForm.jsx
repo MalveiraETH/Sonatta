@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Wrench } from 'lucide-react';
 
 const SUPPLIERS = ['Phonak', 'Widex', 'Oticon', 'Signia', 'Starkey', 'ReSound', 'Unitron', 'Outro'];
 
@@ -18,8 +19,8 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
   const [loading, setLoading] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [snSearch, setSnSearch] = useState('');
-  const [snFocused, setSnFocused] = useState(false);
-  const [snError, setSnError] = useState('');
+  const [snFocusedIndex, setSnFocusedIndex] = useState(null);
+  const [snErrorIndex, setSnErrorIndex] = useState(null);
 
   useEffect(() => {
     base44.entities.Client.list('-full_name', 200).then(setClients);
@@ -29,7 +30,12 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
 
   useEffect(() => {
     if (repair) {
-      setForm(repair);
+      setForm({
+        ...repair,
+        products: repair.products && repair.products.length > 0
+          ? repair.products.map(p => ({ ...p }))
+          : [{ product_id: '', serial_number: repair.serial_number || '', device_name: repair.device_name || '' }],
+      });
       setSnSearch(repair.serial_number || '');
     } else {
       setForm({
@@ -37,6 +43,7 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
         status: 'aberto',
         warranty_repair: false,
         repair_cost: 0,
+        products: [{ product_id: '', serial_number: '', device_name: '' }],
         ...(preselectedClient ? {
           client_id: preselectedClient.id,
           client_name: preselectedClient.full_name,
@@ -45,32 +52,59 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
       });
       setSnSearch('');
     }
-    setSnError('');
+    setSnErrorIndex(null);
     setClientSearch('');
   }, [repair, open, preselectedClient]);
 
-  const handleProductSelect = (product) => {
-    setForm(prev => ({
-      ...prev,
-      serial_number: product.serial_number || '',
-      device_name: [product.brand, product.model, product.name].filter(Boolean).join(' '),
-    }));
-    setSnSearch(product.serial_number || '');
-    setSnFocused(false);
+  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleProductSelect = (index, product) => {
+    setForm(prev => {
+      const products = [...(prev.products || [])];
+      products[index] = {
+        product_id: product.id,
+        serial_number: product.serial_number || '',
+        device_name: [product.brand, product.model, product.name].filter(Boolean).join(' '),
+      };
+      return { ...prev, products };
+    });
+    setSnSearch('');
+    setSnFocusedIndex(null);
   };
 
-  const filteredProducts = serializedProducts.filter(p => {
-    if (!snSearch) return false;
-    const q = snSearch.toLowerCase();
-    return (
-      p.serial_number?.toLowerCase().includes(q) ||
-      p.name?.toLowerCase().includes(q) ||
-      p.model?.toLowerCase().includes(q) ||
-      p.brand?.toLowerCase().includes(q)
-    );
-  });
+  const addProduct = () => {
+    setForm(prev => ({
+      ...prev,
+      products: [...(prev.products || []), { product_id: '', serial_number: '', device_name: '' }],
+    }));
+  };
 
-  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const removeProduct = (index) => {
+    setForm(prev => {
+      const products = (prev.products || []).filter((_, i) => i !== index);
+      return { ...prev, products: products.length > 0 ? products : [{ product_id: '', serial_number: '', device_name: '' }] };
+    });
+  };
+
+  const updateProductField = (index, field, value) => {
+    setForm(prev => {
+      const products = [...(prev.products || [])];
+      products[index] = { ...products[index], [field]: value, product_id: field === 'serial_number' ? '' : products[index]?.product_id };
+      return { ...prev, products };
+    });
+    if (field === 'serial_number') setSnErrorIndex(null);
+  };
+
+  const filteredProductsFor = (index) => {
+    const search = (form.products?.[index]?.serial_number || '').toLowerCase();
+    if (!search) return [];
+    return serializedProducts.filter(p =>
+      p.serial_number?.toLowerCase().includes(search) ||
+      p.name?.toLowerCase().includes(search) ||
+      p.model?.toLowerCase().includes(search) ||
+      p.brand?.toLowerCase().includes(search)
+    );
+  };
 
   const handleClientSelect = (clientId) => {
     const client = clients.find(c => c.id === clientId);
@@ -90,25 +124,45 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
   };
 
   const handleSubmit = async () => {
-    if (!form.client_id || !form.device_name || !form.serial_number || !form.supplier_name || !form.description_problem || !form.date_opened) {
+    if (!form.client_id || !form.supplier_name || !form.description_problem || !form.date_opened) {
       alert('Preencha todos os campos obrigatórios.');
       return;
     }
-    
-    // Validar se SN existe no estoque (ignora ao editar OS já existente com SN cadastrado)
-    const productExists = serializedProducts.some(
-      p => p.serial_number?.trim().toLowerCase() === form.serial_number?.trim().toLowerCase()
-    );
-    if (!productExists) {
-      setSnError('Produto não encontrado no estoque');
+
+    const products = (form.products || []).filter(p => p.serial_number?.trim() || p.device_name?.trim());
+    if (products.length === 0) {
+      alert('Adicione ao menos um aparelho.');
       return;
     }
 
+    // Validar SNs no estoque
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
+      if (p.serial_number) {
+        const exists = serializedProducts.some(
+          sp => sp.serial_number?.trim().toLowerCase() === p.serial_number.trim().toLowerCase()
+        );
+        if (!exists) {
+          setSnErrorIndex(i);
+          alert(`Produto com SN "${p.serial_number}" não encontrado no estoque.`);
+          return;
+        }
+      }
+    }
+
     setLoading(true);
+    const payload = {
+      ...form,
+      products,
+      // Mantém campos legados (principal) para compatibilidade com listas/timeline
+      serial_number: products[0].serial_number,
+      device_name: products[0].device_name,
+    };
+
     if (repair?.id) {
-      await base44.entities.DeviceRepair.update(repair.id, form);
+      await base44.entities.DeviceRepair.update(repair.id, payload);
     } else {
-      await base44.entities.DeviceRepair.create(form);
+      await base44.entities.DeviceRepair.create(payload);
     }
     setLoading(false);
     onSaved();
@@ -152,52 +206,63 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
             )}
           </div>
 
-          {/* Número de Série com autocomplete do estoque */}
-          <div className="space-y-1 relative">
-            <Label>Número de Série *</Label>
-            <Input
-              value={snSearch}
-              onChange={e => {
-                setSnSearch(e.target.value);
-                set('serial_number', e.target.value);
-                setSnError('');
-              }}
-              onFocus={() => setSnFocused(true)}
-              onBlur={() => setTimeout(() => setSnFocused(false), 200)}
-              placeholder="Buscar por SN, modelo ou marca..."
-              autoComplete="off"
-              className={snError ? 'border-red-500' : ''}
-            />
-            {snFocused && snSearch && filteredProducts.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1 border rounded-md max-h-48 overflow-y-auto bg-white shadow-lg z-50">
-                {filteredProducts.slice(0, 10).map(p => (
-                  <div
-                    key={p.id}
-                    className="px-3 py-2 hover:bg-purple-50 cursor-pointer text-sm border-b last:border-0"
-                    onMouseDown={() => handleProductSelect(p)}
-                  >
-                    <span className="font-medium text-slate-800">{p.serial_number}</span>
-                    <span className="text-slate-500 ml-2">{[p.brand, p.model, p.name].filter(Boolean).join(' ')}</span>
+          {/* Aparelhos (múltiplos) */}
+          <div className="md:col-span-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Aparelhos *</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addProduct} className="gap-1">
+                <Plus className="w-3 h-3" /> Adicionar Aparelho
+              </Button>
+            </div>
+            {(form.products || []).map((prod, index) => (
+              <div key={index} className="relative border rounded-lg p-3 space-y-2 bg-slate-50/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500">Aparelho {index + 1}</span>
+                  {(form.products || []).length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" className="w-7 h-7" onClick={() => removeProduct(index)}>
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="space-y-1 relative">
+                    <Label className="text-xs">Número de Série</Label>
+                    <Input
+                      value={prod.serial_number || ''}
+                      onChange={e => updateProductField(index, 'serial_number', e.target.value)}
+                      onFocus={() => setSnFocusedIndex(index)}
+                      onBlur={() => setTimeout(() => setSnFocusedIndex(null), 200)}
+                      placeholder="Buscar por SN, modelo..."
+                      autoComplete="off"
+                      className={snErrorIndex === index ? 'border-red-500' : ''}
+                    />
+                    {snFocusedIndex === index && prod.serial_number && filteredProductsFor(index).length > 0 && (
+                      <div className="absolute left-0 right-0 top-full mt-1 border rounded-md max-h-40 overflow-y-auto bg-white shadow-lg z-50">
+                        {filteredProductsFor(index).slice(0, 8).map(p => (
+                          <div
+                            key={p.id}
+                            className="px-3 py-2 hover:bg-purple-50 cursor-pointer text-sm border-b last:border-0"
+                            onMouseDown={() => handleProductSelect(index, p)}
+                          >
+                            <span className="font-medium text-slate-800">{p.serial_number}</span>
+                            <span className="text-slate-500 ml-2">{[p.brand, p.model, p.name].filter(Boolean).join(' ')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nome do Aparelho</Label>
+                    <Input
+                      value={prod.device_name || ''}
+                      onChange={e => updateProductField(index, 'device_name', e.target.value)}
+                      placeholder="Preenchido automaticamente ou edite"
+                    />
+                  </div>
+                </div>
+                {snErrorIndex === index && <p className="text-red-500 text-xs">Produto não encontrado no estoque</p>}
               </div>
-            )}
-            {snFocused && snSearch && filteredProducts.length === 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1 border rounded-md bg-white shadow-lg z-50 px-3 py-2 text-sm text-red-500 font-medium">
-                Produto não encontrado
-              </div>
-            )}
-            {snError && <p className="text-red-500 text-sm mt-1">{snError}</p>}
-          </div>
-
-          {/* Nome do Aparelho */}
-          <div className="space-y-1">
-            <Label>Nome do Aparelho *</Label>
-            <Input
-              value={form.device_name || ''}
-              onChange={e => set('device_name', e.target.value)}
-              placeholder="Preenchido automaticamente ou edite manualmente"
-            />
+            ))}
           </div>
 
           {/* OS e Nota */}
@@ -280,7 +345,7 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
           {/* Custo e Garantia */}
           <div className="space-y-1">
             <Label>Custo do Reparo (R$)</Label>
-            <Input type="number" value={form.repair_cost || 0} onChange={e => set('repair_cost', parseFloat(e.target.value) || 0)} />
+            <Input type="number" inputMode="decimal" value={form.repair_cost || 0} onChange={e => set('repair_cost', parseFloat(e.target.value) || 0)} />
           </div>
 
           <div className="flex items-center gap-3 md:col-span-2">

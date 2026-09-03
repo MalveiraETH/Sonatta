@@ -25,10 +25,21 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import StatCard from '@/components/ui/StatCard';
 import ReferralReportPDFButton from '@/components/reports/ReferralReportPDF';
 import TestsReportPDFButton from '@/components/reports/TestsReportPDF';
-import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar } from 'lucide-react';
+import RepairsReportTab from '@/components/reports/RepairsReportTab';
+import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
+
+const REPAIR_STATUS_CONFIG = {
+  aberto: { label: 'Aberto', color: 'bg-blue-100 text-blue-700' },
+  enviado_ao_fornecedor: { label: 'Enviado ao Fornecedor', color: 'bg-orange-100 text-orange-700' },
+  em_reparo: { label: 'Em Reparo', color: 'bg-yellow-100 text-yellow-700' },
+  reparado: { label: 'Reparado', color: 'bg-teal-100 text-teal-700' },
+  aguardando_retirada: { label: 'Aguardando Retirada', color: 'bg-purple-100 text-purple-700' },
+  devolvido_ao_cliente: { label: 'Devolvido ao Cliente', color: 'bg-green-100 text-green-700' },
+  cancelado: { label: 'Cancelado', color: 'bg-slate-100 text-slate-500' },
+};
 
 export default function Reports() {
   const [loading, setLoading] = useState(true);
@@ -52,6 +63,11 @@ export default function Reports() {
   const [testDateStart, setTestDateStart] = useState('');
   const [testDateEnd, setTestDateEnd] = useState('');
   const [testProfFilter, setTestProfFilter] = useState('todos');
+  const [repairs, setRepairs] = useState([]);
+  const [repairDateStart, setRepairDateStart] = useState('');
+  const [repairDateEnd, setRepairDateEnd] = useState('');
+  const [repairStatusFilter, setRepairStatusFilter] = useState('todos');
+  const [repairSupplierFilter, setRepairSupplierFilter] = useState('todos');
 
   useEffect(() => {
     loadData();
@@ -67,7 +83,7 @@ export default function Reports() {
 
   const loadData = async () => {
     try {
-      const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData, testsData, movementsData] = await Promise.all([
+      const [productsData, clientsData, salesData, professionalsData, appointmentsData, installmentsData, expensesData, testsData, movementsData, repairsData] = await Promise.all([
         base44.entities.Product.list('-created_date', 10000),
         base44.entities.Client.list('-created_date', 10000),
         base44.entities.Sale.list('-created_date', 10000),
@@ -76,7 +92,8 @@ export default function Reports() {
         base44.entities.Installment.list('-created_date', 10000),
         base44.entities.Expense.list('-created_date', 10000),
         base44.entities.Test.list('-created_date', 10000),
-        base44.entities.StockMovement.filter({ type: 'saida' })
+        base44.entities.StockMovement.filter({ type: 'saida' }),
+        base44.entities.DeviceRepair.list('-created_date', 10000)
       ]);
       setProducts(productsData);
       setClients(clientsData);
@@ -87,6 +104,7 @@ export default function Reports() {
       setExpenses(expensesData);
       setTests(testsData);
       setStockMovements(movementsData);
+      setRepairs(repairsData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -389,6 +407,7 @@ export default function Reports() {
           <TabsTrigger value="payables">Contas a Pagar</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="referral">Repasse Indicação</TabsTrigger>
+          <TabsTrigger value="repairs">Consertos</TabsTrigger>
         </TabsList>
 
         {/* ESTOQUE */}
@@ -1918,6 +1937,10 @@ export default function Reports() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        {/* CONSERTOS */}
+        <TabsContent value="repairs">
+          <RepairsReportTab repairs={repairs} />
         </TabsContent>
       </Tabs>
     </div>
