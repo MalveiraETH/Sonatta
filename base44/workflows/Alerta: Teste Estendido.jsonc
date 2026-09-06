@@ -1,0 +1,37 @@
+{
+  "name": "Alerta: Teste Estendido",
+  "description": "",
+  "trigger": {
+    "condition": "${ ((.trigger.changed_fields | index(\"status\") != null) and (.trigger.data.status == \"teste_estendido\")) }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "update"
+      ],
+      "entity_name": "Test"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "alerta_teste_estendido",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "alertaTesteEstendido",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "alertaTesteEstendido"
+  }
+}
