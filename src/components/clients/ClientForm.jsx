@@ -110,11 +110,30 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
     }
   };
 
+  const normalizeCpf = (value) => (value || '').replace(/\D/g, '');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.full_name || !formData.phone) {
       toast.error('Preencha os campos obrigatórios');
       return;
+    }
+
+    // Validação de CPF duplicado
+    const cpfNormalized = normalizeCpf(formData.cpf);
+    if (cpfNormalized) {
+      try {
+        const existing = await base44.entities.Client.list('-created_date', 500);
+        const duplicate = existing.find(c =>
+          normalizeCpf(c.cpf) === cpfNormalized && c.id !== client?.id
+        );
+        if (duplicate) {
+          toast.error(`Já existe um cliente com este CPF: ${duplicate.full_name}`);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking duplicate CPF:', error);
+      }
     }
 
     setLoading(true);

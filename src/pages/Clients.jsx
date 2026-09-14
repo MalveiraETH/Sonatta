@@ -35,7 +35,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import ClientForm from '@/components/clients/ClientForm';
-import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users } from 'lucide-react';
+import { Search, MoreVertical, Edit, Eye, MessageCircle, Plus, Filter, X, Users, AlertTriangle } from 'lucide-react';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -396,7 +396,17 @@ export default function Clients() {
                 >
                   <TableCell>
                     <div>
-                      <p className="font-medium">{client.full_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium">{client.full_name}</p>
+                        {(!client.cpf || !client.address_cep) && (
+                          <span
+                            title={`Cadastro incompleto: ${!client.cpf ? 'sem CPF' : ''}${!client.cpf && !client.address_cep ? ' e ' : ''}${!client.address_cep ? 'sem CEP' : ''}`}
+                            className="inline-flex items-center text-amber-500"
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500">{client.cpf || '-'}</p>
                     </div>
                   </TableCell>
@@ -468,6 +478,14 @@ export default function Clients() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-semibold text-slate-900">{client.full_name}</span>
+                      {(!client.cpf || !client.address_cep) && (
+                        <span
+                          title={`Cadastro incompleto: ${!client.cpf ? 'sem CPF' : ''}${!client.cpf && !client.address_cep ? ' e ' : ''}${!client.address_cep ? 'sem CEP' : ''}`}
+                          className="inline-flex items-center text-amber-500"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                        </span>
+                      )}
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${clientMainStatusCls(client.status)}`}>
                         {mainStatusLabel(client.status)}
                       </span>
