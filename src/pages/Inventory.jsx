@@ -602,16 +602,16 @@ export default function Inventory() {
             </Card>
           </div>
 
-          {/* Tabela de Aparelhos por Modelo */}
+          {/* Tabela de Aparelhos por Nome */}
           <Card>
             <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold mb-1">Aparelhos em Estoque por Modelo</h3>
+              <h3 className="text-lg font-semibold mb-1">Aparelhos em Estoque por Nome</h3>
               <p className="text-xs text-slate-500 mb-4">Apenas aparelhos auditivos disponíveis</p>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50">
-                      <TableHead>Modelo</TableHead>
+                      <TableHead>Nome</TableHead>
                       <TableHead>Marca</TableHead>
                       <TableHead className="text-center">Quantidade</TableHead>
                       <TableHead className="text-right">Preço Venda</TableHead>
@@ -630,18 +630,12 @@ export default function Inventory() {
                         .replace(/[\u0300-\u036f]/g, '')
                         .toUpperCase()
                         .trim();
-                      const modelGroups = hearingAids.reduce((acc, product) => {
-                        const brandNorm = normalize(product.brand);
-                        let modelNorm = normalize(product.model);
-                        // Remove prefixo da marca do modelo, se presente (ex: "ARGOSY VISTA V5-R" -> "VISTA V5-R")
-                        if (brandNorm && modelNorm.startsWith(brandNorm + ' ')) {
-                          modelNorm = modelNorm.slice(brandNorm.length + 1);
-                        }
-                        const key = `${brandNorm}-${modelNorm}`;
+                      const nameGroups = hearingAids.reduce((acc, product) => {
+                        const key = normalize(product.name);
                         if (!acc[key]) {
                           acc[key] = {
+                            name: product.name,
                             brand: product.brand,
-                            model: product.model,
                             quantity: 0,
                             price: product.sale_price || 0
                           };
@@ -650,9 +644,11 @@ export default function Inventory() {
                         return acc;
                       }, {});
 
-                      const sortedModels = Object.values(modelGroups).sort((a, b) => b.price - a.price);
+                      const sortedNames = Object.values(nameGroups).sort((a, b) =>
+                        a.name.localeCompare(b.name, 'pt-BR')
+                      );
 
-                      if (sortedModels.length === 0) {
+                      if (sortedNames.length === 0) {
                         return (
                           <TableRow>
                             <TableCell colSpan={4} className="text-center py-8 text-slate-500">
@@ -662,15 +658,15 @@ export default function Inventory() {
                         );
                       }
 
-                      return sortedModels.map((model, index) => (
+                      return sortedNames.map((item, index) => (
                         <TableRow key={index} className="hover:bg-slate-50">
-                          <TableCell className="font-medium">{model.model || '-'}</TableCell>
-                          <TableCell>{model.brand || '-'}</TableCell>
+                          <TableCell className="font-medium">{item.name || '-'}</TableCell>
+                          <TableCell>{item.brand || '-'}</TableCell>
                           <TableCell className="text-center font-semibold text-[#6B3FA0]">
-                            {model.quantity}
+                            {item.quantity}
                           </TableCell>
                           <TableCell className="text-right font-semibold">
-                            {formatCurrency(model.price)}
+                            {formatCurrency(item.price)}
                           </TableCell>
                         </TableRow>
                       ));

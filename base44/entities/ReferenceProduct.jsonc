@@ -10,6 +10,10 @@
       "type": "string",
       "description": "Nome do aparelho"
     },
+    "brand": {
+      "type": "string",
+      "description": "Marca do aparelho"
+    },
     "category": {
       "type": "string",
       "enum": [

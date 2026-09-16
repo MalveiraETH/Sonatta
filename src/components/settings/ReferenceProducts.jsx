@@ -39,6 +39,7 @@ export default function ReferenceProducts() {
   const [formData, setFormData] = useState({
     reference: '',
     name: '',
+    brand: '',
     category: '',
     cost: '',
     include_fixed_cost: true
@@ -96,7 +97,7 @@ export default function ReferenceProducts() {
       }
       
       setIsFormOpen(false);
-      setFormData({ reference: '', name: '', category: '', cost: '', include_fixed_cost: true });
+      setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true });
       setEditingProduct(null);
       loadData();
     } catch (error) {
@@ -110,6 +111,7 @@ export default function ReferenceProducts() {
     setFormData({
       reference: product.reference,
       name: product.name,
+      brand: product.brand || '',
       category: product.category,
       cost: product.cost.toString(),
       include_fixed_cost: product.include_fixed_cost !== false
@@ -214,6 +216,7 @@ export default function ReferenceProducts() {
       const exportData = products.map(product => ({
         'Referência': product.reference,
         'Nome do Aparelho': product.name,
+        'Marca': product.brand || '',
         'Categoria': getCategoryLabel(product.category),
         'Custo Aparelho': product.cost,
         'Incluir Custo Fixo': product.include_fixed_cost !== false ? 'Sim' : 'Não',
@@ -268,7 +271,7 @@ export default function ReferenceProducts() {
                   <Button
                     onClick={() => {
                       setEditingProduct(null);
-                      setFormData({ reference: '', name: '', category: '', cost: '', include_fixed_cost: true });
+                      setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true });
                     }}
                     className="bg-[#6B3FA0] hover:bg-[#834CB8]"
                   >
@@ -303,6 +306,25 @@ export default function ReferenceProducts() {
                         placeholder="Ex: Aparelho Auditivo X"
                         required
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="brand">Marca</Label>
+                      <Select
+                        value={formData.brand}
+                        onValueChange={(value) => setFormData({ ...formData, brand: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a marca" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PHONAK">PHONAK</SelectItem>
+                          <SelectItem value="ARGOSY">ARGOSY</SelectItem>
+                          <SelectItem value="STARKEY">STARKEY</SelectItem>
+                          <SelectItem value="WIDEX">WIDEX</SelectItem>
+                          <SelectItem value="RESOUND">RESOUND</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -363,7 +385,7 @@ export default function ReferenceProducts() {
                         variant="outline"
                         onClick={() => {
                           setIsFormOpen(false);
-                          setFormData({ reference: '', name: '', category: '', cost: '', include_fixed_cost: true });
+                          setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true });
                           setEditingProduct(null);
                         }}
                       >
@@ -386,6 +408,7 @@ export default function ReferenceProducts() {
                 <TableRow className="bg-slate-50">
                   <TableHead>Referência</TableHead>
                   <TableHead>Nome do Aparelho</TableHead>
+                  <TableHead>Marca</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead className="text-center">Custo Fixo?</TableHead>
                   <TableHead className="text-right">Custo Aparelho</TableHead>
@@ -399,7 +422,7 @@ export default function ReferenceProducts() {
               <TableBody>
                 {products.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-slate-500 py-8">
+                    <TableCell colSpan={11} className="text-center text-slate-500 py-8">
                       Nenhum produto cadastrado
                     </TableCell>
                   </TableRow>
@@ -410,6 +433,7 @@ export default function ReferenceProducts() {
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">{product.reference}</TableCell>
                         <TableCell>{product.name}</TableCell>
+                        <TableCell>{product.brand || '-'}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(product.category)}`}>
                             {getCategoryLabel(product.category)}

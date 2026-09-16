@@ -155,13 +155,18 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
       )
     : null;
 
-  // Preenche automaticamente o Nome do Produto com o nome do Produto de Referência
+  // Preenche automaticamente Nome, Marca e Categoria de Markup com base no Produto de Referência
   const lastAutoName = useRef('');
   useEffect(() => {
     if (matchedRefProduct) {
       if (!formData.name || formData.name === lastAutoName.current) {
         lastAutoName.current = matchedRefProduct.name;
-        setField('name', matchedRefProduct.name);
+        setFormData((prev) => ({
+          ...prev,
+          name: matchedRefProduct.name,
+          brand: matchedRefProduct.brand || prev.brand,
+          markup_category: matchedRefProduct.category || prev.markup_category,
+        }));
       }
     } else {
       lastAutoName.current = '';
@@ -317,26 +322,20 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
             </div>
           </div>
 
-          {/* Modelo + Série */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Modelo</Label>
-              <Input value={formData.model} onChange={(e) => setField('model', e.target.value)} placeholder="Modelo" />
-            </div>
-            <div className="space-y-2">
-              <Label>Nº de Série *</Label>
-              <Input
-                value={formData.serial_number}
-                onChange={(e) => setField('serial_number', e.target.value)}
-                placeholder="Número de série único"
-                className={serialDuplicate ? 'border-red-400 focus-visible:ring-red-400' : ''}
-              />
-              {serialDuplicate && (
-                <p className="text-xs text-red-600 font-medium">
-                  ⚠️ Nº de série já cadastrado em "{serialDuplicate.name}"
-                </p>
-              )}
-            </div>
+          {/* Série */}
+          <div className="space-y-2">
+            <Label>Nº de Série *</Label>
+            <Input
+              value={formData.serial_number}
+              onChange={(e) => setField('serial_number', e.target.value)}
+              placeholder="Número de série único"
+              className={serialDuplicate ? 'border-red-400 focus-visible:ring-red-400' : ''}
+            />
+            {serialDuplicate && (
+              <p className="text-xs text-red-600 font-medium">
+                ⚠️ Nº de série já cadastrado em "{serialDuplicate.name}"
+              </p>
+            )}
           </div>
 
           {/* NF + Data */}
