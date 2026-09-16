@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -154,6 +154,20 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
         (rp) => rp.reference.trim().toLowerCase() === formData.reference.trim().toLowerCase()
       )
     : null;
+
+  // Preenche automaticamente o Nome do Produto com o nome do Produto de Referência
+  const lastAutoName = useRef('');
+  useEffect(() => {
+    if (matchedRefProduct) {
+      if (!formData.name || formData.name === lastAutoName.current) {
+        lastAutoName.current = matchedRefProduct.name;
+        setField('name', matchedRefProduct.name);
+      }
+    } else {
+      lastAutoName.current = '';
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedRefProduct?.reference]);
 
   const calcRefFinalPrice = (rp) => {
     if (!billingCfg || !rp) return null;

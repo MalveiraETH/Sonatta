@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,40 @@ export default function TrialProductForm({ open, onOpenChange, product, onSucces
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState(emptyForm());
   const [serialDuplicate, setSerialDuplicate] = useState(null);
+  const [referenceProducts, setReferenceProducts] = useState([]);
+
+  useEffect(() => {
+    const loadRef = async () => {
+      try {
+        const refProds = await base44.entities.ReferenceProduct.list();
+        setReferenceProducts(refProds);
+      } catch (e) {
+        console.warn('Reference products not loaded', e.message);
+      }
+    };
+    loadRef();
+  }, []);
+
+  // Find reference product by reference code typed in the form
+  const matchedRefProduct = formData.reference
+    ? referenceProducts.find(
+        (rp) => rp.reference.trim().toLowerCase() === formData.reference.trim().toLowerCase()
+      )
+    : null;
+
+  // Preenche automaticamente o Nome do Produto com o nome do Produto de Referência
+  const lastAutoName = useRef('');
+  useEffect(() => {
+    if (matchedRefProduct) {
+      if (!formData.name || formData.name === lastAutoName.current) {
+        lastAutoName.current = matchedRefProduct.name;
+        setField('name', matchedRefProduct.name);
+      }
+    } else {
+      lastAutoName.current = '';
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedRefProduct?.reference]);
 
   useEffect(() => {
     if (product) {
@@ -157,6 +191,12 @@ export default function TrialProductForm({ open, onOpenChange, product, onSucces
             <div className="space-y-2">
               <Label>Referência</Label>
               <Input value={formData.reference} onChange={(e) => setField('reference', e.target.value)} placeholder="Ex: REF-001" />
+              {formData.reference && !matchedRefProduct && (
+                <p className="text-xs text-amber-600">Referência não encontrada em Produtos de Referência</p>
+              )}
+              {matchedRefProduct && (
+                <p className="text-xs text-green-600 font-medium">✓ {matchedRefProduct.name}</p>
+              )}
             </div>
           </div>
 
