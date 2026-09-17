@@ -620,7 +620,7 @@ export default function Inventory() {
                   <TableBody>
                     {(() => {
                       const hearingAids = products.filter(p =>
-                        p.category === 'aparelho_auditivo' &&
+                        ['aparelho_auditivo', 'microfone', 'carregador'].includes(p.category) &&
                         !allTrialIds.has(p.id) &&
                         (p.stock_type === 'nao_serializado' ? (p.quantity || 0) > 0 : p.status === 'disponivel')
                       );
