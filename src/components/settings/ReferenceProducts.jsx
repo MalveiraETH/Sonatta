@@ -42,7 +42,9 @@ export default function ReferenceProducts() {
     brand: '',
     category: '',
     cost: '',
-    include_fixed_cost: true
+    include_fixed_cost: true,
+    warranty_years: 2,
+    power_type: 'pilha'
   });
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function ReferenceProducts() {
       }
       
       setIsFormOpen(false);
-      setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true });
+      setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true, warranty_years: 2, power_type: 'pilha' });
       setEditingProduct(null);
       loadData();
     } catch (error) {
@@ -114,7 +116,9 @@ export default function ReferenceProducts() {
       brand: product.brand || '',
       category: product.category,
       cost: product.cost.toString(),
-      include_fixed_cost: product.include_fixed_cost !== false
+      include_fixed_cost: product.include_fixed_cost !== false,
+      warranty_years: product.warranty_years || 2,
+      power_type: product.power_type || 'pilha'
     });
     setIsFormOpen(true);
   };
@@ -220,6 +224,8 @@ export default function ReferenceProducts() {
         'Categoria': getCategoryLabel(product.category),
         'Custo Aparelho': product.cost,
         'Incluir Custo Fixo': product.include_fixed_cost !== false ? 'Sim' : 'Não',
+        'Garantia': `${product.warranty_years || 2} anos`,
+        'Funcionamento': (product.power_type || 'pilha') === 'pilha' ? 'Pilha' : 'Bateria Recarregável',
         'Custo Total': calculateTotalCost(product.cost, product.include_fixed_cost !== false),
         'Valor Final': calculateFinalPrice(product.cost, product.category, product.include_fixed_cost !== false),
         'Descontos': calculateDiscounts(product.cost, product.category, product.include_fixed_cost !== false),
@@ -271,7 +277,7 @@ export default function ReferenceProducts() {
                   <Button
                     onClick={() => {
                       setEditingProduct(null);
-                      setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true });
+                      setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true, warranty_years: 2, power_type: 'pilha' });
                     }}
                     className="bg-[#6B3FA0] hover:bg-[#834CB8]"
                   >
@@ -282,7 +288,7 @@ export default function ReferenceProducts() {
                 <DialogContent className="max-w-lg">
                   <DialogHeader>
                     <DialogTitle>
-                      {editingProduct ? 'Editar Produto' : 'Novo Produto'}
+                      {editingProduct ? 'Editar Produto de Referência' : 'Novo Produto de Referência'}
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
@@ -379,13 +385,47 @@ export default function ReferenceProducts() {
                       </Select>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="warranty_years">Garantia</Label>
+                        <Select
+                          value={String(formData.warranty_years)}
+                          onValueChange={(value) => setFormData({ ...formData, warranty_years: Number(value) })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="2">2 anos</SelectItem>
+                            <SelectItem value="3">3 anos</SelectItem>
+                            <SelectItem value="4">4 anos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="power_type">Funcionamento</Label>
+                        <Select
+                          value={formData.power_type}
+                          onValueChange={(value) => setFormData({ ...formData, power_type: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pilha">Pilha</SelectItem>
+                            <SelectItem value="bateria_recarregavel">Bateria Recarregável</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-4">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => {
                           setIsFormOpen(false);
-                          setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true });
+                          setFormData({ reference: '', name: '', brand: '', category: '', cost: '', include_fixed_cost: true, warranty_years: 2, power_type: 'pilha' });
                           setEditingProduct(null);
                         }}
                       >

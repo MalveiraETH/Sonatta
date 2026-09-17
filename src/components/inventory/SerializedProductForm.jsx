@@ -166,6 +166,8 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
           name: matchedRefProduct.name,
           brand: matchedRefProduct.brand || prev.brand,
           markup_category: matchedRefProduct.category || prev.markup_category,
+          warranty_years: matchedRefProduct.warranty_years || prev.warranty_years,
+          power_type: matchedRefProduct.power_type || prev.power_type,
         }));
       }
     } else {
