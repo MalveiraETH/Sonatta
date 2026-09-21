@@ -7,24 +7,26 @@ import {
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
-import { 
-  User, 
-  Calendar, 
-  Package, 
-  CreditCard, 
+import {
+  User,
+  Calendar,
+  Package,
+  CreditCard,
   FileText,
   MapPin,
   Phone,
   Mail,
   Hash,
   Stethoscope,
-  UserCheck
+  UserCheck,
+  PlusCircle
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
-export default function SaleDetailsDialog({ open, onOpenChange, sale }) {
+export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchComplementary }) {
   const [professionalInfo, setProfessionalInfo] = useState(null);
 
   useEffect(() => {
@@ -75,12 +77,14 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale }) {
   const statusColors = {
     pago: 'bg-emerald-100 text-emerald-700',
     pendente: 'bg-amber-100 text-amber-700',
+    parcial: 'bg-orange-100 text-orange-700',
     cancelado: 'bg-red-100 text-red-700'
   };
 
   const statusLabels = {
     pago: 'Pago',
     pendente: 'Pendente',
+    parcial: 'Parcial',
     cancelado: 'Cancelado'
   };
 
@@ -90,9 +94,14 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale }) {
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Detalhes da Venda</span>
-            <Badge className={statusColors[sale.status]}>
-              {statusLabels[sale.status]}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {sale.is_complementary && (
+                <Badge className="bg-purple-100 text-purple-700">Complementar</Badge>
+              )}
+              <Badge className={statusColors[sale.status]}>
+                {statusLabels[sale.status]}
+              </Badge>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
@@ -122,6 +131,15 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale }) {
                   <div>
                     <p className="text-xs text-slate-500">Nota Fiscal</p>
                     <p className="font-semibold text-slate-900">{sale.nota_fiscal}</p>
+                  </div>
+                </div>
+              )}
+              {sale.is_complementary && sale.complementary_to_sale_number && (
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-slate-500">Venda Original</p>
+                    <p className="font-semibold text-slate-900">{sale.complementary_to_sale_number}</p>
                   </div>
                 </div>
               )}
@@ -244,6 +262,30 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale }) {
               </div>
             </div>
           </Card>
+
+          {/* Saldo a completar (venda parcial) */}
+          {sale.status === 'parcial' && sale.pending_balance > 0 && (
+            <Card className="p-4 bg-amber-50 border-amber-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Saldo a Completar</p>
+                  {sale.pending_due_date && (
+                    <p className="text-xs text-amber-700 mt-0.5">Vencimento: {formatLocalDate(sale.pending_due_date)}</p>
+                  )}
+                </div>
+                <p className="text-xl font-bold text-amber-700">{formatCurrency(sale.pending_balance)}</p>
+              </div>
+              {onLaunchComplementary && (
+                <Button
+                  className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => onLaunchComplementary(sale)}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Lançar Pagamento Complementar
+                </Button>
+              )}
+            </Card>
+          )}
 
           {/* Pagamentos */}
           <div>

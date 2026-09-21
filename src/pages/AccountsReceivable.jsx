@@ -359,6 +359,7 @@ export default function AccountsReceivable() {
             <SelectItem value="todos">Todos</SelectItem>
             <SelectItem value="pix_parcelado">PIX Parcelado</SelectItem>
             <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+            <SelectItem value="saldo_pendente">Saldo Pendente</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -521,6 +522,7 @@ export default function AccountsReceivable() {
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="pix_parcelado">PIX Parcelado</SelectItem>
                 <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
+                <SelectItem value="saldo_pendente">Saldo Pendente</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -620,7 +622,7 @@ export default function AccountsReceivable() {
                     </TableCell>
                     <TableCell className="font-medium">{inst.client_name}</TableCell>
                     <TableCell>
-                     {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão Crédito'}
+                     {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : inst.payment_method === 'saldo_pendente' ? 'Saldo Pendente' : 'Cartão Crédito'}
                      {inst.card_brand && <span className="ml-1 text-xs text-slate-500">({inst.card_brand})</span>}
                     </TableCell>
                     <TableCell>{inst.installment_number}</TableCell>
@@ -712,7 +714,7 @@ export default function AccountsReceivable() {
                         </span>
                       </div>
                       <div className="text-sm text-slate-600">
-                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : 'Cartão'} • Parcela {inst.installment_number} • Venc. {formatLocalDate(inst.due_date)}
+                        {inst.payment_method === 'pix_parcelado' ? 'PIX Parcelado' : inst.payment_method === 'saldo_pendente' ? 'Saldo Pendente' : 'Cartão'} • Parcela {inst.installment_number} • Venc. {formatLocalDate(inst.due_date)}
                       </div>
                       {(inst.sale_date || salesMap[inst.sale_id]) && (
                         <div className="text-xs text-slate-400 mt-0.5">

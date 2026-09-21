@@ -47,7 +47,7 @@ import InvoiceDialog from '@/components/sales/InvoiceDialog';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import PullToRefreshIndicator from '@/components/ui/PullToRefreshIndicator';
 import { usePullToRefresh } from '@/components/utils/usePullToRefresh';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info, Pencil } from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, PlusCircle, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -79,6 +79,8 @@ export default function Sales() {
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [saleToCancel, setSaleToCancel] = useState(null);
+  const [complementaryTarget, setComplementaryTarget] = useState(null);
+  const [complementaryFormOpen, setComplementaryFormOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const clientId = new URLSearchParams(window.location.search).get('client_id');
@@ -381,6 +383,7 @@ Obrigado pela preferência!
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="pendente">Pendente</SelectItem>
             <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="parcial">Parcial</SelectItem>
             <SelectItem value="cancelado">Cancelado</SelectItem>
           </SelectContent>
         </Select>
@@ -634,13 +637,22 @@ Obrigado pela preferência!
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                        sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' :
-                        sale.status === 'cancelado' ? 'bg-red-100 text-red-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
-                      </span>
+                      <div className="space-y-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                          sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' :
+                          sale.status === 'cancelado' ? 'bg-red-100 text-red-700' :
+                          sale.status === 'parcial' ? 'bg-orange-100 text-orange-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : sale.status === 'parcial' ? 'Parcial' : 'Pendente'}
+                        </span>
+                        {sale.is_complementary && (
+                          <span className="block text-[10px] text-purple-600 font-medium">Complementar de {sale.complementary_to_sale_number || '—'}</span>
+                        )}
+                        {sale.status === 'parcial' && sale.pending_balance > 0 && (
+                          <span className="block text-[10px] text-orange-600 font-medium">Saldo: {formatCurrency(sale.pending_balance)}</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(getTotalPayments(sale))}</TableCell>
                     <TableCell className="text-right tabular-nums text-sm">
@@ -663,6 +675,12 @@ Obrigado pela preferência!
                           <Info className="h-4 w-4 mr-2" />
                           Detalhes da Venda
                         </DropdownMenuItem>
+                        {sale.status === 'parcial' && sale.pending_balance > 0 && (
+                          <DropdownMenuItem onClick={() => { setComplementaryTarget(sale); setComplementaryFormOpen(true); }}>
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            Lançar Pagamento Complementar
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
                             <Eye className="h-4 w-4 mr-2" />
@@ -724,10 +742,17 @@ Obrigado pela preferência!
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                           sale.status === 'pago' ? 'bg-emerald-100 text-emerald-700' :
                           sale.status === 'cancelado' ? 'bg-red-100 text-red-700' :
+                          sale.status === 'parcial' ? 'bg-orange-100 text-orange-700' :
                           'bg-amber-100 text-amber-700'
                         }`}>
-                          {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : 'Pendente'}
+                          {sale.status === 'pago' ? 'Pago' : sale.status === 'cancelado' ? 'Cancelado' : sale.status === 'parcial' ? 'Parcial' : 'Pendente'}
                         </span>
+                        {sale.is_complementary && (
+                          <span className="block text-[10px] text-purple-600 font-medium mt-0.5">Complementar de {sale.complementary_to_sale_number || '—'}</span>
+                        )}
+                        {sale.status === 'parcial' && sale.pending_balance > 0 && (
+                          <span className="block text-[10px] text-orange-600 font-medium mt-0.5">Saldo: {formatCurrency(sale.pending_balance)}</span>
+                        )}
                       </div>
                       <div className="text-sm text-slate-600">
                         {sale.client_name} • {formatLocalDate(sale.sale_date || sale.created_date)}
@@ -772,6 +797,12 @@ Obrigado pela preferência!
                         <Info className="h-4 w-4 mr-2" />
                         Detalhes
                       </DropdownMenuItem>
+                      {sale.status === 'parcial' && sale.pending_balance > 0 && (
+                        <DropdownMenuItem onClick={() => { setComplementaryTarget(sale); setComplementaryFormOpen(true); }}>
+                          <PlusCircle className="h-4 w-4 mr-2" />
+                          Pagamento Complementar
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem asChild>
                         <Link to={createPageUrl(`ClientDetail?id=${sale.client_id}`)} className="flex items-center">
                           <Eye className="h-4 w-4 mr-2" />
@@ -829,6 +860,13 @@ Obrigado pela preferência!
 
       <NewSaleForm open={editFormOpen} onOpenChange={setEditFormOpen} sale={saleToEdit} onSuccess={loadData} />
 
+      <NewSaleForm
+        open={complementaryFormOpen}
+        onOpenChange={(open) => { setComplementaryFormOpen(open); if (!open) setComplementaryTarget(null); }}
+        complementaryTarget={complementaryTarget}
+        onSuccess={loadData}
+      />
+
       <ContractGenerator 
         open={contractOpen}
         onOpenChange={setContractOpen}
@@ -880,6 +918,11 @@ Obrigado pela preferência!
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
         sale={selectedSaleForDetails}
+        onLaunchComplementary={(sale) => {
+          setDetailsDialogOpen(false);
+          setComplementaryTarget(sale);
+          setComplementaryFormOpen(true);
+        }}
       />
     </div>
   );
