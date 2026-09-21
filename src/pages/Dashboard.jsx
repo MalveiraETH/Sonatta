@@ -84,18 +84,8 @@ export default function Dashboard() {
       ]);
 
       const today = format(new Date(), 'yyyy-MM-dd');
-      const todayDate = new Date();
-
-      // Filtros
-      const overduePixInstallments = installments.filter(inst => {
-        const dueDate = new Date(inst.due_date);
-        return inst.payment_method === 'pix_parcelado' && inst.payment_status !== 'pago' && dueDate < todayDate;
-      });
-
-      const overdueCardInstallments = installments.filter(inst => {
-        const dueDate = new Date(inst.due_date);
-        return inst.payment_method === 'cartao_credito' && inst.payment_status !== 'pago' && dueDate < todayDate;
-      });
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
 
       const parseLocalDate = (dateStr) => {
         if (!dateStr) return null;
@@ -106,6 +96,19 @@ export default function Dashboard() {
         return new Date(str);
       };
 
+      // Parcelas atrasadas: vencimento (meia-noite local) estritamente antes de hoje
+      const overduePixInstallments = installments.filter(inst => {
+        const dueDate = parseLocalDate(inst.due_date);
+        if (!dueDate) return false;
+        return inst.payment_method === 'pix_parcelado' && inst.payment_status !== 'pago' && dueDate < todayMidnight;
+      });
+
+      const overdueCardInstallments = installments.filter(inst => {
+        const dueDate = parseLocalDate(inst.due_date);
+        if (!dueDate) return false;
+        return inst.payment_method === 'cartao_credito' && inst.payment_status !== 'pago' && dueDate < todayMidnight;
+      });
+
       const monthSalesData = sales.filter(s => {
         const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
         const saleMonth = saleDate.getMonth();
@@ -113,9 +116,12 @@ export default function Dashboard() {
         return saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
       });
 
-      // FATURADO = Vendas (valor líquido, data venda) + Parcelas (valor líquido, data vencimento, qualquer status)
+      // FATURADO = Vendas à vista (valor líquido, data venda) + Parcelas (valor líquido, data vencimento, qualquer status)
       const billedFromSales = monthSalesData.reduce((sum, sale) => {
-        return sum + (sale.total_net_amount || sale.total || 0);
+        const cashPayments = sale.payment_details?.filter(p =>
+          ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
+        ) || [];
+        return sum + cashPayments.reduce((pSum, p) => pSum + (p.net_amount || p.amount || 0), 0);
       }, 0);
 
       const billedFromInstallments = installments
