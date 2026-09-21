@@ -15,8 +15,11 @@ import {
   Trash2,
   Edit,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  UserCheck,
+  User
 } from 'lucide-react';
+import AssociateProductDialog from '@/components/inventory/AssociateProductDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -48,6 +51,7 @@ export default function ProductDetail() {
   const [movements, setMovements] = useState([]);
   const [sales, setSales] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [associateDialogOpen, setAssociateDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
@@ -181,6 +185,15 @@ export default function ProductDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {product.stock_type === 'serializado' && product.status === 'vendido' && !product.client_id && (
+            <Button
+              onClick={() => setAssociateDialogOpen(true)}
+              className="bg-[#6B3FA0] hover:bg-[#5a2f8a] text-white"
+            >
+              <UserCheck className="h-4 w-4 mr-2" />
+              Associar Produto
+            </Button>
+          )}
           {currentUser?.user_role === 'admin' && (
             <Button 
               variant="destructive"
@@ -192,6 +205,30 @@ export default function ProductDetail() {
           )}
         </div>
       </div>
+
+      {/* Cliente vinculado (associação manual) */}
+      {product.stock_type === 'serializado' && product.status === 'vendido' && product.client_id && (
+        <Card className="border-0 shadow-sm bg-[#6B3FA0]/5">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center">
+                <User className="h-5 w-5 text-[#6B3FA0]" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Cliente vinculado (associação manual)</p>
+                <p className="font-medium">
+                  {product.client_name}
+                  {product.association_date && (
+                    <span className="text-sm text-slate-500 font-normal ml-2">
+                      · {format(new Date(product.association_date), 'dd/MM/yyyy', { locale: ptBR })}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -404,6 +441,21 @@ export default function ProductDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Associate Product Dialog */}
+      <AssociateProductDialog
+        open={associateDialogOpen}
+        onOpenChange={setAssociateDialogOpen}
+        product={product}
+        onAssociated={(res) => {
+          setProduct(prev => prev ? {
+            ...prev,
+            client_id: res.client_id,
+            client_name: res.client_name,
+            association_date: res.association_date
+          } : prev);
+        }}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
