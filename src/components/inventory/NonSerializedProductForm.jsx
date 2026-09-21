@@ -19,6 +19,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 const MARKUP_CATEGORIES = [
   { value: '90', label: 'Categoria 90' },
@@ -263,15 +264,15 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Custo do Produto (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={formData.product_cost} onChange={(e) => setField('product_cost', e.target.value)} />
+                <CurrencyInput value={formData.product_cost} onChange={(val) => setField('product_cost', val)} />
               </div>
               <div className="space-y-2">
                 <Label>ICMS (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={formData.icms} onChange={(e) => setField('icms', e.target.value)} />
+                <CurrencyInput value={formData.icms} onChange={(val) => setField('icms', val)} />
               </div>
               <div className="space-y-2">
                 <Label>IPI (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={formData.ipi} onChange={(e) => setField('ipi', e.target.value)} />
+                <CurrencyInput value={formData.ipi} onChange={(val) => setField('ipi', val)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
@@ -347,12 +348,9 @@ export default function NonSerializedProductForm({ open, onOpenChange, product, 
                   Usar preço calculado
                 </button>
               </div>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
+              <CurrencyInput
                 value={formData.sale_price}
-                onChange={(e) => setField('sale_price', e.target.value)}
+                onChange={(val) => setField('sale_price', val)}
                 className="bg-white border-blue-300 text-blue-900 font-bold text-base focus:ring-blue-400"
               />
               <p className="text-xs text-slate-500">Este é o valor salvo no produto. Edite livremente para capturar margem extra ou aplicar desconto.</p>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Users, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { maskDocument, maskPhone, isValidDocument } from '@/lib/masks';
 
 export default function CounterpartiesTab() {
   const [counterparties, setCounterparties] = useState([]);
@@ -37,6 +38,10 @@ export default function CounterpartiesTab() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.cpf_cnpj && !isValidDocument(formData.cpf_cnpj)) {
+      toast.error('CPF/CNPJ inválido. Verifique os dígitos informados.');
+      return;
+    }
     try {
       if (editing) {
         await base44.entities.Counterparty.update(editing.id, formData);
@@ -193,8 +198,9 @@ export default function CounterpartiesTab() {
               <Label className="text-sm font-medium text-slate-900 mb-2 block">CPF/CNPJ</Label>
               <Input
                 value={formData.cpf_cnpj}
-                onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
-                placeholder="000.000.000-00"
+                onChange={(e) => setFormData({ ...formData, cpf_cnpj: maskDocument(e.target.value) })}
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                maxLength={18}
                 className="h-11 text-base"
               />
             </div>
@@ -202,8 +208,9 @@ export default function CounterpartiesTab() {
               <Label className="text-sm font-medium text-slate-900 mb-2 block">Telefone</Label>
               <Input
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
                 placeholder="(00) 00000-0000"
+                maxLength={15}
                 className="h-11 text-base"
               />
             </div>

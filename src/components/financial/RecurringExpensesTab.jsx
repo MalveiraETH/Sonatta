@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { RotateCw, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 export default function RecurringExpensesTab() {
   const [expenses, setExpenses] = useState([]);
@@ -194,12 +195,10 @@ export default function RecurringExpensesTab() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Valor (R$) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
+                <CurrencyInput
                   required
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, amount: val })}
                   placeholder="0,00"
                 />
               </div>

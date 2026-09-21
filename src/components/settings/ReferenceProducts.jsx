@@ -29,6 +29,7 @@ import {
 import { Loader2, Plus, Pencil, Trash2, Package, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 export default function ReferenceProducts() {
   const [loading, setLoading] = useState(true);
@@ -356,14 +357,11 @@ export default function ReferenceProducts() {
 
                     <div className="space-y-2">
                       <Label htmlFor="cost">Custo do Aparelho (R$) *</Label>
-                      <Input
+                      <CurrencyInput
                         id="cost"
-                        type="number"
-                        step="0.01"
-                        min="0"
                         value={formData.cost}
-                        onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                        placeholder="0.00"
+                        onChange={(val) => setFormData({ ...formData, cost: val })}
+                        placeholder="0,00"
                         required
                       />
                     </div>

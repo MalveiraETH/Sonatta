@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { maskCEP, maskDocument, isValidCPF, isValidCEP, isValidDocument } from '@/lib/masks';
 
 export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -91,25 +92,6 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       .replace(/(-\d{4})\d+?$/, '$1');
   };
 
-  const formatCNPJ = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    return numbers
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d)/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
-  };
-
-  const formatDocument = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return formatCPF(value);
-    } else {
-      return formatCNPJ(value);
-    }
-  };
-
   const normalizeCpf = (value) => (value || '').replace(/\D/g, '');
 
   const handleSubmit = async (e) => {
@@ -119,8 +101,23 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       return;
     }
 
-    // Validação de CPF duplicado
+    // Validação de CPF
     const cpfNormalized = normalizeCpf(formData.cpf);
+    if (cpfNormalized && !isValidCPF(formData.cpf)) {
+      toast.error('CPF inválido. Verifique os dígitos informados.');
+      return;
+    }
+    // Validação de CEP (se preenchido, deve ter 8 dígitos)
+    if (formData.address_cep && !isValidCEP(formData.address_cep)) {
+      toast.error('CEP inválido. Deve conter 8 dígitos.');
+      return;
+    }
+    // Validação do documento do responsável
+    if (formData.payer_document && !isValidDocument(formData.payer_document)) {
+      toast.error('CPF/CNPJ do responsável inválido.');
+      return;
+    }
+    // Validação de CPF duplicado
     if (cpfNormalized) {
       try {
         const existing = await base44.entities.Client.list('-created_date', 500);
@@ -225,9 +222,9 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="address_cep"
                 value={formData.address_cep}
-                onChange={(e) => setFormData({ ...formData, address_cep: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+                onChange={(e) => setFormData({ ...formData, address_cep: maskCEP(e.target.value) })}
                 placeholder="00000-000"
-                maxLength={8}
+                maxLength={9}
               />
             </div>
 
@@ -272,7 +269,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="payer_document"
                 value={formData.payer_document}
-                onChange={(e) => setFormData({ ...formData, payer_document: formatDocument(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, payer_document: maskDocument(e.target.value) })}
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 maxLength={18}
               />

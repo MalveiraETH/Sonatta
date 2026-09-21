@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import {
   Select,
   SelectContent,
@@ -734,12 +735,12 @@ export default function AccountsPayable() {
             {selectedExpense?.type === 'variavel' && (
               <div>
                 <Label>Valor (R$) <span className="text-xs text-amber-600 font-normal">— despesa variável, edite se necessário</span></Label>
-                <Input type="number" step="0.01" value={paymentData.amount} onChange={(e) => setPaymentData({ ...paymentData, amount: e.target.value })} />
+                <CurrencyInput value={paymentData.amount} onChange={(val) => setPaymentData({ ...paymentData, amount: val })} />
               </div>
             )}
             <div>
               <Label>Juros/Multa (R$)</Label>
-              <Input type="number" step="0.01" value={paymentData.fees} onChange={(e) => setPaymentData({ ...paymentData, fees: e.target.value })} />
+              <CurrencyInput value={paymentData.fees} onChange={(val) => setPaymentData({ ...paymentData, fees: val })} />
             </div>
             {selectedExpense && (
               <div className="bg-slate-50 p-3 rounded">

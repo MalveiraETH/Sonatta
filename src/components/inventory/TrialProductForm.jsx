@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import {
   Dialog,
   DialogContent,
@@ -269,13 +270,9 @@ export default function TrialProductForm({ open, onOpenChange, product, onSucces
             <p className="text-sm font-semibold text-slate-700 mb-3">Custo (Referência)</p>
             <div className="space-y-2">
               <Label>Custo do Produto (R$)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
+              <CurrencyInput
                 value={formData.cost_price}
-                onChange={(e) => setField('cost_price', e.target.value)}
+                onChange={(val) => setField('cost_price', val)}
                 placeholder="0,00"
               />
               <p className="text-xs text-slate-400">Produto de trial não tem preço de venda — apenas custo de referência.</p>

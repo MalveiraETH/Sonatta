@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Building2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { maskCNPJ, maskPhone, isValidCNPJ } from '@/lib/masks';
 
 export default function CompanyTab() {
   const [companies, setCompanies] = useState([]);
@@ -38,6 +39,10 @@ export default function CompanyTab() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.cnpj && !isValidCNPJ(formData.cnpj)) {
+      toast.error('CNPJ inválido. Verifique os dígitos informados.');
+      return;
+    }
     try {
       if (editing) {
         await base44.entities.Company.update(editing.id, formData);
@@ -77,8 +82,9 @@ export default function CompanyTab() {
             <Input
               required
               value={formData.cnpj}
-              onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, cnpj: maskCNPJ(e.target.value) })}
               placeholder="00.000.000/0000-00"
+              maxLength={18}
             />
           </div>
           <div>
@@ -94,8 +100,9 @@ export default function CompanyTab() {
               <Label>Telefone</Label>
               <Input
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
                 placeholder="(00) 00000-0000"
+                maxLength={15}
               />
             </div>
             <div>

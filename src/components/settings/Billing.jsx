@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Loader2, DollarSign, Percent, Calculator, Save, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 export default function Billing() {
   const [loading, setLoading] = useState(false);
@@ -312,13 +313,10 @@ export default function Billing() {
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
-                <Input
+                <CurrencyInput
                   id="fixed_cost"
-                  type="number"
-                  step="0.01"
-                  min="0"
                   value={billingConfig.fixed_cost}
-                  onChange={(e) => updateField('fixed_cost', e.target.value)}
+                  onChange={(val) => updateField('fixed_cost', val)}
                   className="pl-10"
                   disabled={!isAdmin}
                 />
@@ -359,12 +357,9 @@ export default function Billing() {
                 <Label className="text-sm font-medium">Custo do Produto</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <CurrencyInput
                     value={simulatorCost}
-                    onChange={(e) => setSimulatorCost(e.target.value)}
+                    onChange={(val) => setSimulatorCost(val)}
                     className="pl-10"
                   />
                 </div>
@@ -503,11 +498,9 @@ export default function Billing() {
                 <Label className="text-sm">Custo Fixo Mensal</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <CurrencyInput
                     value={billingConfig.fixed_cost}
-                    onChange={(e) => updateField('fixed_cost', e.target.value)}
+                    onChange={(val) => updateField('fixed_cost', val)}
                     className="pl-10"
                     disabled={!isAdmin}
                   />
@@ -546,11 +539,9 @@ export default function Billing() {
                   <Label className="text-sm">Custo</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">R$</span>
-                    <Input
-                      type="number"
-                      step="0.01"
+                    <CurrencyInput
                       value={simulatorCost}
-                      onChange={(e) => setSimulatorCost(e.target.value)}
+                      onChange={(val) => setSimulatorCost(val)}
                       className="pl-10"
                     />
                   </div>

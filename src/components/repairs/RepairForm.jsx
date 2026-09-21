@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, Wrench } from 'lucide-react';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 const SUPPLIERS = ['Phonak', 'Widex', 'Oticon', 'Signia', 'Starkey', 'ReSound', 'Unitron', 'Outro'];
 
@@ -345,7 +346,7 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
           {/* Custo e Garantia */}
           <div className="space-y-1">
             <Label>Custo do Reparo (R$)</Label>
-            <Input type="number" inputMode="decimal" value={form.repair_cost || 0} onChange={e => set('repair_cost', parseFloat(e.target.value) || 0)} />
+            <CurrencyInput value={form.repair_cost || 0} onChange={val => set('repair_cost', val)} />
           </div>
 
           <div className="flex items-center gap-3 md:col-span-2">

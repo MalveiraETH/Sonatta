@@ -10,6 +10,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from '@/components/ui/dialog';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -224,11 +225,11 @@ export default function MoldOrderForm({ open, onOpenChange, order, preselectedCl
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Custo (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={formData.cost_price} onChange={e => set('cost_price', e.target.value)} />
+              <CurrencyInput value={formData.cost_price} onChange={val => set('cost_price', val)} />
             </div>
             <div className="space-y-2">
               <Label>Valor Cobrado do Cliente (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={formData.sale_price} onChange={e => set('sale_price', e.target.value)} />
+              <CurrencyInput value={formData.sale_price} onChange={val => set('sale_price', val)} />
             </div>
           </div>
 

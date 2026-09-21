@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import {
   Select,
   SelectContent,
@@ -386,13 +387,10 @@ export default function ServicesTab() {
             </div>
             <div className="space-y-2">
               <Label>Preço (R$) *</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
+              <CurrencyInput
                 value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="0.00"
+                onChange={(val) => setFormData({ ...formData, price: val })}
+                placeholder="0,00"
                 required
               />
             </div>

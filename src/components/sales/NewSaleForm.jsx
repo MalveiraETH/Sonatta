@@ -27,6 +27,7 @@ import { ptBR } from 'date-fns/locale';
 import { logCreation, logEdit } from '@/components/utils/auditLogger';
 import { createInstallmentsForSale, syncInstallmentsForSale, createPendingBalanceInstallment } from '@/components/sales/syncInstallments';
 import { recalculateClientStatus } from '@/components/utils/clientStatusSync';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient, complementaryTarget }) {
   const [loading, setLoading] = useState(false);
@@ -1297,15 +1298,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                           </div>
                           <div>
                             <Label className="text-xs">Valor Unit. (R$)</Label>
-                            <Input
-                              type="number"
-                              inputMode="decimal"
-                              step="0.01"
-                              min="0"
-                              value={item.unit_price === 0 ? '' : item.unit_price}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => updateItem(index, 'unit_price', e.target.value === '' ? 0 : Number(e.target.value))}
-                              placeholder="0.00"
+                            <CurrencyInput
+                              value={item.unit_price}
+                              onChange={(val) => updateItem(index, 'unit_price', val)}
+                              placeholder="0,00"
                               className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                             />
                           </div>
@@ -1422,14 +1418,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label className="text-xs">Valor <span className="text-red-500">*</span></Label>
-                          <Input
-                           type="number"
-                           inputMode="decimal"
-                           step="0.01"
-                           value={payment.amount === 0 ? '' : payment.amount}
-                           onFocus={(e) => e.target.select()}
-                           onChange={(e) => updatePayment(index, 'amount', e.target.value === '' ? 0 : Number(e.target.value))}
-                           placeholder="0.00"
+                          <CurrencyInput
+                           value={payment.amount}
+                           onChange={(val) => updatePayment(index, 'amount', val)}
+                           placeholder="0,00"
                            className="text-sm focus-visible:ring-2 focus-visible:ring-[#6B3FA0] focus-visible:ring-offset-1 transition-shadow"
                           />
                         </div>
@@ -1562,12 +1554,9 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs">Valor a Completar (R$)</Label>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        value={pendingBalanceInput}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => updatePendingBalance(e.target.value)}
+                      <CurrencyInput
+                        value={pendingBalance}
+                        onChange={(val) => setPendingBalance(val)}
                         placeholder="0,00"
                         className="text-sm focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 transition-shadow"
                       />

@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import {
   Dialog,
   DialogContent,
@@ -400,11 +401,9 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                   </div>
                   <div className="col-span-2">
                     <Label className="text-xs">Valor Unit.</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
+                    <CurrencyInput
                       value={item.unit_price}
-                      onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
+                      onChange={(val) => updateItem(index, 'unit_price', val)}
                     />
                   </div>
                   <div className="col-span-2">

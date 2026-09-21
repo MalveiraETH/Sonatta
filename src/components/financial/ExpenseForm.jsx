@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { format, addMonths } from 'date-fns';
 import { toast } from 'sonner';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 
 export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = null }) {
   const [loading, setLoading] = useState(false);
@@ -184,12 +185,10 @@ export default function ExpenseForm({ open, onOpenChange, onSuccess, expense = n
 
           <div>
             <Label>Valor (R$) *</Label>
-            <Input
-              type="number"
-              step="0.01"
+            <CurrencyInput
               required
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              onChange={(val) => setFormData({ ...formData, amount: val })}
               placeholder="0,00"
             />
           </div>

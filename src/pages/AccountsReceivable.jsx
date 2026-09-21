@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CurrencyInput from '@/components/ui/CurrencyInput';
 import {
   Select,
   SelectContent,
@@ -828,11 +829,11 @@ export default function AccountsReceivable() {
             </div>
             <div>
               <Label>Valor Original (R$)</Label>
-              <Input type="number" step="0.01" value={editData.original_amount || ''} onChange={(e) => setEditData(d => ({ ...d, original_amount: e.target.value }))} />
+              <CurrencyInput value={editData.original_amount || ''} onChange={(val) => setEditData(d => ({ ...d, original_amount: val }))} />
             </div>
             <div>
               <Label>Valor Pago (R$)</Label>
-              <Input type="number" step="0.01" value={editData.paid_amount || ''} onChange={(e) => setEditData(d => ({ ...d, paid_amount: e.target.value }))} />
+              <CurrencyInput value={editData.paid_amount || ''} onChange={(val) => setEditData(d => ({ ...d, paid_amount: val }))} />
             </div>
             <div>
               <Label>Data do Último Pagamento</Label>
@@ -870,12 +871,9 @@ export default function AccountsReceivable() {
             </div>
             <div>
               <Label>Valor a Receber (R$) *</Label>
-              <Input 
-                type="number" 
-                step="0.01" 
-                value={paymentAmount} 
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                max={selectedInstallment?.remaining_amount}
+              <CurrencyInput
+                value={paymentAmount}
+                onChange={(val) => setPaymentAmount(val)}
               />
             </div>
             {selectedInstallment && (
@@ -922,12 +920,9 @@ export default function AccountsReceivable() {
             </div>
             <div>
               <Label>Taxa Extra de Antecipação (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
+              <CurrencyInput
                 value={liquidateExtraFee}
-                onChange={(e) => setLiquidateExtraFee(e.target.value)}
+                onChange={(val) => setLiquidateExtraFee(val)}
                 placeholder="0,00"
               />
               <p className="text-xs text-slate-500 mt-1">Será distribuída proporcionalmente entre as parcelas pendentes.</p>
