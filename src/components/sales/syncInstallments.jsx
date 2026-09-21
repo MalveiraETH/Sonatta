@@ -82,6 +82,42 @@ function buildInstallments(payment, sale, saleDate, firstDueDate = null) {
 }
 
 /**
+ * Create a single installment for the "saldo a completar posterior" (venda parcial).
+ * Always generates 1 pending installment with due_date = pendingDueDate.
+ * @param {object} sale
+ * @param {number} pendingBalance
+ * @param {string} pendingDueDate - ISO date string (yyyy-MM-dd)
+ */
+export async function createPendingBalanceInstallment(sale, pendingBalance, pendingDueDate) {
+  if (!pendingBalance || pendingBalance <= 0) return;
+  const saleDateStr = typeof sale.sale_date === 'string'
+    ? sale.sale_date
+    : format(sale.sale_date, 'yyyy-MM-dd');
+  const dueDate = pendingDueDate || saleDateStr;
+  await base44.entities.Installment.create({
+    sale_id: sale.id,
+    sale_number: sale.sale_number,
+    client_id: sale.client_id,
+    client_name: sale.client_name,
+    payment_method: 'saldo_pendente',
+    card_brand: '',
+    fee_rate: 0,
+    fee_amount: 0,
+    gross_amount: pendingBalance,
+    net_amount: pendingBalance,
+    installments_total: 1,
+    installment_number: 1,
+    due_date: dueDate,
+    sale_date: saleDateStr,
+    original_amount: pendingBalance,
+    paid_amount: 0,
+    remaining_amount: pendingBalance,
+    payment_status: 'pendente',
+    payment_history: []
+  });
+}
+
+/**
  * Create installments for a newly created sale.
  * Only for cartao_credito and pix_parcelado.
  * @param {object} sale
@@ -108,7 +144,7 @@ export async function createInstallmentsForSale(sale, saleDate, firstDueDate = n
  * - Recreate installments from new payment_details
  * Only cartao_credito and pix_parcelado generate installments.
  */
-export async function syncInstallmentsForSale(sale, saleDate) {
+export async function syncInstallmentsForSale(sale, saleDate, firstDueDate = null) {
   const existing = await base44.entities.Installment.filter({ sale_id: sale.id });
 
   // Step 1: Cancel all paid installments (reset to pending/overdue)
@@ -137,5 +173,10 @@ export async function syncInstallmentsForSale(sale, saleDate) {
   }
 
   // Step 3: Recreate installments from new payment_details
-  await createInstallmentsForSale(sale, saleDate);
+  await createInstallmentsForSale(sale, saleDate, firstDueDate);
+
+  // Step 4: Recreate pending balance installment (saldo a completar) if applicable
+  if (sale.pending_balance && sale.pending_balance > 0) {
+    await createPendingBalanceInstallment(sale, sale.pending_balance, sale.pending_due_date);
+  }
 }

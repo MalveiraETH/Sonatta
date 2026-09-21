@@ -172,10 +172,34 @@
       "enum": [
         "pendente",
         "pago",
-        "cancelado"
+        "cancelado",
+        "parcial"
       ],
       "default": "pendente",
       "description": "Status da venda"
+    },
+    "is_complementary": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica se \u00e9 um pagamento complementar de outra venda"
+    },
+    "complementary_to_sale_id": {
+      "type": "string",
+      "description": "ID da venda original (quando \u00e9 complementar)"
+    },
+    "complementary_to_sale_number": {
+      "type": "string",
+      "description": "N\u00famero da venda original (quando \u00e9 complementar)"
+    },
+    "pending_balance": {
+      "type": "number",
+      "default": 0,
+      "description": "Saldo a completar posterior (venda parcial)"
+    },
+    "pending_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de vencimento do saldo a completar"
     },
     "notes": {
       "type": "string",

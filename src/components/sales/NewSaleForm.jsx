@@ -20,15 +20,15 @@ import {
 import { Card } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Loader2, Plus, Trash2, Calendar as CalendarIcon, Wrench } from 'lucide-react';
+import { Loader2, Plus, Trash2, Calendar as CalendarIcon, Wrench, PlusCircle, Link2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logCreation, logEdit } from '@/components/utils/auditLogger';
-import { createInstallmentsForSale, syncInstallmentsForSale } from '@/components/sales/syncInstallments';
+import { createInstallmentsForSale, syncInstallmentsForSale, createPendingBalanceInstallment } from '@/components/sales/syncInstallments';
 import { recalculateClientStatus } from '@/components/utils/clientStatusSync';
 
-export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient }) {
+export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess, preselectedClient, complementaryTarget }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
@@ -42,6 +42,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   const [discountInput, setDiscountInput] = useState('');
   const [saleDate, setSaleDate] = useState(new Date());
   const [firstDueDate, setFirstDueDate] = useState(null);
+  const [isComplementaryMode, setIsComplementaryMode] = useState(false);
+  const [complementaryOptions, setComplementaryOptions] = useState([]);
+  const [complementaryToSale, setComplementaryToSale] = useState(null);
+  const [pendingBalance, setPendingBalance] = useState(0);
+  const [pendingBalanceInput, setPendingBalanceInput] = useState('');
+  const [pendingDueDate, setPendingDueDate] = useState(null);
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -74,9 +80,36 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         setSaleDate(new Date());
         setDiscountInput('');
         setDiscountPercent(0);
+        setPendingBalance(0);
+        setPendingBalanceInput('');
+        setPendingDueDate(null);
+        // Pré-preencher modo complementar se vier de uma venda original
+        if (complementaryTarget) {
+          setIsComplementaryMode(true);
+          setComplementaryToSale(complementaryTarget);
+          setFormData(prev => ({
+            ...prev,
+            client_id: complementaryTarget.client_id,
+            client_name: complementaryTarget.client_name,
+            client_cpf: complementaryTarget.client_cpf || '',
+            client_phone: complementaryTarget.client_phone || '',
+            client_email: complementaryTarget.client_email || '',
+            client_address: complementaryTarget.client_address || '',
+            is_complementary: true,
+            complementary_to_sale_id: complementaryTarget.id,
+            complementary_to_sale_number: complementaryTarget.sale_number,
+            seller_id: currentUser?.id || '',
+            seller_name: currentUser?.full_name || '',
+            items: [],
+            payment_details: [{ method: 'pix', amount: complementaryTarget.pending_balance || 0, installments: 1, status: 'pendente', card_brand: '', fee_rate: 0, fee_amount: 0, net_amount: 0 }]
+          }));
+        } else {
+          setIsComplementaryMode(false);
+          setComplementaryToSale(null);
+        }
       }
     }
-  }, [open]);
+  }, [open, complementaryTarget]);
 
   useEffect(() => {
     if (open && sale) {
@@ -111,6 +144,10 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         category_name: sale.category_name || '',
         sale_number: sale.sale_number || ''
       });
+      // Restaurar saldo a completar (venda parcial)
+      setPendingBalance(sale.pending_balance || 0);
+      setPendingBalanceInput(sale.pending_balance ? String(sale.pending_balance).replace('.', ',') : '');
+      setPendingDueDate(sale.pending_due_date ? new Date(sale.pending_due_date + 'T12:00:00') : null);
       const originalSubtotal = sale.subtotal || 0;
       const originalDiscount = sale.discount || 0;
       if (originalSubtotal > 0) {
@@ -232,6 +269,97 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     } catch (e) {
       console.warn('Tipos de pagamento não disponíveis para este perfil');
     }
+
+    // Carregar vendas com saldo pendente (para Pagamento Complementar)
+    try {
+      const allSales = await base44.entities.Sale.list('-sale_date', 500);
+      setComplementaryOptions(allSales.filter(s =>
+        s.pending_balance > 0 && s.status !== 'cancelado' && !s.is_complementary
+      ));
+    } catch (e) {
+      console.warn('Não foi possível carregar vendas parciais');
+    }
+  };
+
+  // Alternar modo Pagamento Complementar
+  const toggleComplementaryMode = () => {
+    const next = !isComplementaryMode;
+    setIsComplementaryMode(next);
+    if (next) {
+      // Entrando no modo complementar: limpa itens e desconto
+      setFormData(prev => ({
+        ...prev,
+        items: [],
+        subtotal: 0,
+        discount: 0,
+        total: 0,
+        category_id: '',
+        category_name: '',
+        quote_id: ''
+      }));
+      setDiscountPercent(0);
+      setDiscountInput('');
+      setPendingBalance(0);
+      setPendingBalanceInput('');
+      setPendingDueDate(null);
+    } else {
+      // Saindo do modo complementar: limpa vínculo
+      setComplementaryToSale(null);
+      setFormData(prev => ({
+        ...prev,
+        client_id: '',
+        client_name: '',
+        client_cpf: '',
+        client_phone: '',
+        client_email: '',
+        client_address: '',
+        is_complementary: false,
+        complementary_to_sale_id: '',
+        complementary_to_sale_number: ''
+      }));
+    }
+  };
+
+  // Selecionar venda original no modo complementar (auto-preenche cliente)
+  const handleSelectOriginalSale = (saleId) => {
+    const original = complementaryOptions.find(s => s.id === saleId);
+    setComplementaryToSale(original || null);
+    if (original) {
+      setFormData(prev => ({
+        ...prev,
+        client_id: original.client_id,
+        client_name: original.client_name,
+        client_cpf: original.client_cpf || '',
+        client_phone: original.client_phone || '',
+        client_email: original.client_email || '',
+        client_address: original.client_address || '',
+        is_complementary: true,
+        complementary_to_sale_id: original.id,
+        complementary_to_sale_number: original.sale_number,
+        seller_id: currentUser?.id || '',
+        seller_name: currentUser?.full_name || ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        is_complementary: false,
+        complementary_to_sale_id: '',
+        complementary_to_sale_number: ''
+      }));
+    }
+  };
+
+  // Atualizar saldo a completar posterior
+  const updatePendingBalance = (rawValue) => {
+    setPendingBalanceInput(rawValue);
+    const parsed = parseDecimal(rawValue);
+    setPendingBalance(parsed);
+  };
+
+  // Recalcular total no modo complementar (total = soma dos pagamentos)
+  const recalcComplementaryTotal = (payments) => {
+    const total = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    setFormData(prev => ({ ...prev, subtotal: total, discount: 0, total }));
   };
 
   const handleClientChange = async (clientId) => {
@@ -423,15 +551,15 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
   };
 
   const addPayment = () => {
-    setFormData({
-      ...formData,
-      payment_details: [{ method: 'pix', amount: 0, installments: 1, status: 'pendente', card_brand: '', fee_rate: 0, fee_amount: 0, net_amount: 0 }, ...formData.payment_details]
-    });
+    const newPayments = [{ method: 'pix', amount: 0, installments: 1, status: 'pendente', card_brand: '', fee_rate: 0, fee_amount: 0, net_amount: 0 }, ...formData.payment_details];
+    setFormData({ ...formData, payment_details: newPayments });
+    if (isComplementaryMode) recalcComplementaryTotal(newPayments);
   };
 
   const removePayment = (index) => {
     const newPayments = formData.payment_details.filter((_, i) => i !== index);
     setFormData({ ...formData, payment_details: newPayments });
+    if (isComplementaryMode) recalcComplementaryTotal(newPayments);
   };
 
   const updatePayment = (index, field, value) => {
@@ -456,6 +584,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
     newPayments[index] = updated;
     setFormData({ ...formData, payment_details: newPayments });
+    if (isComplementaryMode) recalcComplementaryTotal(newPayments);
   };
 
   const recalculateTotals = (items, payments) => {
@@ -499,33 +628,58 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.client_id || formData.items.length === 0 || formData.payment_details.length === 0) {
-      toast.error('Preencha todos os campos obrigatórios e adicione pelo menos uma forma de pagamento');
-      return;
-    }
 
-    // Validar soma dos pagamentos
-    const totalPayments = formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-    const hasDifference = Math.abs(totalPayments - formData.total) > 0.02;
-    
-    // Se houver diferença, exigir justificativa
-    if (hasDifference && !formData.notes?.trim()) {
-      toast.error('O valor dos pagamentos difere do total da venda. Por favor, adicione uma justificativa no campo de observações.');
-      return;
-    }
+    // --- Validações por modo ---
+    if (isComplementaryMode) {
+      if (!formData.complementary_to_sale_id) {
+        toast.error('Selecione a venda original que deseja complementar');
+        return;
+      }
+      if (!formData.client_id || formData.payment_details.length === 0) {
+        toast.error('Selecione a venda original e adicione uma forma de pagamento');
+        return;
+      }
+      const compPayments = formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      if (compPayments <= 0) {
+        toast.error('Informe o valor do pagamento complementar');
+        return;
+      }
+    } else {
+      if (!formData.client_id || formData.items.length === 0 || formData.payment_details.length === 0) {
+        toast.error('Preencha todos os campos obrigatórios e adicione pelo menos uma forma de pagamento');
+        return;
+      }
 
-    // Verificar se produtos já foram vendidos ou sem estoque (serviços não têm estoque)
-    for (const item of formData.items) {
-      if (item.stock_type === 'servico') continue;
-      const product = products.find(p => p.id === item.product_id);
-      if (product) {
-        if (product.stock_type === 'serializado' && product.status === 'vendido') {
-          toast.error(`O produto ${product.name} (${product.serial_number}) já foi vendido!`);
-          return;
-        }
-        if (product.stock_type === 'nao_serializado' && product.quantity < item.quantity) {
-          toast.error(`Estoque insuficiente para ${product.name}. Disponível: ${product.quantity}`);
-          return;
+      // Validar soma: pagamentos + saldo a completar deve bater com o total
+      const totalPayments = formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const totalCovered = totalPayments + pendingBalance;
+      const hasDifference = Math.abs(totalCovered - formData.total) > 0.02;
+
+      // Se houver diferença (sem ser coberta pelo saldo a completar), exigir justificativa
+      if (hasDifference && !formData.notes?.trim()) {
+        toast.error('O valor dos pagamentos + saldo a completar difere do total da venda. Adicione uma justificativa nas observações.');
+        return;
+      }
+
+      // Validar data de vencimento do saldo a completar
+      if (pendingBalance > 0 && !pendingDueDate) {
+        toast.error('Informe a data de vencimento do saldo a completar posterior');
+        return;
+      }
+
+      // Verificar estoque
+      for (const item of formData.items) {
+        if (item.stock_type === 'servico') continue;
+        const product = products.find(p => p.id === item.product_id);
+        if (product) {
+          if (product.stock_type === 'serializado' && product.status === 'vendido') {
+            toast.error(`O produto ${product.name} (${product.serial_number}) já foi vendido!`);
+            return;
+          }
+          if (product.stock_type === 'nao_serializado' && product.quantity < item.quantity) {
+            toast.error(`Estoque insuficiente para ${product.name}. Disponível: ${product.quantity}`);
+            return;
+          }
         }
       }
     }
@@ -533,28 +687,31 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     setLoading(true);
     try {
       const saleNumber = formData.sale_number || generateSaleNumber();
-
-      // Calculate fees for all payments before saving
       const { enriched: enrichedPayments, totalFeeAmount } = calcPaymentFees(formData.payment_details);
       const totalNetAmount = Math.round((formData.total - totalFeeAmount) * 100) / 100;
+      const saleDateStr = format(saleDate, 'yyyy-MM-dd');
+      const pendingDueDateStr = pendingDueDate ? format(pendingDueDate, 'yyyy-MM-dd') : null;
 
+      // ===================== MODO EDIÇÃO =====================
       if (sale) {
-        // MODO EDIÇÃO: recalcular status baseado nos pagamentos
-        const hasPendingMethodEdit = enrichedPayments.some(pd => 
+        const hasPendingMethodEdit = enrichedPayments.some(pd =>
           pd.method === 'pix_parcelado' || pd.method === 'cartao_credito'
         );
-        const newStatus = hasPendingMethodEdit ? 'pendente' : 'pago';
+        let newStatus = hasPendingMethodEdit ? 'pendente' : 'pago';
+        if (pendingBalance > 0) newStatus = 'parcial';
+
         const dataToUpdate = {
           ...formData,
           payment_details: enrichedPayments,
           total_fee_amount: totalFeeAmount,
           total_net_amount: totalNetAmount,
           sale_number: saleNumber,
-          sale_date: format(saleDate, 'yyyy-MM-dd'),
+          sale_date: saleDateStr,
           status: newStatus,
+          pending_balance: pendingBalance,
+          pending_due_date: pendingDueDateStr,
         };
         await base44.entities.Sale.update(sale.id, dataToUpdate);
-        // Sync installments (Contas a Receber) to reflect new payment_details
         await syncInstallmentsForSale({ ...dataToUpdate, id: sale.id }, saleDate, firstDueDate);
         await logEdit('Venda', `${saleNumber} - ${formData.client_name}`, sale.id);
         toast.success('Venda atualizada com sucesso!');
@@ -563,11 +720,80 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         return;
       }
 
-      // Definir status inicial baseado no método de pagamento
-      const hasPendingMethod = enrichedPayments.some(pd => 
+      // ===================== MODO COMPLEMENTAR (nova venda) =====================
+      if (isComplementaryMode) {
+        const hasPendingMethod = enrichedPayments.some(pd =>
+          pd.method === 'pix_parcelado' || pd.method === 'cartao_credito'
+        );
+        const compStatus = hasPendingMethod ? 'pendente' : 'pago';
+
+        const compData = {
+          client_id: formData.client_id,
+          client_name: formData.client_name,
+          client_cpf: formData.client_cpf,
+          client_phone: formData.client_phone,
+          client_email: formData.client_email,
+          client_address: formData.client_address,
+          items: [],
+          subtotal: formData.total,
+          discount: 0,
+          total: formData.total,
+          total_fee_amount: totalFeeAmount,
+          total_net_amount: totalNetAmount,
+          payment_details: enrichedPayments,
+          seller_id: currentUser?.id || '',
+          seller_name: currentUser?.full_name || '',
+          sale_number: saleNumber,
+          sale_date: saleDateStr,
+          status: compStatus,
+          is_complementary: true,
+          complementary_to_sale_id: formData.complementary_to_sale_id,
+          complementary_to_sale_number: formData.complementary_to_sale_number,
+          notes: formData.notes,
+          category_id: formData.category_id,
+          category_name: formData.category_name
+        };
+
+        const newCompSale = await base44.entities.Sale.create(compData);
+        await logCreation('Venda', `${saleNumber} - Pagto Complementar - ${formData.client_name}`, newCompSale.id);
+
+        // Parcelas do pagamento complementar (seguem regras normais: pix_parcelado/cartao_credito)
+        await createInstallmentsForSale(newCompSale, saleDate, firstDueDate);
+
+        // Atualizar venda original: reduzir saldo pendente
+        const original = complementaryToSale;
+        if (original) {
+          const newPendingBalance = Math.max(0, Math.round(((original.pending_balance || 0) - formData.total) * 100) / 100);
+          const updateOriginal = { pending_balance: newPendingBalance };
+          if (newPendingBalance <= 0.01) {
+            updateOriginal.pending_balance = 0;
+            updateOriginal.status = 'pago';
+            updateOriginal.pending_due_date = null;
+          }
+          try {
+            await base44.entities.Sale.update(original.id, updateOriginal);
+          } catch (e) {
+            console.warn('Aviso: não foi possível atualizar saldo da venda original:', e.message);
+          }
+        }
+
+        // Recalcular status do cliente
+        if (formData.client_id) {
+          try { await recalculateClientStatus(formData.client_id); } catch (e) { console.warn(e); }
+        }
+
+        toast.success('Pagamento complementar registrado com sucesso!');
+        onOpenChange(false);
+        if (onSuccess) await onSuccess();
+        return;
+      }
+
+      // ===================== MODO NORMAL (nova venda) =====================
+      const hasPendingMethod = enrichedPayments.some(pd =>
         pd.method === 'pix_parcelado' || pd.method === 'cartao_credito'
       );
-      const initialStatus = hasPendingMethod ? 'pendente' : 'pago';
+      let initialStatus = hasPendingMethod ? 'pendente' : 'pago';
+      if (pendingBalance > 0) initialStatus = 'parcial';
 
       const dataToSave = {
         ...formData,
@@ -575,39 +801,45 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         total_fee_amount: totalFeeAmount,
         total_net_amount: totalNetAmount,
         sale_number: saleNumber,
-        sale_date: format(saleDate, 'yyyy-MM-dd'),
+        sale_date: saleDateStr,
         status: initialStatus,
+        pending_balance: pendingBalance,
+        pending_due_date: pendingDueDateStr,
         seller_id: currentUser?.id || '',
         seller_name: currentUser?.full_name || ''
       };
 
-      // Criar venda
       const newSale = await base44.entities.Sale.create(dataToSave);
       await logCreation('Venda', `${saleNumber} - ${formData.client_name}`, newSale.id);
 
-      // Criar parcelas em Contas a Receber para Pix Parcelado e Cartão de Crédito
+      // Parcelas de cartão/pix parcelado
       await createInstallmentsForSale(newSale, saleDate, firstDueDate);
 
-      // Atualizar estoque via função backend (contorna RLS de Product.update)
+      // Parcela do saldo a completar posterior (sempre gera 1 lançamento em Contas a Receber)
+      if (pendingBalance > 0 && pendingDueDateStr) {
+        await createPendingBalanceInstallment(
+          { ...newSale, sale_date: saleDateStr },
+          pendingBalance,
+          pendingDueDateStr
+        );
+      }
+
+      // Atualizar estoque via função backend
       try {
         await base44.functions.invoke('processSaleStock', {
           items: formData.items,
           sale_id: newSale.id,
           sale_number: saleNumber,
-          sale_date: format(saleDate, 'yyyy-MM-dd'),
+          sale_date: saleDateStr,
           mode: 'sale'
         });
       } catch (stockError) {
         console.warn('Aviso: não foi possível atualizar estoque automaticamente:', stockError.message);
       }
 
-      // Recalcular status do cliente com base nas vendas válidas
+      // Recalcular status do cliente
       if (formData.client_id) {
-        try {
-          await recalculateClientStatus(formData.client_id);
-        } catch (e) {
-          console.warn('Aviso: não foi possível atualizar status do cliente:', e.message);
-        }
+        try { await recalculateClientStatus(formData.client_id); } catch (e) { console.warn(e); }
       }
 
       toast.success('Venda registrada com sucesso!');
@@ -667,9 +899,15 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800">
-            {sale ? 'Editar Venda' : 'Nova Venda'}
+          <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
+            {isComplementaryMode && <Link2 className="h-5 w-5 text-[#6B3FA0]" />}
+            {sale ? 'Editar Venda' : isComplementaryMode ? 'Pagamento Complementar' : 'Nova Venda'}
           </DialogTitle>
+          {isComplementaryMode && (
+            <p className="text-sm text-[#6B3FA0] mt-1">
+              Vinculado à venda <strong>{complementaryToSale?.sale_number}</strong> · Saldo atual: {formatCurrency(complementaryToSale?.pending_balance || 0)}
+            </p>
+          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 pt-2 sm:pt-4">
@@ -756,10 +994,64 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           </div>
           </div>
 
-          {/* SEÇÃO: PRODUTOS */}
+          {/* SEÇÃO: PRODUTOS / COMPLEMENTAR */}
           <div className="space-y-4">
+            {isComplementaryMode && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <h3 className="text-sm font-semibold text-[#6B3FA0]">Pagamento Complementar</h3>
+                  <Button type="button" variant="ghost" size="sm" onClick={toggleComplementaryMode} className="text-xs text-slate-500">
+                    <ArrowLeft className="h-3 w-3 mr-1" />
+                    Voltar para venda normal
+                  </Button>
+                </div>
+                <Card className="p-4 bg-purple-50 border-purple-200">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium text-[#6B3FA0]">Venda Original (com saldo pendente) <span className="text-red-500">*</span></Label>
+                      <Select
+                        value={formData.complementary_to_sale_id || ''}
+                        onValueChange={handleSelectOriginalSale}
+                      >
+                        <SelectTrigger className="text-sm mt-1">
+                          <SelectValue placeholder="Selecione a venda que deseja complementar..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {complementaryOptions.length === 0 ? (
+                            <SelectItem value="__none__" disabled>Nenhuma venda com saldo pendente</SelectItem>
+                          ) : (
+                            complementaryOptions.map(s => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.sale_number} — {s.client_name} (Saldo: {formatCurrency(s.pending_balance)})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {complementaryToSale && (
+                      <div className="bg-white rounded-lg p-3 border border-purple-100 text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Cliente:</span>
+                          <span className="font-medium">{complementaryToSale.client_name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Valor original:</span>
+                          <span className="font-medium">{formatCurrency(complementaryToSale.total)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Saldo pendente:</span>
+                          <span className="font-bold text-amber-600">{formatCurrency(complementaryToSale.pending_balance)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            )}
+            {!isComplementaryMode && (
             <div className="flex items-center justify-between border-b pb-2">
-              <h3 className="text-sm font-semibold text-slate-700">Produtos <span className="text-red-500">*</span></h3>
+              <h3 className="text-sm font-semibold text-slate-700">Produtos {!sale && <span className="text-red-500">*</span>}</h3>
               <div className="flex gap-2 flex-wrap">
                 <Button type="button" variant="outline" size="sm" onClick={addSerializedItem} className="text-xs sm:text-sm">
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
@@ -773,8 +1065,15 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   <Wrench className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Serviço
                 </Button>
+                {!sale && (
+                  <Button type="button" variant="outline" size="sm" onClick={toggleComplementaryMode} className="text-xs sm:text-sm border-[#6B3FA0] bg-[#6B3FA0]/10 text-[#6B3FA0] hover:bg-[#6B3FA0]/20">
+                    <PlusCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    Pagamento Complementar
+                  </Button>
+                )}
               </div>
             </div>
+            )}
 
             {formData.items.map((item, index) => (
               <Card key={index} className="p-3 sm:p-4">
@@ -1235,15 +1534,74 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               </Card>
             ))}
 
-            {formData.payment_details.length > 0 && (
+            {formData.payment_details.length > 0 && !isComplementaryMode && (
               <div className="text-xs sm:text-sm text-slate-600 bg-blue-50 p-2 sm:p-3 rounded">
-                <span className="font-medium">Total pago:</span> {formatCurrency(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0))} 
-                {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && (
+                <span className="font-medium">Total pago:</span> {formatCurrency(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0))}
+                {pendingBalance > 0 && (
+                  <span className="text-amber-700 ml-2 font-medium block sm:inline mt-1 sm:mt-0">
+                    + Saldo a completar: {formatCurrency(pendingBalance)}
+                  </span>
+                )}
+                {Math.abs((formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + pendingBalance) - formData.total) > 0.02 && (
                   <span className="text-red-600 ml-2 font-medium block sm:inline mt-1 sm:mt-0">
-                    (diferença: {formatCurrency(formData.total - formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0))})
+                    (diferença: {formatCurrency(formData.total - formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - pendingBalance)})
                   </span>
                 )}
               </div>
+            )}
+
+            {/* Pagamento a completar posterior (venda parcial) */}
+            {!isComplementaryMode && (
+              <Card className="p-3 sm:p-4 bg-amber-50 border-amber-300">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <PlusCircle className="h-4 w-4 text-amber-600" />
+                    <h4 className="text-sm font-semibold text-amber-800">Pagamento a Completar Posterior</h4>
+                  </div>
+                  <p className="text-xs text-amber-700">Informe o saldo restante e a data prevista para recebimento. Será gerado um lançamento em Contas a Receber.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Valor a Completar (R$)</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={pendingBalanceInput}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updatePendingBalance(e.target.value)}
+                        placeholder="0,00"
+                        className="text-sm focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 transition-shadow"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Data de Vencimento {pendingBalance > 0 && <span className="text-red-500">*</span>}</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal text-sm"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                            <span className="truncate">
+                              {pendingDueDate
+                                ? format(pendingDueDate, "dd/MM/yyyy", { locale: ptBR })
+                                : "Selecione..."}
+                            </span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={pendingDueDate}
+                            onSelect={(date) => setPendingDueDate(date)}
+                            initialFocus
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             )}
           </div>
 
@@ -1253,7 +1611,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
             <div className="space-y-2">
               <Label className="text-sm">
                 Observações
-              {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && (
+              {Math.abs((formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + pendingBalance) - formData.total) > 0.02 && (
                 <span className="text-red-600 ml-1">*</span>
               )}
             </Label>
@@ -1261,18 +1619,18 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder={
-                Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02
+                Math.abs((formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + pendingBalance) - formData.total) > 0.02
                   ? "Justifique a diferença entre o total e os pagamentos..."
                   : "Observações da venda"
               }
               rows={2}
               className={`text-sm ${
-                Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && !formData.notes?.trim()
+                Math.abs((formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + pendingBalance) - formData.total) > 0.02 && !formData.notes?.trim()
                   ? "border-red-500 focus-visible:ring-red-500"
                   : ""
               }`}
             />
-            {Math.abs(formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) - formData.total) > 0.02 && !formData.notes?.trim() && (
+            {Math.abs((formData.payment_details.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) + pendingBalance) - formData.total) > 0.02 && !formData.notes?.trim() && (
               <p className="text-xs text-red-600">Justificativa obrigatória quando há diferença no valor</p>
             )}
             </div>
@@ -1288,7 +1646,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
               className="bg-[#1e3a5f] hover:bg-[#2d5a8a] w-full sm:w-auto"
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {sale ? 'Salvar Alterações' : 'Finalizar Venda'}
+              {sale ? 'Salvar Alterações' : isComplementaryMode ? 'Registrar Pagamento Complementar' : 'Finalizar Venda'}
             </Button>
           </div>
         </form>

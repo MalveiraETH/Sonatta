@@ -22,7 +22,8 @@
       "type": "string",
       "enum": [
         "pix_parcelado",
-        "cartao_credito"
+        "cartao_credito",
+        "saldo_pendente"
       ],
       "description": "M\u00e9todo de pagamento"
     },
@@ -62,6 +63,11 @@
       "type": "string",
       "format": "date",
       "description": "Data de vencimento"
+    },
+    "sale_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da venda"
     },
     "original_amount": {
       "type": "number",
