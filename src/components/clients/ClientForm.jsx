@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { maskCEP, maskDocument, isValidCPF, isValidCEP, isValidDocument } from '@/lib/masks';
+import { maskCEP, maskDocument, isValidCPF, isValidCEP, isValidDocument, onlyDigits } from '@/lib/masks';
 
 export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -103,17 +103,24 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
 
     // Validação de CPF
     const cpfNormalized = normalizeCpf(formData.cpf);
-    if (cpfNormalized && !isValidCPF(formData.cpf)) {
+
+    // Dados legados (já salvos e não alterados) não bloqueiam a edição —
+    // a validação de integridade vale para cadastros novos e para o que foi alterado.
+    const cpfChanged = cpfNormalized !== onlyDigits(client?.cpf);
+    const cepChanged = onlyDigits(formData.address_cep) !== onlyDigits(client?.address_cep);
+    const payerDocChanged = onlyDigits(formData.payer_document) !== onlyDigits(client?.payer_document);
+
+    if (cpfNormalized && cpfChanged && !isValidCPF(formData.cpf)) {
       toast.error('CPF inválido. Verifique os dígitos informados.');
       return;
     }
     // Validação de CEP (se preenchido, deve ter 8 dígitos)
-    if (formData.address_cep && !isValidCEP(formData.address_cep)) {
+    if (formData.address_cep && cepChanged && !isValidCEP(formData.address_cep)) {
       toast.error('CEP inválido. Deve conter 8 dígitos.');
       return;
     }
     // Validação do documento do responsável
-    if (formData.payer_document && !isValidDocument(formData.payer_document)) {
+    if (formData.payer_document && payerDocChanged && !isValidDocument(formData.payer_document)) {
       toast.error('CPF/CNPJ do responsável inválido.');
       return;
     }
