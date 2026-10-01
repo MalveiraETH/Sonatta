@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Building2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { maskCNPJ, maskPhone, isValidCNPJ } from '@/lib/masks';
+import { maskCNPJ, maskPhone, documentError } from '@/lib/masks';
+import FieldError from '@/components/ui/FieldError';
 
 export default function CompanyTab() {
   const [companies, setCompanies] = useState([]);
   const [editing, setEditing] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [cnpjError, setCnpjError] = useState(null);
   const [formData, setFormData] = useState({
     name: 'Sonatta - Aparelhos Auditivos Manaus',
     cnpj: '33.457.952/0001-98',
@@ -39,8 +41,10 @@ export default function CompanyTab() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.cnpj && !isValidCNPJ(formData.cnpj)) {
-      toast.error('CNPJ inválido. Verifique os dígitos informados.');
+    const erro = documentError(formData.cnpj, { kind: 'cnpj', original: editing?.cnpj });
+    if (erro) {
+      setCnpjError(erro);
+      toast.error('Confira os campos destacados antes de salvar.');
       return;
     }
     try {
@@ -82,10 +86,17 @@ export default function CompanyTab() {
             <Input
               required
               value={formData.cnpj}
-              onChange={(e) => setFormData({ ...formData, cnpj: maskCNPJ(e.target.value) })}
+              onChange={(e) => {
+                setFormData({ ...formData, cnpj: maskCNPJ(e.target.value) });
+                setCnpjError(null);
+              }}
+              onBlur={() => setCnpjError(documentError(formData.cnpj, { kind: 'cnpj', original: editing?.cnpj }))}
               placeholder="00.000.000/0000-00"
               maxLength={18}
+              inputMode="numeric"
+              className={cnpjError ? 'border-red-400' : ''}
             />
+            <FieldError message={cnpjError} />
           </div>
           <div>
             <Label>Endereço</Label>

@@ -19,25 +19,34 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { maskCEP, maskDocument, isValidCPF, isValidCEP, isValidDocument, onlyDigits } from '@/lib/masks';
+import { maskCPF, maskPhone, maskDocument, documentError, onlyDigits } from '@/lib/masks';
+import FieldError from '@/components/ui/FieldError';
+import CepInput from '@/components/ui/CepInput';
+
+const emptyForm = {
+  full_name: '',
+  cpf: '',
+  phone: '',
+  email: '',
+  address: '',
+  address_cep: '',
+  address_number: '',
+  address_neighborhood: '',
+  address_city: '',
+  address_state: '',
+  birth_date: '',
+  payer_name: '',
+  payer_document: '',
+  status: 'lead',
+  uso_aparelhos: 'unilateral',
+  notes: ''
+};
 
 export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    cpf: '',
-    phone: '',
-    email: '',
-    address_cep: '',
-    address_number: '',
-    address_neighborhood: '',
-    birth_date: '',
-    payer_name: '',
-    payer_document: '',
-    status: 'lead',
-    uso_aparelhos: 'unilateral',
-    notes: ''
-  });
+  const [errors, setErrors] = useState({});
+  const [cepFilled, setCepFilled] = useState(false);
+  const [formData, setFormData] = useState(emptyForm);
 
   useEffect(() => {
     if (client) {
@@ -46,9 +55,12 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         cpf: client.cpf || '',
         phone: client.phone || '',
         email: client.email || '',
+        address: client.address || '',
         address_cep: client.address_cep || '',
         address_number: client.address_number || '',
         address_neighborhood: client.address_neighborhood || '',
+        address_city: client.address_city || '',
+        address_state: client.address_state || '',
         birth_date: client.birth_date || '',
         payer_name: client.payer_name || '',
         payer_document: client.payer_document || '',
@@ -57,42 +69,35 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
         notes: client.notes || ''
       });
     } else {
-      setFormData({
-        full_name: '',
-        cpf: '',
-        phone: '',
-        email: '',
-        address_cep: '',
-        address_number: '',
-        address_neighborhood: '',
-        birth_date: '',
-        payer_name: '',
-        payer_document: '',
-        status: 'lead',
-        uso_aparelhos: 'unilateral',
-        notes: ''
-      });
+      setFormData(emptyForm);
     }
+    setErrors({});
+    setCepFilled(false);
   }, [client, open]);
 
-  const formatCPF = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    return numbers
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-      .replace(/(-\d{2})\d+?$/, '$1');
+  const setField = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => (prev[field] ? { ...prev, [field]: null } : prev));
   };
 
-  const formatPhone = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    return numbers
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1');
+  const setAddressField = (field, value) => {
+    setCepFilled(false);
+    setField(field, value);
   };
 
-  const normalizeCpf = (value) => (value || '').replace(/\D/g, '');
+  const cpfError = () => documentError(formData.cpf, { kind: 'cpf', original: client?.cpf });
+  const payerError = () => documentError(formData.payer_document, { kind: 'document', original: client?.payer_document });
+
+  const handleCepResolved = (data) => {
+    setFormData(prev => ({
+      ...prev,
+      address: data.street || prev.address,
+      address_neighborhood: (data.neighborhood || prev.address_neighborhood || '').toUpperCase(),
+      address_city: (data.city || prev.address_city || '').toUpperCase(),
+      address_state: (data.state || prev.address_state || '').toUpperCase()
+    }));
+    setCepFilled(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,35 +106,28 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
       return;
     }
 
-    // Validação de CPF
-    const cpfNormalized = normalizeCpf(formData.cpf);
+    // Documentos inválidos bloqueiam o salvamento. Cadastros legados (valor já salvo
+    // e não alterado) continuam editáveis.
+    const docErrors = { cpf: cpfError(), payer_document: payerError() };
+    setErrors(docErrors);
 
-    // Dados legados (já salvos e não alterados) não bloqueiam a edição —
-    // a validação de integridade vale para cadastros novos e para o que foi alterado.
-    const cpfChanged = cpfNormalized !== onlyDigits(client?.cpf);
-    const cepChanged = onlyDigits(formData.address_cep) !== onlyDigits(client?.address_cep);
-    const payerDocChanged = onlyDigits(formData.payer_document) !== onlyDigits(client?.payer_document);
+    const cepDigits = onlyDigits(formData.address_cep);
+    const cepIncomplete = cepDigits.length > 0
+      && cepDigits.length < 8
+      && cepDigits !== onlyDigits(client?.address_cep);
 
-    if (cpfNormalized && cpfChanged && !isValidCPF(formData.cpf)) {
-      toast.error('CPF inválido. Verifique os dígitos informados.');
+    if (docErrors.cpf || docErrors.payer_document || cepIncomplete) {
+      toast.error('Confira os campos destacados antes de salvar.');
       return;
     }
-    // Validação de CEP (se preenchido, deve ter 8 dígitos)
-    if (formData.address_cep && cepChanged && !isValidCEP(formData.address_cep)) {
-      toast.error('CEP inválido. Deve conter 8 dígitos.');
-      return;
-    }
-    // Validação do documento do responsável
-    if (formData.payer_document && payerDocChanged && !isValidDocument(formData.payer_document)) {
-      toast.error('CPF/CNPJ do responsável inválido.');
-      return;
-    }
+
     // Validação de CPF duplicado
+    const cpfNormalized = onlyDigits(formData.cpf);
     if (cpfNormalized) {
       try {
         const existing = await base44.entities.Client.list('-created_date', 500);
         const duplicate = existing.find(c =>
-          normalizeCpf(c.cpf) === cpfNormalized && c.id !== client?.id
+          onlyDigits(c.cpf) === cpfNormalized && c.id !== client?.id
         );
         if (duplicate) {
           toast.error(`Já existe um cliente com este CPF: ${duplicate.full_name}`);
@@ -159,6 +157,8 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
     }
   };
 
+  const filledClass = cepFilled ? 'border-emerald-300 bg-emerald-50/50' : '';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -175,7 +175,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="full_name"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value.toUpperCase() })}
+                onChange={(e) => setField('full_name', e.target.value.toUpperCase())}
                 placeholder="Nome completo do cliente"
                 className="uppercase"
               />
@@ -186,10 +186,14 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="cpf"
                 value={formData.cpf}
-                onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })}
+                onChange={(e) => setField('cpf', maskCPF(e.target.value))}
+                onBlur={() => setErrors(prev => ({ ...prev, cpf: cpfError() }))}
                 placeholder="000.000.000-00"
                 maxLength={14}
+                inputMode="numeric"
+                className={errors.cpf ? 'border-red-400' : ''}
               />
+              <FieldError message={errors.cpf} />
             </div>
 
             <div className="space-y-2">
@@ -197,9 +201,10 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
+                onChange={(e) => setField('phone', maskPhone(e.target.value))}
                 placeholder="(00) 00000-0000"
                 maxLength={15}
+                inputMode="numeric"
               />
             </div>
 
@@ -209,7 +214,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => setField('email', e.target.value)}
                 placeholder="email@exemplo.com"
               />
             </div>
@@ -220,27 +225,34 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
                 id="birth_date"
                 type="date"
                 value={formData.birth_date}
-                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                onChange={(e) => setField('birth_date', e.target.value)}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address_cep">CEP</Label>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address">Rua / Logradouro</Label>
               <Input
-                id="address_cep"
-                value={formData.address_cep}
-                onChange={(e) => setFormData({ ...formData, address_cep: maskCEP(e.target.value) })}
-                placeholder="00000-000"
-                maxLength={9}
+                id="address"
+                value={formData.address}
+                onChange={(e) => setAddressField('address', e.target.value)}
+                placeholder="Preenchido automaticamente pelo CEP"
+                className={filledClass}
               />
             </div>
+
+            <CepInput
+              value={formData.address_cep}
+              onChange={(value) => setField('address_cep', value)}
+              onResolved={handleCepResolved}
+              savedValue={client?.address_cep}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="address_number">Número</Label>
               <Input
                 id="address_number"
                 value={formData.address_number}
-                onChange={(e) => setFormData({ ...formData, address_number: e.target.value })}
+                onChange={(e) => setField('address_number', e.target.value)}
                 placeholder="123"
               />
             </div>
@@ -250,10 +262,31 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="address_neighborhood"
                 value={formData.address_neighborhood}
-                onChange={(e) => setFormData({ ...formData, address_neighborhood: e.target.value.toUpperCase() })}
+                onChange={(e) => setAddressField('address_neighborhood', e.target.value.toUpperCase())}
                 placeholder="Nome do bairro"
-                className="uppercase"
+                className={`uppercase ${filledClass}`}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address_city">Cidade / UF</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  id="address_city"
+                  value={formData.address_city}
+                  onChange={(e) => setAddressField('address_city', e.target.value.toUpperCase())}
+                  placeholder="Cidade"
+                  className={`col-span-2 uppercase ${filledClass}`}
+                />
+                <Input
+                  id="address_state"
+                  value={formData.address_state}
+                  onChange={(e) => setAddressField('address_state', e.target.value.toUpperCase().slice(0, 2))}
+                  placeholder="UF"
+                  maxLength={2}
+                  className={`uppercase ${filledClass}`}
+                />
+              </div>
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -265,7 +298,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="payer_name"
                 value={formData.payer_name}
-                onChange={(e) => setFormData({ ...formData, payer_name: e.target.value.toUpperCase() })}
+                onChange={(e) => setField('payer_name', e.target.value.toUpperCase())}
                 placeholder="Nome do responsável pelo pagamento"
                 className="uppercase"
               />
@@ -276,17 +309,21 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Input
                 id="payer_document"
                 value={formData.payer_document}
-                onChange={(e) => setFormData({ ...formData, payer_document: maskDocument(e.target.value) })}
+                onChange={(e) => setField('payer_document', maskDocument(e.target.value))}
+                onBlur={() => setErrors(prev => ({ ...prev, payer_document: payerError() }))}
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 maxLength={18}
+                inputMode="numeric"
+                className={errors.payer_document ? 'border-red-400' : ''}
               />
+              <FieldError message={errors.payer_document} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                onValueChange={(value) => setField('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -303,7 +340,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Label htmlFor="uso_aparelhos">Uso de Aparelhos</Label>
               <Select
                 value={formData.uso_aparelhos}
-                onValueChange={(value) => setFormData({ ...formData, uso_aparelhos: value })}
+                onValueChange={(value) => setField('uso_aparelhos', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -320,7 +357,7 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
               <Textarea
                 id="notes"
                 value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                onChange={(e) => setField('notes', e.target.value)}
                 placeholder="Observações gerais sobre o cliente"
                 rows={3}
               />
@@ -331,8 +368,8 @@ export default function ClientForm({ open, onOpenChange, client, onSuccess }) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading}
               className="bg-[#1e3a5f] hover:bg-[#2d5a8a]"
             >

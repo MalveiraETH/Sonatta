@@ -8,12 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Users, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { maskDocument, maskPhone, isValidDocument } from '@/lib/masks';
+import { maskDocument, maskPhone, documentError } from '@/lib/masks';
+import FieldError from '@/components/ui/FieldError';
 
 export default function CounterpartiesTab() {
   const [counterparties, setCounterparties] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [docError, setDocError] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     type: 'fornecedor',
@@ -38,8 +40,10 @@ export default function CounterpartiesTab() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.cpf_cnpj && !isValidDocument(formData.cpf_cnpj)) {
-      toast.error('CPF/CNPJ inválido. Verifique os dígitos informados.');
+    const erro = documentError(formData.cpf_cnpj, { original: editing?.cpf_cnpj });
+    if (erro) {
+      setDocError(erro);
+      toast.error('Confira os campos destacados antes de salvar.');
       return;
     }
     try {
@@ -71,6 +75,7 @@ export default function CounterpartiesTab() {
   const handleEdit = (counterparty) => {
     setEditing(counterparty);
     setFormData(counterparty);
+    setDocError(null);
     setShowForm(true);
   };
 
@@ -102,7 +107,7 @@ export default function CounterpartiesTab() {
               Contrapartes (Fornecedores, Pessoal e Clientes)
             </CardTitle>
             <Button 
-              onClick={() => setShowForm(true)} 
+              onClick={() => { setDocError(null); setShowForm(true); }} 
               className="bg-[#6B3FA0] hover:bg-[#834CB8] h-11 px-6 font-medium shadow-sm w-full sm:w-auto"
             >
               <Plus className="h-5 w-5 mr-2" />
@@ -161,7 +166,7 @@ export default function CounterpartiesTab() {
         </CardContent>
       </Card>
 
-      <Dialog open={showForm} onOpenChange={() => { setShowForm(false); setEditing(null); }}>
+      <Dialog open={showForm} onOpenChange={() => { setShowForm(false); setEditing(null); setDocError(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">{editing ? 'Editar Contraparte' : 'Nova Contraparte'}</DialogTitle>
@@ -198,11 +203,17 @@ export default function CounterpartiesTab() {
               <Label className="text-sm font-medium text-slate-900 mb-2 block">CPF/CNPJ</Label>
               <Input
                 value={formData.cpf_cnpj}
-                onChange={(e) => setFormData({ ...formData, cpf_cnpj: maskDocument(e.target.value) })}
+                onChange={(e) => {
+                  setFormData({ ...formData, cpf_cnpj: maskDocument(e.target.value) });
+                  setDocError(null);
+                }}
+                onBlur={() => setDocError(documentError(formData.cpf_cnpj, { original: editing?.cpf_cnpj }))}
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 maxLength={18}
-                className="h-11 text-base"
+                inputMode="numeric"
+                className={docError ? 'border-red-400 h-11 text-base' : 'h-11 text-base'}
               />
+              <FieldError message={docError} />
             </div>
             <div>
               <Label className="text-sm font-medium text-slate-900 mb-2 block">Telefone</Label>

@@ -18,9 +18,12 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { maskCPF, maskPhone, documentError } from '@/lib/masks';
+import FieldError from '@/components/ui/FieldError';
 
 export default function ProfessionalForm({ open, onOpenChange, professional, onSuccess }) {
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     full_name: '',
     cpf: '',
@@ -47,33 +50,24 @@ export default function ProfessionalForm({ open, onOpenChange, professional, onS
         council_number: ''
       });
     }
+    setErrors({});
   }, [professional, open]);
 
-  const formatCPF = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-    }
-    return value;
-  };
-
-  const formatPhone = (value) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 11) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
-    }
-    return value;
+  const validateCpf = () => {
+    setErrors({ cpf: documentError(formData.cpf, { kind: 'cpf', original: professional?.cpf }) });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.full_name || !formData.whatsapp || !formData.specialty) {
       toast.error('Preencha os campos obrigatórios');
+      return;
+    }
+
+    const cpfErro = documentError(formData.cpf, { kind: 'cpf', original: professional?.cpf });
+    if (cpfErro) {
+      setErrors({ cpf: cpfErro });
+      toast.error('Confira os campos destacados antes de salvar.');
       return;
     }
 
@@ -127,18 +121,26 @@ export default function ProfessionalForm({ open, onOpenChange, professional, onS
               <Label>CPF</Label>
               <Input
                 value={formData.cpf}
-                onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })}
+                onChange={(e) => {
+                  setFormData({ ...formData, cpf: maskCPF(e.target.value) });
+                  setErrors({});
+                }}
+                onBlur={validateCpf}
                 placeholder="000.000.000-00"
                 maxLength={14}
+                inputMode="numeric"
+                className={errors.cpf ? 'border-red-400' : ''}
               />
+              <FieldError message={errors.cpf} />
             </div>
             <div className="space-y-2">
               <Label>WhatsApp *</Label>
               <Input
                 value={formData.whatsapp}
-                onChange={(e) => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, whatsapp: maskPhone(e.target.value) })}
                 placeholder="(00) 00000-0000"
                 maxLength={15}
+                inputMode="numeric"
               />
             </div>
           </div>

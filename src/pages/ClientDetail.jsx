@@ -344,6 +344,7 @@ export default function ClientDetail() {
                       client.address,
                       client.address_number && `Nº ${client.address_number}`,
                       client.address_neighborhood && `${client.address_neighborhood}`,
+                      client.address_city && `${client.address_city}${client.address_state ? ` - ${client.address_state}` : ''}`,
                       client.address_cep && `CEP ${client.address_cep}`
                     ].filter(Boolean);
                     return parts.length > 0 ? parts.join(', ') : '-';

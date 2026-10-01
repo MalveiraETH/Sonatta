@@ -20,7 +20,7 @@
     },
     "address": {
       "type": "string",
-      "description": "Endere\u00e7o completo"
+      "description": "Rua/Logradouro (preenchido pela consulta do CEP)"
     },
     "address_cep": {
       "type": "string",
@@ -33,6 +33,14 @@
     "address_neighborhood": {
       "type": "string",
       "description": "Bairro do cliente"
+    },
+    "address_city": {
+      "type": "string",
+      "description": "Cidade do cliente"
+    },
+    "address_state": {
+      "type": "string",
+      "description": "UF do cliente"
     },
     "birth_date": {
       "type": "string",

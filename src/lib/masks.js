@@ -145,3 +145,23 @@ export const maskCurrencyInput = (str) => {
   reais = reais.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return `${reais},${cents}`;
 };
+
+// ── Documento: mensagem de erro consolidada ──
+
+/**
+ * Retorna a mensagem de erro de um campo de documento (CPF/CNPJ), ou null se estiver ok.
+ * `original` é o valor já salvo: cadastros legados com documento inválido não bloqueiam
+ * a edição enquanto o campo não for alterado.
+ * kind: 'cpf' | 'cnpj' | 'document'
+ */
+export const documentError = (value, { kind = 'document', original = '' } = {}) => {
+  const digits = onlyDigits(value);
+  if (!digits || digits === onlyDigits(original)) return null;
+  if (kind === 'cpf') {
+    return isValidCPF(digits) ? null : 'CPF inválido — confira os dígitos informados.';
+  }
+  if (kind === 'cnpj') {
+    return isValidCNPJ(digits) ? null : 'CNPJ inválido — confira os dígitos informados.';
+  }
+  return isValidDocument(digits) ? null : 'CPF/CNPJ inválido — confira os dígitos informados.';
+};
