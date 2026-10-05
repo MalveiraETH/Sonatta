@@ -118,6 +118,17 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
     cancelado: 'Cancelado'
   };
 
+  // Cada recebimento é exibido com sua própria data, sem duplicar o total da venda:
+  // o valor recebido na venda é o total menos o saldo a completar e menos os complementos já recebidos.
+  const complementaries = receipts?.complementaries || [];
+  const totalComplementos = complementaries.reduce((sum, c) => sum + (c.total || 0), 0);
+  const recebidoNaVenda = Math.max(
+    0,
+    (receipts?.original?.total || 0) -
+      (receipts?.original?.pending_balance || 0) -
+      totalComplementos
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -302,16 +313,18 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
               </h3>
               <Card className="p-4">
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-medium text-slate-800">Venda {receipts.original.sale_number}</p>
-                      <p className="text-xs text-slate-500">
-                        {formatLocalDate(receipts.original.sale_date || receipts.original.created_date)}
-                      </p>
+                  {recebidoNaVenda > 0.005 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium text-slate-800">Venda {receipts.original.sale_number}</p>
+                        <p className="text-xs text-slate-500">
+                          {formatLocalDate(receipts.original.sale_date || receipts.original.created_date)}
+                        </p>
+                      </div>
+                      <p className="font-semibold text-slate-900">{formatCurrency(recebidoNaVenda)}</p>
                     </div>
-                    <p className="font-semibold text-slate-900">{formatCurrency(receipts.original.total)}</p>
-                  </div>
-                  {receipts.complementaries.map((c) => (
+                  )}
+                  {complementaries.map((c) => (
                     <div key={c.id} className="flex items-center justify-between text-sm border-t pt-3">
                       <div>
                         <p className="font-medium text-purple-700">Complemento {c.sale_number}</p>
