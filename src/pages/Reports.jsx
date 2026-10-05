@@ -153,8 +153,10 @@ export default function Reports() {
   };
 
   const filterSalesByDate = () => {
-    if (!dateStart || !dateEnd) return sales;
-    return sales.filter(sale => {
+    // Complementos são recebimentos de saldo: fora do faturamento e da contagem de vendas
+    const onlySales = sales.filter(s => !s.is_complementary);
+    if (!dateStart || !dateEnd) return onlySales;
+    return onlySales.filter(sale => {
       const saleDate = new Date(sale.sale_date || sale.created_date);
       const start = new Date(dateStart);
       const end = new Date(dateEnd);
@@ -190,6 +192,8 @@ export default function Reports() {
     cliente_ativo: clients.filter(c => c.status === 'cliente_ativo').length,
     pos_venda: clients.filter(c => c.status === 'pos_venda').length
   };
+
+  const realSales = sales.filter(s => !s.is_complementary);
 
   // Estatísticas de Vendas
   const salesStats = {
@@ -813,7 +817,7 @@ export default function Reports() {
                     const feeRate = p.fee_rate || 0;
                     const netAVista = feeRate > 0 ? (p.amount || 0) * (1 - feeRate / 100) : (p.amount || 0);
                     data.push({
-                      'Tipo': 'Pagamento à Vista',
+                      'Tipo': sale.is_complementary ? 'Complemento de Saldo' : 'Pagamento à Vista',
                       'Venda': sale.sale_number,
                       'Cliente': sale.client_name,
                       'Data': toExcelDate(sale.sale_date || sale.created_date),
@@ -902,8 +906,12 @@ export default function Reports() {
                           rows.push(
                             <TableRow key={`sale-${sale.id}-${idx}`}>
                               <TableCell>
-                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                  Pagamento à Vista
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  sale.is_complementary
+                                    ? 'bg-purple-100 text-purple-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {sale.is_complementary ? 'Complemento de Saldo' : 'Pagamento à Vista'}
                                 </span>
                               </TableCell>
                               <TableCell className="font-medium">{sale.sale_number}</TableCell>
@@ -1172,13 +1180,13 @@ export default function Reports() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard
               title="Taxa de Conversão"
-              value={`${clients.length > 0 ? ((sales.length / clients.length) * 100).toFixed(1) : 0}%`}
+              value={`${clients.length > 0 ? ((realSales.length / clients.length) * 100).toFixed(1) : 0}%`}
               color="blue"
               icon={TrendingUp}
             />
             <StatCard
               title="Ticket Médio"
-              value={formatCurrency(sales.length > 0 ? sales.reduce((sum, s) => sum + getTotalPayments(s), 0) / sales.length : 0)}
+              value={formatCurrency(realSales.length > 0 ? realSales.reduce((sum, s) => sum + getTotalPayments(s), 0) / realSales.length : 0)}
               color="green"
               icon={DollarSign}
             />
