@@ -45,10 +45,9 @@ import NewSaleForm from '@/components/sales/NewSaleForm';
 import ContractGenerator from '@/components/contracts/ContractGenerator';
 import InvoiceDialog from '@/components/sales/InvoiceDialog';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
-import QuitarSaldoDialog from '@/components/sales/QuitarSaldoDialog';
 import PullToRefreshIndicator from '@/components/ui/PullToRefreshIndicator';
 import { usePullToRefresh } from '@/components/utils/usePullToRefresh';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, PlusCircle, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info, Pencil, Link2 } from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, PlusCircle, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -80,10 +79,8 @@ export default function Sales() {
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [saleToCancel, setSaleToCancel] = useState(null);
-  const [quitarTarget, setQuitarTarget] = useState(null);
-  const [quitarOpen, setQuitarOpen] = useState(false);
-  const [estornoTarget, setEstornoTarget] = useState(null);
-  const [estornoOpen, setEstornoOpen] = useState(false);
+  const [complementaryTarget, setComplementaryTarget] = useState(null);
+  const [complementaryFormOpen, setComplementaryFormOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const clientId = new URLSearchParams(window.location.search).get('client_id');
@@ -176,32 +173,6 @@ export default function Sales() {
       return sale.total_net_amount;
     }
     return getTotalPayments(sale) - getCardFeeTotal(sale);
-  };
-
-  // Vínculo bidirecional: complemento de cada venda original
-  const complementaryByOriginal = sales.reduce((map, s) => {
-    if (s.is_complementary && s.complementary_to_sale_id && s.status !== 'cancelado') {
-      map[s.complementary_to_sale_id] = s;
-    }
-    return map;
-  }, {});
-
-  const openQuitar = (sale) => {
-    setQuitarTarget(sale);
-    setQuitarOpen(true);
-  };
-
-  const handleEstorno = async () => {
-    try {
-      await base44.functions.invoke('estornarComplemento', { complementary_sale_id: estornoTarget.id });
-      toast.success('Complemento estornado. O saldo da venda original foi reaberto.');
-      setEstornoOpen(false);
-      setEstornoTarget(null);
-      loadData();
-    } catch (error) {
-      console.error(error);
-      toast.error('Não foi possível estornar o complemento');
-    }
   };
 
   const sendWhatsApp = async (sale) => {
@@ -392,14 +363,12 @@ Obrigado pela preferência!
   const totalPages = Math.ceil(filteredSales.length / PAGE_SIZE);
   const pagedSales = filteredSales.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  // Complementos são recebimentos de saldo, não novas vendas: não entram na contagem nem no faturamento
-  const realSales = sales.filter(s => !s.is_complementary);
   const stats = {
-    total: realSales.length,
-    totalValue: realSales.reduce((sum, s) => sum + (s.total || 0), 0),
-    pagas: realSales.filter(s => s.status === 'pago').length,
-    pendentes: realSales.filter(s => s.status === 'pendente').length,
-    avgTicket: realSales.length > 0 ? realSales.reduce((sum, s) => sum + (s.total || 0), 0) / realSales.length : 0
+    total: sales.length,
+    totalValue: sales.reduce((sum, s) => sum + (s.total || 0), 0),
+    pagas: sales.filter(s => s.status === 'pago').length,
+    pendentes: sales.filter(s => s.status === 'pendente').length,
+    avgTicket: sales.length > 0 ? sales.reduce((sum, s) => sum + (s.total || 0), 0) / sales.length : 0
   };
 
   const FiltersContent = () => (
@@ -681,20 +650,11 @@ Obrigado pela preferência!
                           <span className="block text-[10px] text-purple-600 font-medium">Complementar de {sale.complementary_to_sale_number || '—'}</span>
                         )}
                         {sale.status === 'parcial' && sale.pending_balance > 0 && (
-                          <>
-                            <span className="block text-[10px] text-slate-500">Recebido {formatCurrency(getTotalPayments(sale))}</span>
-                            <span className="block text-[10px] text-orange-600 font-medium">Falta {formatCurrency(sale.pending_balance)}</span>
-                          </>
-                        )}
-                        {sale.settled_date && (
-                          <span className="block text-[10px] text-emerald-600 font-medium">Quitada em {formatLocalDate(sale.settled_date)}</span>
-                        )}
-                        {!sale.is_complementary && complementaryByOriginal[sale.id] && (
-                          <span className="block text-[10px] text-purple-600 font-medium">Quitada por {complementaryByOriginal[sale.id].sale_number}</span>
+                          <span className="block text-[10px] text-orange-600 font-medium">Saldo: {formatCurrency(sale.pending_balance)}</span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(sale.total)}</TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(getTotalPayments(sale))}</TableCell>
                     <TableCell className="text-right tabular-nums text-sm">
                       {getCardFeeTotal(sale) > 0
                         ? <span className="text-amber-600">{formatCurrency(getCardFeeTotal(sale))}</span>
@@ -715,22 +675,10 @@ Obrigado pela preferência!
                           <Info className="h-4 w-4 mr-2" />
                           Detalhes da Venda
                         </DropdownMenuItem>
-                        {sale.pending_balance > 0 && sale.status !== 'cancelado' && !sale.is_complementary && (
-                          <DropdownMenuItem onClick={() => openQuitar(sale)}>
+                        {sale.status === 'parcial' && sale.pending_balance > 0 && (
+                          <DropdownMenuItem onClick={() => { setComplementaryTarget(sale); setComplementaryFormOpen(true); }}>
                             <PlusCircle className="h-4 w-4 mr-2" />
-                            Quitar Saldo
-                          </DropdownMenuItem>
-                        )}
-                        {!sale.is_complementary && complementaryByOriginal[sale.id] && (
-                          <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(complementaryByOriginal[sale.id]); setDetailsDialogOpen(true); }}>
-                            <Link2 className="h-4 w-4 mr-2" />
-                            Ver Pagamento Complementar
-                          </DropdownMenuItem>
-                        )}
-                        {sale.is_complementary && sale.status !== 'cancelado' && currentUser?.role === 'admin' && (
-                          <DropdownMenuItem onClick={() => { setEstornoTarget(sale); setEstornoOpen(true); }} className="text-amber-600">
-                            <XCircle className="h-4 w-4 mr-2" />
-                            Estornar Complemento
+                            Lançar Pagamento Complementar
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem asChild>
@@ -803,13 +751,7 @@ Obrigado pela preferência!
                           <span className="block text-[10px] text-purple-600 font-medium mt-0.5">Complementar de {sale.complementary_to_sale_number || '—'}</span>
                         )}
                         {sale.status === 'parcial' && sale.pending_balance > 0 && (
-                          <span className="block text-[10px] text-orange-600 font-medium mt-0.5">Falta {formatCurrency(sale.pending_balance)}</span>
-                        )}
-                        {sale.settled_date && (
-                          <span className="block text-[10px] text-emerald-600 font-medium mt-0.5">Quitada em {formatLocalDate(sale.settled_date)}</span>
-                        )}
-                        {!sale.is_complementary && complementaryByOriginal[sale.id] && (
-                          <span className="block text-[10px] text-purple-600 font-medium mt-0.5">Quitada por {complementaryByOriginal[sale.id].sale_number}</span>
+                          <span className="block text-[10px] text-orange-600 font-medium mt-0.5">Saldo: {formatCurrency(sale.pending_balance)}</span>
                         )}
                       </div>
                       <div className="text-sm text-slate-600">
@@ -855,22 +797,10 @@ Obrigado pela preferência!
                         <Info className="h-4 w-4 mr-2" />
                         Detalhes
                       </DropdownMenuItem>
-                      {sale.pending_balance > 0 && sale.status !== 'cancelado' && !sale.is_complementary && (
-                        <DropdownMenuItem onClick={() => openQuitar(sale)}>
+                      {sale.status === 'parcial' && sale.pending_balance > 0 && (
+                        <DropdownMenuItem onClick={() => { setComplementaryTarget(sale); setComplementaryFormOpen(true); }}>
                           <PlusCircle className="h-4 w-4 mr-2" />
-                          Quitar Saldo
-                        </DropdownMenuItem>
-                      )}
-                      {!sale.is_complementary && complementaryByOriginal[sale.id] && (
-                        <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(complementaryByOriginal[sale.id]); setDetailsDialogOpen(true); }}>
-                          <Link2 className="h-4 w-4 mr-2" />
-                          Ver Complementar
-                        </DropdownMenuItem>
-                      )}
-                      {sale.is_complementary && sale.status !== 'cancelado' && currentUser?.role === 'admin' && (
-                        <DropdownMenuItem onClick={() => { setEstornoTarget(sale); setEstornoOpen(true); }} className="text-amber-600">
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Estornar Complemento
+                          Pagamento Complementar
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem asChild>
@@ -915,14 +845,7 @@ Obrigado pela preferência!
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-900">{formatCurrency(sale.total)}</div>
-                    {sale.status === 'parcial' && sale.pending_balance > 0 && (
-                      <p className="text-xs text-slate-500">
-                        Recebido {formatCurrency(getTotalPayments(sale))} · Falta {formatCurrency(sale.pending_balance)}
-                      </p>
-                    )}
-                  </div>
+                  <div className="text-2xl font-bold text-slate-900">{formatCurrency(getTotalPayments(sale))}</div>
                 </div>
               </Card>
             ))
@@ -937,10 +860,10 @@ Obrigado pela preferência!
 
       <NewSaleForm open={editFormOpen} onOpenChange={setEditFormOpen} sale={saleToEdit} onSuccess={loadData} />
 
-      <QuitarSaldoDialog
-        open={quitarOpen}
-        onOpenChange={(open) => { setQuitarOpen(open); if (!open) setQuitarTarget(null); }}
-        sale={quitarTarget}
+      <NewSaleForm
+        open={complementaryFormOpen}
+        onOpenChange={(open) => { setComplementaryFormOpen(open); if (!open) setComplementaryTarget(null); }}
+        complementaryTarget={complementaryTarget}
         onSuccess={loadData}
       />
 
@@ -997,26 +920,10 @@ Obrigado pela preferência!
         sale={selectedSaleForDetails}
         onLaunchComplementary={(sale) => {
           setDetailsDialogOpen(false);
-          openQuitar(sale);
+          setComplementaryTarget(sale);
+          setComplementaryFormOpen(true);
         }}
       />
-
-      <Dialog open={estornoOpen} onOpenChange={setEstornoOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Estornar Complemento</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-slate-600">
-            O complemento <strong>{estornoTarget?.sale_number}</strong> será cancelado, o saldo de{' '}
-            <strong>{formatCurrency(estornoTarget?.total)}</strong> voltará para a venda{' '}
-            <strong>{estornoTarget?.complementary_to_sale_number}</strong> e o lançamento será reaberto no Contas a Receber.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setEstornoOpen(false); setEstornoTarget(null); }}>Não</Button>
-            <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={handleEstorno}>Sim, Estornar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

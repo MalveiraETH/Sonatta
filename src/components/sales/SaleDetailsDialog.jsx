@@ -22,48 +22,18 @@ import {
   Hash,
   Stethoscope,
   UserCheck,
-  PlusCircle,
-  Wallet,
-  CheckCircle2
+  PlusCircle
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchComplementary }) {
   const [professionalInfo, setProfessionalInfo] = useState(null);
-  const [receipts, setReceipts] = useState(null);
 
   useEffect(() => {
     if (open && sale?.client_id) {
       loadProfessionalInfo();
     }
   }, [open, sale]);
-
-  useEffect(() => {
-    if (open && sale) {
-      loadReceipts();
-    }
-  }, [open, sale]);
-
-  const loadReceipts = async () => {
-    try {
-      const originalId = sale.is_complementary ? sale.complementary_to_sale_id : sale.id;
-      if (!originalId) {
-        setReceipts(null);
-        return;
-      }
-      const original = sale.is_complementary ? await base44.entities.Sale.get(originalId) : sale;
-      const complementaries = await base44.entities.Sale.filter({ complementary_to_sale_id: originalId });
-      setReceipts({
-        original,
-        complementaries: complementaries
-          .filter((c) => c.status !== 'cancelado')
-          .sort((a, b) => (a.sale_date || '').localeCompare(b.sale_date || '')),
-      });
-    } catch (error) {
-      console.error('Erro ao carregar recebimentos:', error);
-      setReceipts(null);
-    }
-  };
 
   const loadProfessionalInfo = async () => {
     try {
@@ -117,17 +87,6 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
     parcial: 'Parcial',
     cancelado: 'Cancelado'
   };
-
-  // Cada recebimento é exibido com sua própria data, sem duplicar o total da venda:
-  // o valor recebido na venda é o total menos o saldo a completar e menos os complementos já recebidos.
-  const complementaries = receipts?.complementaries || [];
-  const totalComplementos = complementaries.reduce((sum, c) => sum + (c.total || 0), 0);
-  const recebidoNaVenda = Math.max(
-    0,
-    (receipts?.original?.total || 0) -
-      (receipts?.original?.pending_balance || 0) -
-      totalComplementos
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -304,58 +263,8 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
             </div>
           </Card>
 
-          {/* Recebimentos: linha do tempo da venda e seus complementos */}
-          {receipts?.original && (
-            <div>
-              <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <Wallet className="h-5 w-5" />
-                Recebimentos
-              </h3>
-              <Card className="p-4">
-                <div className="space-y-3">
-                  {recebidoNaVenda > 0.005 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <div>
-                        <p className="font-medium text-slate-800">Venda {receipts.original.sale_number}</p>
-                        <p className="text-xs text-slate-500">
-                          {formatLocalDate(receipts.original.sale_date || receipts.original.created_date)}
-                        </p>
-                      </div>
-                      <p className="font-semibold text-slate-900">{formatCurrency(recebidoNaVenda)}</p>
-                    </div>
-                  )}
-                  {complementaries.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between text-sm border-t pt-3">
-                      <div>
-                        <p className="font-medium text-purple-700">Complemento {c.sale_number}</p>
-                        <p className="text-xs text-slate-500">{formatLocalDate(c.sale_date || c.created_date)}</p>
-                      </div>
-                      <p className="font-semibold text-purple-700">{formatCurrency(c.total)}</p>
-                    </div>
-                  ))}
-                  <div className="border-t pt-3 space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Total recebido</span>
-                      <span className="font-semibold text-emerald-700">
-                        {formatCurrency((receipts.original.total || 0) - (receipts.original.pending_balance || 0))}
-                      </span>
-                    </div>
-                    {receipts.original.pending_balance > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Falta</span>
-                        <span className="font-semibold text-orange-600">
-                          {formatCurrency(receipts.original.pending_balance)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
-
           {/* Saldo a completar (venda parcial) */}
-          {sale.pending_balance > 0 && sale.status !== 'cancelado' && (
+          {sale.status === 'parcial' && sale.pending_balance > 0 && (
             <Card className="p-4 bg-amber-50 border-amber-300">
               <div className="flex items-center justify-between">
                 <div>
@@ -372,20 +281,9 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
                   onClick={() => onLaunchComplementary(sale)}
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  Quitar Saldo
+                  Lançar Pagamento Complementar
                 </Button>
               )}
-            </Card>
-          )}
-
-          {sale.settled_date && (
-            <Card className="p-4 bg-emerald-50 border-emerald-200">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                <p className="text-sm font-semibold text-emerald-800">
-                  Venda quitada em {formatLocalDate(sale.settled_date)}
-                </p>
-              </div>
             </Card>
           )}
 

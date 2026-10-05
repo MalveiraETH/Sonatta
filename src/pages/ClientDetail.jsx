@@ -694,21 +694,6 @@ export default function ClientDetail() {
                       <div className="text-right">
                         <p className="font-semibold">{formatCurrency(calculateSaleTotal(sale))}</p>
                         <StatusBadge status={sale.status} />
-                        {sale.pending_balance > 0 && (
-                          <p className="text-xs text-orange-600 font-medium mt-0.5">
-                            Falta {formatCurrency(sale.pending_balance)}
-                          </p>
-                        )}
-                        {sale.settled_date && (
-                          <p className="text-xs text-emerald-600 font-medium mt-0.5">
-                            Quitada em {format(new Date(sale.settled_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
-                          </p>
-                        )}
-                        {sale.is_complementary && sale.complementary_to_sale_number && (
-                          <p className="text-xs text-purple-600 font-medium mt-0.5">
-                            Complementar de {sale.complementary_to_sale_number}
-                          </p>
-                        )}
                       </div>
                     </Link>
                   ))}

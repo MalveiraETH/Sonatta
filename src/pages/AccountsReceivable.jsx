@@ -45,7 +45,6 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
-import ReceiptTableRows, { ReceiptList } from '@/components/financial/InstallmentReceipts';
 
 export default function AccountsReceivable() {
   const [installments, setInstallments] = useState([]);
@@ -606,7 +605,7 @@ export default function AccountsReceivable() {
           <TableBody>
             {filteredInstallments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-12 text-slate-500">
+                <TableCell colSpan={8} className="text-center py-12 text-slate-500">
                   Nenhuma parcela encontrada
                 </TableCell>
               </TableRow>
@@ -615,8 +614,7 @@ export default function AccountsReceivable() {
                 const badge = getStatusBadge(inst);
                 const Icon = badge.icon;
                 return (
-                  <React.Fragment key={inst.id}>
-                  <TableRow className="hover:bg-slate-50">
+                  <TableRow key={inst.id} className="hover:bg-slate-50">
                     <TableCell>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${badge.color}`}>
                         <Icon className="h-3.5 w-3.5" />
@@ -676,8 +674,6 @@ export default function AccountsReceivable() {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                  <ReceiptTableRows installment={inst} />
-                  </React.Fragment>
                 );
               })
             )}
@@ -763,7 +759,6 @@ export default function AccountsReceivable() {
                     </DropdownMenu>
                   </div>
                   <div className="text-2xl font-bold text-slate-900">{formatCurrency(inst.remaining_amount)}</div>
-                  <ReceiptList installment={inst} />
                 </div>
               </Card>
             );

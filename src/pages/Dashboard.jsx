@@ -109,25 +109,12 @@ export default function Dashboard() {
         return inst.payment_method === 'cartao_credito' && inst.payment_status !== 'pago' && dueDate < todayMidnight;
       });
 
-      // Vendas do período (complementos são recebimentos de saldo, não novas vendas)
       const monthSalesData = sales.filter(s => {
         const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
         const saleMonth = saleDate.getMonth();
         const saleYear = saleDate.getFullYear();
-        const inPeriod = saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
-        return inPeriod && !s.is_complementary;
+        return saleYear === filterYear && saleMonth >= filterMonthStart && saleMonth <= filterMonthEnd;
       });
-
-      // Complementos recebidos no período entram apenas como receita do mês do recebimento
-      const complementaryReceived = sales
-        .filter(s => {
-          if (!s.is_complementary || s.status !== 'pago') return false;
-          const paidDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
-          return paidDate.getFullYear() === filterYear
-            && paidDate.getMonth() >= filterMonthStart
-            && paidDate.getMonth() <= filterMonthEnd;
-        })
-        .reduce((sum, s) => sum + (s.total || 0), 0);
 
       // FATURADO = Vendas à vista (valor líquido, data venda) + Parcelas (valor líquido, data vencimento, qualquer status)
       const billedFromSales = monthSalesData.reduce((sum, sale) => {
@@ -174,7 +161,7 @@ export default function Dashboard() {
           return sum + netAmount;
         }, 0);
 
-      const totalMonthRevenue = revenueFromCashSales + revenueFromInstallmentsPaid + complementaryReceived;
+      const totalMonthRevenue = revenueFromCashSales + revenueFromInstallmentsPaid;
 
       // APARELHOS VENDIDOS (categoria aparelho_auditivo, data de saída)
       const devicesExitMovements = stockMovements.filter(m => {
@@ -256,11 +243,6 @@ export default function Dashboard() {
       sales.forEach(s => {
         const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
         if (saleDate.getFullYear() !== chartYear) return;
-        // Complementos entram como receita do mês em que foram recebidos
-        if (s.is_complementary) {
-          if (s.status === 'pago') monthlyRevenue[saleDate.getMonth()] += (s.total || 0);
-          return;
-        }
         const cashPayments = s.payment_details?.filter(p =>
           ['dinheiro', 'pix', 'cartao_debito', 'transferencia', 'boleto'].includes(p.method)
         ) || [];
