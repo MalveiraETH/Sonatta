@@ -45,9 +45,10 @@ import NewSaleForm from '@/components/sales/NewSaleForm';
 import ContractGenerator from '@/components/contracts/ContractGenerator';
 import InvoiceDialog from '@/components/sales/InvoiceDialog';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
+import QuitarSaldoDialog from '@/components/sales/QuitarSaldoDialog';
 import PullToRefreshIndicator from '@/components/ui/PullToRefreshIndicator';
 import { usePullToRefresh } from '@/components/utils/usePullToRefresh';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, PlusCircle, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info, Pencil } from 'lucide-react';
+import { Search, Filter, MoreVertical, Eye, MessageCircle, FileSignature, X, Plus, Wallet, ShoppingCart, TrendingUp, DollarSign, XCircle, FileText, Info, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -79,8 +80,8 @@ export default function Sales() {
   const [saleToEdit, setSaleToEdit] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [saleToCancel, setSaleToCancel] = useState(null);
-  const [complementaryTarget, setComplementaryTarget] = useState(null);
-  const [complementaryFormOpen, setComplementaryFormOpen] = useState(false);
+  const [saleToQuit, setSaleToQuit] = useState(null);
+  const [quitOpen, setQuitOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const clientId = new URLSearchParams(window.location.search).get('client_id');
@@ -174,6 +175,17 @@ export default function Sales() {
     }
     return getTotalPayments(sale) - getCardFeeTotal(sale);
   };
+
+  // Pagamentos complementares (quitação de saldo) vinculados a esta venda
+  const getComplementsOf = (sale) => sales.filter(s =>
+    s.complementary_to_sale_id === sale.id && s.status !== 'cancelado'
+  );
+
+  const getReceivedTotal = (sale) =>
+    getTotalPayments(sale) + getComplementsOf(sale).reduce((sum, c) => sum + (c.total || 0), 0);
+
+  const getRemainingTotal = (sale) =>
+    Math.round(Math.max(0, (sale.total || 0) - getReceivedTotal(sale)) * 100) / 100;
 
   const sendWhatsApp = async (sale) => {
     // Sempre busca o telefone atual do cliente (evita usar número desatualizado da venda)
@@ -649,8 +661,16 @@ Obrigado pela preferência!
                         {sale.is_complementary && (
                           <span className="block text-[10px] text-purple-600 font-medium">Complementar de {sale.complementary_to_sale_number || '—'}</span>
                         )}
-                        {sale.status === 'parcial' && sale.pending_balance > 0 && (
-                          <span className="block text-[10px] text-orange-600 font-medium">Saldo: {formatCurrency(sale.pending_balance)}</span>
+                        {sale.status === 'parcial' && (
+                          <>
+                            <span className="block text-[10px] text-orange-600 font-medium">Falta: {formatCurrency(getRemainingTotal(sale))}</span>
+                            <span className="block text-[10px] text-slate-500">Recebido: {formatCurrency(getReceivedTotal(sale))}</span>
+                          </>
+                        )}
+                        {sale.status === 'pago' && getComplementsOf(sale).length > 0 && (
+                          <span className="block text-[10px] text-emerald-600 font-medium">
+                            Quitada em {formatLocalDate(getComplementsOf(sale)[0].sale_date || getComplementsOf(sale)[0].created_date)}
+                          </span>
                         )}
                       </div>
                     </TableCell>
@@ -676,9 +696,15 @@ Obrigado pela preferência!
                           Detalhes da Venda
                         </DropdownMenuItem>
                         {sale.status === 'parcial' && sale.pending_balance > 0 && (
-                          <DropdownMenuItem onClick={() => { setComplementaryTarget(sale); setComplementaryFormOpen(true); }}>
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Lançar Pagamento Complementar
+                          <DropdownMenuItem onClick={() => { setSaleToQuit(sale); setQuitOpen(true); }}>
+                            <Wallet className="h-4 w-4 mr-2" />
+                            Quitar Saldo
+                          </DropdownMenuItem>
+                        )}
+                        {getComplementsOf(sale).length > 0 && (
+                          <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(getComplementsOf(sale)[0]); setDetailsDialogOpen(true); }}>
+                            <Wallet className="h-4 w-4 mr-2" />
+                            Ver Pagamento Complementar
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem asChild>
@@ -750,8 +776,16 @@ Obrigado pela preferência!
                         {sale.is_complementary && (
                           <span className="block text-[10px] text-purple-600 font-medium mt-0.5">Complementar de {sale.complementary_to_sale_number || '—'}</span>
                         )}
-                        {sale.status === 'parcial' && sale.pending_balance > 0 && (
-                          <span className="block text-[10px] text-orange-600 font-medium mt-0.5">Saldo: {formatCurrency(sale.pending_balance)}</span>
+                        {sale.status === 'parcial' && (
+                          <>
+                            <span className="block text-[10px] text-orange-600 font-medium mt-0.5">Falta: {formatCurrency(getRemainingTotal(sale))}</span>
+                            <span className="block text-[10px] text-slate-500">Recebido: {formatCurrency(getReceivedTotal(sale))}</span>
+                          </>
+                        )}
+                        {sale.status === 'pago' && getComplementsOf(sale).length > 0 && (
+                          <span className="block text-[10px] text-emerald-600 font-medium mt-0.5">
+                            Quitada em {formatLocalDate(getComplementsOf(sale)[0].sale_date || getComplementsOf(sale)[0].created_date)}
+                          </span>
                         )}
                       </div>
                       <div className="text-sm text-slate-600">
@@ -798,9 +832,15 @@ Obrigado pela preferência!
                         Detalhes
                       </DropdownMenuItem>
                       {sale.status === 'parcial' && sale.pending_balance > 0 && (
-                        <DropdownMenuItem onClick={() => { setComplementaryTarget(sale); setComplementaryFormOpen(true); }}>
-                          <PlusCircle className="h-4 w-4 mr-2" />
-                          Pagamento Complementar
+                        <DropdownMenuItem onClick={() => { setSaleToQuit(sale); setQuitOpen(true); }}>
+                          <Wallet className="h-4 w-4 mr-2" />
+                          Quitar Saldo
+                        </DropdownMenuItem>
+                      )}
+                      {getComplementsOf(sale).length > 0 && (
+                        <DropdownMenuItem onClick={() => { setSelectedSaleForDetails(getComplementsOf(sale)[0]); setDetailsDialogOpen(true); }}>
+                          <Wallet className="h-4 w-4 mr-2" />
+                          Ver Pagamento Complementar
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem asChild>
@@ -860,10 +900,10 @@ Obrigado pela preferência!
 
       <NewSaleForm open={editFormOpen} onOpenChange={setEditFormOpen} sale={saleToEdit} onSuccess={loadData} />
 
-      <NewSaleForm
-        open={complementaryFormOpen}
-        onOpenChange={(open) => { setComplementaryFormOpen(open); if (!open) setComplementaryTarget(null); }}
-        complementaryTarget={complementaryTarget}
+      <QuitarSaldoDialog
+        open={quitOpen}
+        onOpenChange={(open) => { setQuitOpen(open); if (!open) setSaleToQuit(null); }}
+        sale={saleToQuit}
         onSuccess={loadData}
       />
 
@@ -920,8 +960,8 @@ Obrigado pela preferência!
         sale={selectedSaleForDetails}
         onLaunchComplementary={(sale) => {
           setDetailsDialogOpen(false);
-          setComplementaryTarget(sale);
-          setComplementaryFormOpen(true);
+          setSaleToQuit(sale);
+          setQuitOpen(true);
         }}
       />
     </div>

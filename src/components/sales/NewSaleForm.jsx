@@ -25,7 +25,14 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logCreation, logEdit } from '@/components/utils/auditLogger';
-import { createInstallmentsForSale, syncInstallmentsForSale, createPendingBalanceInstallment } from '@/components/sales/syncInstallments';
+import { createInstallmentsForSale, syncInstallmentsForSale } from '@/components/sales/syncInstallments';
+import {
+  calcPaymentFees as calcFees,
+  getAggregatedBrands as aggBrands,
+  findBrandConfig as findBrand,
+  getCreditRate as creditRate,
+  getDebitRate as debitRate
+} from '@/components/sales/paymentFees';
 import { recalculateClientStatus } from '@/components/utils/clientStatusSync';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 
@@ -492,64 +499,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
     recalculateTotals(newItems, formData.payment_details);
   };
 
-  // Aggregate all card_brands from all active records of a given type
-  const getAggregatedBrands = (method) => {
-    const records = paymentTypes.filter(pt => pt.type === method);
-    const allBrands = [];
-    const seen = new Set();
-    for (const pt of records) {
-      for (const b of (pt.card_brands || [])) {
-        if (b.brand && !seen.has(b.brand)) {
-          seen.add(b.brand);
-          allBrands.push(b);
-        }
-      }
-    }
-    return allBrands;
-  };
-
-  // Find a brand's config across all records of that type
-  const findBrandConfig = (method, brand) => {
-    for (const pt of paymentTypes.filter(p => p.type === method)) {
-      const found = (pt.card_brands || []).find(b => b.brand === brand);
-      if (found) return found;
-    }
-    return null;
-  };
-
-  // Get installment rate for credit card brand+installments
-  const getCreditRate = (method, brand, installments) => {
-    if (!brand) return 0;
-    const brandData = findBrandConfig(method, brand);
-    if (!brandData) return 0;
-    const ir = (brandData.installment_rates || []).find(r => Number(r.installments) === Number(installments));
-    return ir ? Number(ir.rate) : 0;
-  };
-
-  // Get debit rate for a brand
-  const getDebitRate = (brand) => {
-    if (!brand) return 0;
-    const brandData = findBrandConfig('cartao_debito', brand);
-    return brandData ? Number(brandData.rate) : 0;
-  };
-
-  // Calculate fee fields for all payment_details and return enriched array + totals
-  const calcPaymentFees = (payments) => {
-    const enriched = payments.map(p => {
-      let feeRate = 0;
-      if (p.method === 'cartao_debito' && p.card_brand) {
-        feeRate = getDebitRate(p.card_brand);
-      } else if (p.method === 'cartao_credito' && p.card_brand) {
-        feeRate = getCreditRate('cartao_credito', p.card_brand, p.installments || 1);
-      }
-      const amount = Number(p.amount) || 0;
-      const feeAmount = Number(((amount * feeRate) / 100).toFixed(2));
-      const netAmount = Number((amount - feeAmount).toFixed(2));
-      return { ...p, fee_rate: feeRate, fee_amount: feeAmount, net_amount: netAmount };
-    });
-    const totalFeeAmount = Number(enriched.reduce((s, p) => s + p.fee_amount, 0).toFixed(2));
-    return { enriched, totalFeeAmount };
-  };
+  // Regras de taxa/bandeiras ficam em @/components/sales/paymentFees (mesma fonte usada na quitação de saldo)
+  const getAggregatedBrands = (method) => aggBrands(paymentTypes, method);
+  const findBrandConfig = (method, brand) => findBrand(paymentTypes, method, brand);
+  const getCreditRate = (method, brand, installments) => creditRate(paymentTypes, method, brand, installments);
+  const getDebitRate = (brand) => debitRate(paymentTypes, brand);
+  const calcPaymentFees = (payments) => calcFees(paymentTypes, payments);
 
   const addPayment = () => {
     const newPayments = [{ method: 'pix', amount: 0, installments: 1, status: 'pendente', card_brand: '', fee_rate: 0, fee_amount: 0, net_amount: 0 }, ...formData.payment_details];
@@ -776,6 +731,16 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
           } catch (e) {
             console.warn('Aviso: não foi possível atualizar saldo da venda original:', e.message);
           }
+
+          // Remove o lançamento de "saldo pendente" da venda original (não deve ficar no Contas a Receber)
+          try {
+            const leftovers = await base44.entities.Installment.filter({ sale_id: original.id, payment_method: 'saldo_pendente' });
+            for (const inst of leftovers) {
+              await base44.entities.Installment.delete(inst.id);
+            }
+          } catch (e) {
+            console.warn('Aviso: não foi possível remover o lançamento de saldo pendente:', e.message);
+          }
         }
 
         // Recalcular status do cliente
@@ -816,14 +781,8 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
       // Parcelas de cartão/pix parcelado
       await createInstallmentsForSale(newSale, saleDate, firstDueDate);
 
-      // Parcela do saldo a completar posterior (sempre gera 1 lançamento em Contas a Receber)
-      if (pendingBalance > 0 && pendingDueDateStr) {
-        await createPendingBalanceInstallment(
-          { ...newSale, sale_date: saleDateStr },
-          pendingBalance,
-          pendingDueDateStr
-        );
-      }
+      // O saldo a completar NÃO gera lançamento em Contas a Receber:
+      // só entram lá as parcelas de cartão de crédito e PIX parcelado.
 
       // Atualizar estoque via função backend
       try {
@@ -1066,12 +1025,6 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                   <Wrench className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Serviço
                 </Button>
-                {!sale && (
-                  <Button type="button" variant="outline" size="sm" onClick={toggleComplementaryMode} className="text-xs sm:text-sm border-[#6B3FA0] bg-[#6B3FA0]/10 text-[#6B3FA0] hover:bg-[#6B3FA0]/20">
-                    <PlusCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    Pagamento Complementar
-                  </Button>
-                )}
               </div>
             </div>
             )}
@@ -1550,7 +1503,7 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
                     <PlusCircle className="h-4 w-4 text-amber-600" />
                     <h4 className="text-sm font-semibold text-amber-800">Pagamento a Completar Posterior</h4>
                   </div>
-                  <p className="text-xs text-amber-700">Informe o saldo restante e a data prevista para recebimento. Será gerado um lançamento em Contas a Receber.</p>
+                  <p className="text-xs text-amber-700">Informe o saldo restante e a data prevista para recebimento. A venda fica com status Parcial e o saldo é quitado depois em "Quitar Saldo", na tela de Vendas.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs">Valor a Completar (R$)</Label>

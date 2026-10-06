@@ -22,18 +22,34 @@ import {
   Hash,
   Stethoscope,
   UserCheck,
-  PlusCircle
+  Wallet
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchComplementary }) {
   const [professionalInfo, setProfessionalInfo] = useState(null);
+  const [receipts, setReceipts] = useState([]);
 
   useEffect(() => {
     if (open && sale?.client_id) {
       loadProfessionalInfo();
     }
+    if (open && sale?.id) {
+      loadReceipts();
+    } else {
+      setReceipts([]);
+    }
   }, [open, sale]);
+
+  const loadReceipts = async () => {
+    try {
+      const complements = await base44.entities.Sale.filter({ complementary_to_sale_id: sale.id });
+      setReceipts(complements.filter(c => c.status !== 'cancelado'));
+    } catch (error) {
+      console.error('Error loading receipts:', error);
+      setReceipts([]);
+    }
+  };
 
   const loadProfessionalInfo = async () => {
     try {
@@ -73,6 +89,11 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
     boleto: 'Boleto',
     transferencia: 'Transferência'
   };
+
+  const salePaymentsTotal = (sale.payment_details || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+  const receiptsTotal = receipts.reduce((sum, r) => sum + (r.total || 0), 0);
+  const receivedTotal = Math.round((salePaymentsTotal + receiptsTotal) * 100) / 100;
+  const missingTotal = Math.round(Math.max(0, (sale.total || 0) - receivedTotal) * 100) / 100;
 
   const statusColors = {
     pago: 'bg-emerald-100 text-emerald-700',
@@ -260,6 +281,16 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
                 <span className="font-bold text-slate-900">Total:</span>
                 <span className="font-bold text-emerald-600">{formatCurrency(sale.total)}</span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Recebido:</span>
+                <span className="font-semibold text-emerald-700">{formatCurrency(receivedTotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Falta:</span>
+                <span className={`font-semibold ${missingTotal > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {missingTotal > 0 ? formatCurrency(missingTotal) : 'Quitada'}
+                </span>
+              </div>
             </div>
           </Card>
 
@@ -280,8 +311,8 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
                   className="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white"
                   onClick={() => onLaunchComplementary(sale)}
                 >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Lançar Pagamento Complementar
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Quitar Saldo
                 </Button>
               )}
             </Card>
@@ -313,6 +344,44 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
               ))}
             </div>
           </div>
+
+          {/* Recebimentos: venda + complementares */}
+          {receipts.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Recebimentos
+              </h3>
+              <div className="space-y-2">
+                <Card className="p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{sale.sale_number}</p>
+                      <p className="text-xs text-slate-500">
+                        {formatLocalDate(sale.sale_date || sale.created_date)} · {(sale.payment_details || []).map(p => paymentMethodLabels[p.method] || p.method).join(', ')}
+                      </p>
+                    </div>
+                    <p className="font-semibold text-slate-900">{formatCurrency(salePaymentsTotal)}</p>
+                  </div>
+                </Card>
+                {receipts.map(receipt => (
+                  <Card key={receipt.id} className="p-3 bg-purple-50 border-purple-100">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">
+                          {receipt.sale_number} <span className="text-xs text-purple-700">(complementar)</span>
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {formatLocalDate(receipt.sale_date || receipt.created_date)} · {(receipt.payment_details || []).map(p => `${paymentMethodLabels[p.method] || p.method}${p.installments > 1 ? ` ${p.installments}x` : ''}`).join(', ')}
+                        </p>
+                      </div>
+                      <p className="font-semibold text-purple-700">{formatCurrency(receipt.total)}</p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Observações */}
           {sale.notes && (
