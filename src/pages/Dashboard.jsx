@@ -272,11 +272,12 @@ export default function Dashboard() {
         monthlyRevenue[paymentDate.getMonth()] += (i.net_amount || i.paid_amount || 0);
       });
 
-      // Despesas (data vencimento)
+      // Despesas (base caixa: data de pagamento)
       expenses.forEach(e => {
-        const dueDate = parseLocalDate(e.due_date);
-        if (!dueDate || dueDate.getFullYear() !== chartYear) return;
-        monthlyExpensesArr[dueDate.getMonth()] += (e.amount || 0);
+        if (e.status !== 'pago') return;
+        const paymentDate = parseLocalDate(e.payment_date);
+        if (!paymentDate || paymentDate.getFullYear() !== chartYear) return;
+        monthlyExpensesArr[paymentDate.getMonth()] += (e.amount || 0);
       });
 
       const chartData = months.map((m, idx) => ({
@@ -467,7 +468,10 @@ export default function Dashboard() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <CardTitle className="text-lg font-semibold">Receitas x Despesas (Anual)</CardTitle>
+            <div>
+              <CardTitle className="text-lg font-semibold">Receitas x Despesas (Anual)</CardTitle>
+              <p className="text-xs text-slate-400 mt-1">Base caixa: recebido x pago</p>
+            </div>
             <Select value={chartYear.toString()} onValueChange={(v) => setChartYear(parseInt(v))}>
               <SelectTrigger className="w-full sm:w-32">
                 <SelectValue />
