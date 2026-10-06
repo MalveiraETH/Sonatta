@@ -89,8 +89,9 @@ function buildInstallments(payment, sale, saleDate, firstDueDate = null) {
  * @param {Date|null} firstDueDate - optional override for 1st installment due date (PIX parcelado)
  */
 export async function createInstallmentsForSale(sale, saleDate, firstDueDate = null) {
+  // Linhas de pagamento sem valor (ex.: linha adicionada e não preenchida) não geram parcelas
   const payments = (sale.payment_details || []).filter(
-    p => p.method === 'cartao_credito' || p.method === 'pix_parcelado'
+    p => (p.method === 'cartao_credito' || p.method === 'pix_parcelado') && (Number(p.amount) || 0) > 0
   );
   for (const payment of payments) {
     const records = buildInstallments(payment, sale, saleDate, firstDueDate);
