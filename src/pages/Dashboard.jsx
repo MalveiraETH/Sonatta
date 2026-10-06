@@ -71,10 +71,9 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [clients, appointments, sales, products, installments, expenses, tests, stockMovements, repairsData] = await Promise.all([
-        base44.entities.Client.list(),
+      const [appointments, sales, products, installments, expenses, tests, stockMovements, repairsData] = await Promise.all([
         base44.entities.Appointment.list('-created_date'),
-        base44.entities.Sale.list('-created_date', 100),
+        base44.entities.Sale.list('-created_date', 10000),
         base44.entities.Product.list(),
         base44.entities.Installment.list(),
         base44.entities.Expense.list(),
@@ -96,6 +95,9 @@ export default function Dashboard() {
         return new Date(str);
       };
 
+      // Vendas canceladas ficam fora dos indicadores
+      const validSales = sales.filter(s => s.status !== 'cancelado');
+
       // Parcelas atrasadas: vencimento (meia-noite local) estritamente antes de hoje
       const overduePixInstallments = installments.filter(inst => {
         const dueDate = parseLocalDate(inst.due_date);
@@ -109,7 +111,7 @@ export default function Dashboard() {
         return inst.payment_method === 'cartao_credito' && inst.payment_status !== 'pago' && dueDate < todayMidnight;
       });
 
-      const monthSalesData = sales.filter(s => {
+      const monthSalesData = validSales.filter(s => {
         const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
         const saleMonth = saleDate.getMonth();
         const saleYear = saleDate.getFullYear();
@@ -191,10 +193,17 @@ export default function Dashboard() {
       });
       const batteriesSold = batteriesExitMovements.reduce((sum, m) => sum + (m.quantity || 0), 0);
 
-      // APARELHOS NO ESTOQUE (categoria aparelho_auditivo, status disponível)
-      const devicesInStock = products.filter(p => 
-        p.category === 'aparelho_auditivo' && p.status === 'disponivel'
-      ).reduce((sum, p) => sum + (p.quantity || 1), 0);
+      // APARELHOS NO ESTOQUE — mesma regra da página Estoque (serializados disponíveis, fora de trial)
+      const testProductIds = new Set();
+      tests.forEach(t => (t.devices || []).forEach(d => d.product_id && testProductIds.add(d.product_id)));
+      const trialProductIds = new Set(
+        products
+          .filter(p => p.stock_type === 'serializado' && p.status !== 'descartado' && (p.is_trial || testProductIds.has(p.id)))
+          .map(p => p.id)
+      );
+      const devicesInStock = products.filter(p =>
+        p.stock_type === 'serializado' && p.status === 'disponivel' && !trialProductIds.has(p.id)
+      ).length;
 
       const monthExpenses = expenses
         .filter(e => {
@@ -206,24 +215,33 @@ export default function Dashboard() {
         })
         .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-      const monthResult = totalMonthRevenue - monthExpenses;
+      // Base caixa: apenas despesas efetivamente pagas dentro do período
+      const monthExpensesPaid = expenses
+        .filter(e => {
+          if (e.status !== 'pago') return false;
+          const paymentDate = parseLocalDate(e.payment_date);
+          if (!paymentDate) return false;
+          const paymentMonth = paymentDate.getMonth();
+          const paymentYear = paymentDate.getFullYear();
+          return paymentYear === filterYear && paymentMonth >= filterMonthStart && paymentMonth <= filterMonthEnd;
+        })
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
 
-      const lowStock = products.filter(p => 
-        (p.stock_type === 'nao_serializado' && p.quantity <= (p.min_stock || 5) && p.quantity > 0) ||
-        (p.stock_type === 'serializado' && p.status === 'disponivel' && p.quantity <= 1)
+      const lowStock = products.filter(p =>
+        (p.stock_type === 'nao_serializado' && (p.quantity || 0) <= (p.min_stock || 5)) ||
+        (p.stock_type === 'serializado' && p.status === 'baixo_estoque')
       );
 
       const todayAppts = appointments.filter(a => a.date === today);
 
       setStats({
-        totalClients: clients.length,
-        activeClients: clients.filter(c => c.status === 'cliente_ativo').length,
         todayAppointments: todayAppts.length,
         monthSales: monthSalesData.length,
         totalBilled,
         totalMonthRevenue,
         monthExpenses,
-        monthResult: totalMonthRevenue - monthExpenses,
+        monthExpensesPaid,
+        monthResult: totalMonthRevenue - monthExpensesPaid,
         devicesSold,
         batteriesSold,
         devicesInStock,
@@ -231,8 +249,7 @@ export default function Dashboard() {
         overduePixCount: overduePixInstallments.length,
         overduePixAmount: overduePixInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
         overdueCardCount: overdueCardInstallments.length,
-        overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0),
-        testsActive: tests.filter(t => t.status === 'em_teste' || t.status === 'teste_estendido').length
+        overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0)
       });
 
       // DADOS ANUAIS PARA GRÁFICO (receitas x despesas por mês)
@@ -240,7 +257,7 @@ export default function Dashboard() {
       const monthlyExpensesArr = Array.from({ length: 12 }, () => 0);
 
       // Receitas: vendas à vista (data venda) + parcelas pagas (data pagamento)
-      sales.forEach(s => {
+      validSales.forEach(s => {
         const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
         if (saleDate.getFullYear() !== chartYear) return;
         const cashPayments = s.payment_details?.filter(p =>
@@ -388,6 +405,7 @@ export default function Dashboard() {
               <p className={`text-lg sm:text-2xl font-bold ${(stats.monthResult || 0) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                 {formatCurrency(stats.monthResult)}
               </p>
+              <p className="text-xs text-slate-400 mt-1">Receitas − despesas pagas</p>
             </div>
             <TrendingUp className={`h-5 w-5 sm:h-6 sm:w-6 opacity-60 ${(stats.monthResult || 0) >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
           </div>

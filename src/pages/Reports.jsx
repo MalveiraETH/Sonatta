@@ -41,6 +41,10 @@ const REPAIR_STATUS_CONFIG = {
   cancelado: { label: 'Cancelado', color: 'bg-slate-100 text-slate-500' },
 };
 
+// O status do cliente acompanha o status do teste (ver clientStatusSync)
+const CLIENT_TEST_STATUSES = ['teste_agendado', 'em_teste', 'teste_estendido', 'teste_finalizado', 'teste_pendente'];
+const isClientInTest = (status) => CLIENT_TEST_STATUSES.includes(status);
+
 export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
@@ -48,12 +52,18 @@ export default function Reports() {
   const [sales, setSales] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  const [dateStart, setDateStart] = useState('');
-  const [dateEnd, setDateEnd] = useState('');
-  const [dueDateStart, setDueDateStart] = useState('');
-  const [dueDateEnd, setDueDateEnd] = useState('');
-  const [paymentDateStart, setPaymentDateStart] = useState('');
-  const [paymentDateEnd, setPaymentDateEnd] = useState('');
+  const [salesDateStart, setSalesDateStart] = useState('');
+  const [salesDateEnd, setSalesDateEnd] = useState('');
+  const [revenueDateStart, setRevenueDateStart] = useState('');
+  const [revenueDateEnd, setRevenueDateEnd] = useState('');
+  const [receivableDateStart, setReceivableDateStart] = useState('');
+  const [receivableDateEnd, setReceivableDateEnd] = useState('');
+  const [receivableStatus, setReceivableStatus] = useState('todos');
+  const [payableDateStart, setPayableDateStart] = useState('');
+  const [payableDateEnd, setPayableDateEnd] = useState('');
+  const [payableStatus, setPayableStatus] = useState('todos');
+  const [referralDateStart, setReferralDateStart] = useState('');
+  const [referralDateEnd, setReferralDateEnd] = useState('');
   const [installments, setInstallments] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [tests, setTests] = useState([]);
@@ -152,21 +162,105 @@ export default function Reports() {
     XLSX.writeFile(workbook, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const filterSalesByDate = () => {
-    if (!dateStart || !dateEnd) return sales;
-    return sales.filter(sale => {
-      const saleDate = new Date(sale.sale_date || sale.created_date);
-      const start = new Date(dateStart);
-      const end = new Date(dateEnd);
-      return saleDate >= start && saleDate <= end;
-    });
+  const toLocalDate = (value) => {
+    if (!value) return null;
+    const str = typeof value === 'string' ? value : String(value);
+    const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(str) ? `${str}T00:00:00` : str);
+    return isNaN(d.getTime()) ? null : d;
   };
 
-  const filteredSales = filterSalesByDate().slice().sort((a, b) => {
+  const endOfDay = (dateStr) => toLocalDate(`${dateStr}T23:59:59`);
+
+  const currentMonthRange = () => {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(), 1),
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
+    };
+  };
+
+  // Sem filtro usa o mês atual; com apenas uma data, o outro lado fica em aberto
+  const inPeriod = (date, startStr, endStr, defaultToCurrentMonth = false) => {
+    const d = toLocalDate(date);
+    if (!d) return false;
+    if (!startStr && !endStr) {
+      if (!defaultToCurrentMonth) return true;
+      const { start, end } = currentMonthRange();
+      return d >= start && d <= end;
+    }
+    if (startStr && d < toLocalDate(startStr)) return false;
+    if (endStr && d > endOfDay(endStr)) return false;
+    return true;
+  };
+
+  const sortSalesByDate = (list) => list.slice().sort((a, b) => {
     const dateA = (a.sale_date || a.created_date || '').toString().split('T')[0];
     const dateB = (b.sale_date || b.created_date || '').toString().split('T')[0];
     return dateA.localeCompare(dateB);
   });
+
+  const filterSalesByRange = (startStr, endStr) => sales.filter(sale =>
+    inPeriod(sale.sale_date || sale.created_date, startStr, endStr)
+  );
+
+  // Aba Vendas
+  const filteredSales = sortSalesByDate(filterSalesByRange(salesDateStart, salesDateEnd));
+
+  // Aba Repasse Indicação (filtro próprio, separado da aba Vendas)
+  const filteredReferralSales = sortSalesByDate(filterSalesByRange(referralDateStart, referralDateEnd));
+
+  // Aba Receita Mês (filtro próprio)
+  const isInRevenuePeriod = (date) => inPeriod(date, revenueDateStart, revenueDateEnd, true);
+
+  // Aba Contas a Receber: período pelo vencimento (sem filtro = mês atual)
+  const receivableNetRemaining = (inst) => {
+    const gross = inst.original_amount || 0;
+    const feeRate = inst.fee_rate || 0;
+    const isCard = inst.payment_method === 'cartao_credito';
+    const net = isCard && feeRate > 0 ? gross * (1 - feeRate / 100) : gross;
+    return (inst.remaining_amount || 0) * (net / (gross || 1));
+  };
+
+  const receivableNetPaid = (inst) => {
+    const feeRate = inst.fee_rate || 0;
+    const isCard = inst.payment_method === 'cartao_credito';
+    const paid = inst.paid_amount || 0;
+    return isCard && feeRate > 0 ? paid * (1 - feeRate / 100) : paid;
+  };
+
+  const filteredReceivables = installments
+    .filter(i => {
+      if (!inPeriod(i.due_date, receivableDateStart, receivableDateEnd, true)) return false;
+      if (receivableStatus === 'pago') return i.payment_status === 'pago';
+      if (receivableStatus === 'pendente') return i.payment_status !== 'pago';
+      return true;
+    })
+    .sort((a, b) => {
+      const dateA = (a.last_payment_date || a.due_date || '').toString().split('T')[0];
+      const dateB = (b.last_payment_date || b.due_date || '').toString().split('T')[0];
+      return dateA.localeCompare(dateB);
+    });
+
+  const receivableToReceive = filteredReceivables.filter(i => i.payment_status !== 'pago').reduce((sum, i) => sum + receivableNetRemaining(i), 0);
+  const receivableReceived = filteredReceivables.filter(i => i.payment_status === 'pago').reduce((sum, i) => sum + receivableNetPaid(i), 0);
+  const receivablePixPending = filteredReceivables.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length;
+  const receivableCardPending = filteredReceivables.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length;
+
+  // Aba Contas a Pagar: período pelo vencimento (sem filtro = mês atual)
+  const expenseStatus = (exp) => exp.status === 'pago' ? 'pago' : (new Date(exp.due_date) < new Date() ? 'atrasado' : 'a_pagar');
+
+  const filteredPayables = expenses
+    .filter(e => inPeriod(e.due_date, payableDateStart, payableDateEnd, true) &&
+      (payableStatus === 'todos' || expenseStatus(e) === payableStatus))
+    .sort((a, b) => {
+      const dateA = (a.payment_date || a.due_date || '').toString().split('T')[0];
+      const dateB = (b.payment_date || b.due_date || '').toString().split('T')[0];
+      return dateA.localeCompare(dateB);
+    });
+
+  const payableToPay = filteredPayables.filter(e => e.status !== 'pago').reduce((sum, e) => sum + (e.amount || 0), 0);
+  const payablePaid = filteredPayables.filter(e => e.status === 'pago').reduce((sum, e) => sum + (e.amount || 0), 0);
+  const payableOverdue = filteredPayables.filter(e => e.status !== 'pago' && new Date(e.due_date) < new Date()).reduce((sum, e) => sum + (e.amount || 0), 0);
 
   // Estatísticas de Estoque
   const stockStats = {
@@ -186,7 +280,7 @@ export default function Reports() {
   const clientStats = {
     total: clients.length,
     lead: clients.filter(c => c.status === 'lead').length,
-    em_teste: clients.filter(c => c.status === 'em_teste').length,
+    em_teste: clients.filter(c => isClientInTest(c.status)).length,
     cliente_ativo: clients.filter(c => c.status === 'cliente_ativo').length,
     pos_venda: clients.filter(c => c.status === 'pos_venda').length
   };
@@ -363,7 +457,7 @@ export default function Reports() {
 
   const exportReferralReport = () => {
     const referralData = [];
-    filteredSales.forEach(sale => {
+    filteredReferralSales.forEach(sale => {
       if (!hasSerializedItem(sale)) return;
       const prof = getReferralProfForSale(sale);
       if (!prof) return;
@@ -752,24 +846,24 @@ export default function Reports() {
                 <Label>Data Início</Label>
                 <Input
                   type="date"
-                  value={dateStart}
-                  onChange={(e) => setDateStart(e.target.value)}
+                  value={revenueDateStart}
+                  onChange={(e) => setRevenueDateStart(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Data Fim</Label>
                 <Input
                   type="date"
-                  value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
+                  value={revenueDateEnd}
+                  onChange={(e) => setRevenueDateEnd(e.target.value)}
                 />
               </div>
               <div className="flex items-end">
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setDateStart('');
-                    setDateEnd('');
+                    setRevenueDateStart('');
+                    setRevenueDateEnd('');
                   }}
                 >
                   Limpar Filtro
@@ -782,24 +876,10 @@ export default function Reports() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Detalhamento da Receita</CardTitle>
               <Button onClick={() => {
-                const getFilteredDate = (date) => {
-                  const d = new Date(date);
-                  if (dateStart && dateEnd) {
-                    const start = new Date(dateStart);
-                    const end = new Date(dateEnd);
-                    return d >= start && d <= end;
-                  } else if (dateStart || dateEnd) {
-                    return false;
-                  } else {
-                    const currentMonth = new Date().getMonth();
-                    const currentYear = new Date().getFullYear();
-                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                  }
-                };
+                const getFilteredDate = (date) => isInRevenuePeriod(date);
 
                 const monthSalesData = sales.filter(s => {
-                  const saleDate = new Date(s.sale_date || s.created_date);
-                  return getFilteredDate(saleDate);
+                  return getFilteredDate(s.sale_date || s.created_date);
                 });
 
                 const data = [];
@@ -871,24 +951,10 @@ export default function Reports() {
                   </TableHeader>
                   <TableBody>
                     {(() => {
-                      const getFilteredDate = (date) => {
-                        const d = new Date(date);
-                        if (dateStart && dateEnd) {
-                          const start = new Date(dateStart);
-                          const end = new Date(dateEnd);
-                          return d >= start && d <= end;
-                        } else if (dateStart || dateEnd) {
-                          return false;
-                        } else {
-                          const currentMonth = new Date().getMonth();
-                          const currentYear = new Date().getFullYear();
-                          return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                        }
-                      };
+                      const getFilteredDate = (date) => isInRevenuePeriod(date);
 
                       const monthSalesData = sales.filter(s => {
-                        const saleDate = new Date(s.sale_date || s.created_date);
-                        return getFilteredDate(saleDate);
+                        return getFilteredDate(s.sale_date || s.created_date);
                       });
 
                       const rows = [];
@@ -974,24 +1040,10 @@ export default function Reports() {
                   <span className="text-sm font-medium text-slate-700">Total Receita do Período</span>
                   <span className="text-2xl font-bold text-emerald-600">
                     {formatCurrency((() => {
-                      const getFilteredDate = (date) => {
-                        const d = new Date(date);
-                        if (dateStart && dateEnd) {
-                          const start = new Date(dateStart);
-                          const end = new Date(dateEnd);
-                          return d >= start && d <= end;
-                        } else if (dateStart || dateEnd) {
-                          return false;
-                        } else {
-                          const currentMonth = new Date().getMonth();
-                          const currentYear = new Date().getFullYear();
-                          return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                        }
-                      };
+                      const getFilteredDate = (date) => isInRevenuePeriod(date);
 
                       const monthSalesData = sales.filter(s => {
-                        const saleDate = new Date(s.sale_date || s.created_date);
-                        return getFilteredDate(saleDate);
+                        return getFilteredDate(s.sale_date || s.created_date);
                       });
 
                       const cashPaymentsFromSales = monthSalesData.reduce((sum, sale) => {
@@ -1026,24 +1078,24 @@ export default function Reports() {
                 <Label>Data Venda Início</Label>
                 <Input
                   type="date"
-                  value={dateStart}
-                  onChange={(e) => setDateStart(e.target.value)}
+                  value={salesDateStart}
+                  onChange={(e) => setSalesDateStart(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Data Venda Fim</Label>
                 <Input
                   type="date"
-                  value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
+                  value={salesDateEnd}
+                  onChange={(e) => setSalesDateEnd(e.target.value)}
                 />
               </div>
               <div className="flex items-end">
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setDateStart('');
-                    setDateEnd('');
+                    setSalesDateStart('');
+                    setSalesDateEnd('');
                   }}
                   className="w-full"
                 >
@@ -1123,7 +1175,7 @@ export default function Reports() {
                             <TableCell>{sale.client_name}</TableCell>
                             <TableCell className="text-sm">{profIndicacao}</TableCell>
                             <TableCell className="text-sm">{profResponsavel}</TableCell>
-                            <TableCell>{safeFormat(sale.sale_date || sale.created_date)}</TableCell>
+                            <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
                             <TableCell>
                               {sale.status === 'pago' ? safeFormat(sale.updated_date) : '-'}
                             </TableCell>
@@ -1232,15 +1284,14 @@ export default function Reports() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { status: 'lead', label: 'Leads', color: 'bg-blue-100 text-blue-700' },
-                  { status: 'em_teste', label: 'Em Teste', color: 'bg-purple-100 text-purple-700' },
-                  { status: 'cliente_ativo', label: 'Ativos', color: 'bg-emerald-100 text-emerald-700' },
-                  { status: 'pos_venda', label: 'Pós-Venda', color: 'bg-amber-100 text-amber-700' }
-                ].map(({ status, label, color }) => {
-                  const count = clients.filter(c => c.status === status).length;
+                  { label: 'Leads', color: 'bg-blue-100 text-blue-700', count: clients.filter(c => c.status === 'lead').length },
+                  { label: 'Em Teste', color: 'bg-purple-100 text-purple-700', count: clients.filter(c => isClientInTest(c.status)).length },
+                  { label: 'Ativos', color: 'bg-emerald-100 text-emerald-700', count: clients.filter(c => c.status === 'cliente_ativo').length },
+                  { label: 'Pós-Venda', color: 'bg-amber-100 text-amber-700', count: clients.filter(c => c.status === 'pos_venda').length }
+                ].map(({ label, color, count }) => {
                   const percentage = clients.length > 0 ? ((count / clients.length) * 100).toFixed(1) : 0;
                   return (
-                    <div key={status} className="p-4 bg-slate-50 rounded-lg text-center">
+                    <div key={label} className="p-4 bg-slate-50 rounded-lg text-center">
                       <p className="text-sm text-slate-500 mb-1">{label}</p>
                       <p className="text-2xl font-bold text-slate-800">{count}</p>
                       <p className={`text-xs font-medium mt-1 px-2 py-1 rounded-full inline-block ${color}`}>
@@ -1262,32 +1313,21 @@ export default function Reports() {
                 <Label>Período Inicial</Label>
                 <Input
                   type="date"
-                  value={dueDateStart}
-                  onChange={(e) => setDueDateStart(e.target.value)}
+                  value={receivableDateStart}
+                  onChange={(e) => setReceivableDateStart(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Período Final</Label>
                 <Input
                   type="date"
-                  value={dueDateEnd}
-                  onChange={(e) => setDueDateEnd(e.target.value)}
+                  value={receivableDateEnd}
+                  onChange={(e) => setReceivableDateEnd(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select
-                  value={paymentDateStart || 'todos'}
-                  onValueChange={(value) => {
-                    if (value === 'todos') {
-                      setPaymentDateStart('');
-                      setPaymentDateEnd('');
-                    } else {
-                      setPaymentDateStart(value);
-                      setPaymentDateEnd('');
-                    }
-                  }}
-                >
+                <Select value={receivableStatus} onValueChange={setReceivableStatus}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1302,10 +1342,9 @@ export default function Reports() {
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setDueDateStart('');
-                    setDueDateEnd('');
-                    setPaymentDateStart('');
-                    setPaymentDateEnd('');
+                    setReceivableDateStart('');
+                    setReceivableDateEnd('');
+                    setReceivableStatus('todos');
                   }}
                   className="w-full"
                 >
@@ -1319,101 +1358,26 @@ export default function Reports() {
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Total a Receber</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">
-                {formatCurrency((() => {
-                  const getCurrentMonthDateRange = () => {
-                    const now = new Date();
-                    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                    return { start, end };
-                  };
-
-                  const filterByDueDate = (inst) => {
-                    if (!dueDateStart && !dueDateEnd) {
-                      const { start, end } = getCurrentMonthDateRange();
-                      const dueDate = new Date(inst.due_date);
-                      return dueDate >= start && dueDate <= end;
-                    }
-                    const dueDate = new Date(inst.due_date);
-                    if (dueDateStart && dueDateEnd) {
-                      return dueDate >= new Date(dueDateStart) && dueDate <= new Date(dueDateEnd);
-                    }
-                    return true;
-                  };
-
-                  const statusFilter = paymentDateStart;
-                  
-                  return installments
-                    .filter(i => {
-                      if (!filterByDueDate(i)) return false;
-                      if (statusFilter === 'pago') return i.payment_status === 'pago';
-                      if (statusFilter === 'pendente') return i.payment_status !== 'pago';
-                      return true;
-                    })
-                    .filter(i => i.payment_status !== 'pago')
-                    .reduce((sum, i) => {
-                      const feeRate = i.fee_rate || 0;
-                      const isCard = i.payment_method === 'cartao_credito';
-                      const netAmount = isCard && feeRate > 0 ? (i.original_amount || 0) * (1 - feeRate / 100) : (i.original_amount || 0);
-                      const netRemaining = (i.remaining_amount || 0) * (netAmount / (i.original_amount || 1));
-                      return sum + netRemaining;
-                    }, 0);
-                })())}
+                {formatCurrency(receivableToReceive)}
               </p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Total Recebido</p>
               <p className="text-2xl font-bold text-emerald-600 mt-1">
-                {formatCurrency((() => {
-                  const getCurrentMonthDateRange = () => {
-                    const now = new Date();
-                    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                    return { start, end };
-                  };
-
-                  const filterByDueDate = (inst) => {
-                    if (!dueDateStart && !dueDateEnd) {
-                      const { start, end } = getCurrentMonthDateRange();
-                      const dueDate = new Date(inst.due_date);
-                      return dueDate >= start && dueDate <= end;
-                    }
-                    const dueDate = new Date(inst.due_date);
-                    if (dueDateStart && dueDateEnd) {
-                      return dueDate >= new Date(dueDateStart) && dueDate <= new Date(dueDateEnd);
-                    }
-                    return true;
-                  };
-
-                  const statusFilter = paymentDateStart;
-
-                  return installments
-                    .filter(i => {
-                      if (!filterByDueDate(i)) return false;
-                      if (statusFilter === 'pago') return i.payment_status === 'pago';
-                      if (statusFilter === 'pendente') return i.payment_status !== 'pago';
-                      return true;
-                    })
-                    .filter(i => i.payment_status === 'pago')
-                    .reduce((sum, i) => {
-                      const feeRate = i.fee_rate || 0;
-                      const isCard = i.payment_method === 'cartao_credito';
-                      const netAmount = isCard && feeRate > 0 ? (i.paid_amount || 0) * (1 - feeRate / 100) : (i.paid_amount || 0);
-                      return sum + netAmount;
-                    }, 0);
-                })())}
+                {formatCurrency(receivableReceived)}
               </p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">PIX Parcelado</p>
               <p className="text-2xl font-bold text-purple-600 mt-1">
-                {installments.filter(i => i.payment_method === 'pix_parcelado' && i.payment_status !== 'pago').length}
+                {receivablePixPending}
               </p>
               <p className="text-xs text-slate-500">parcelas pendentes</p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Cartão Crédito</p>
               <p className="text-2xl font-bold text-amber-600 mt-1">
-                {installments.filter(i => i.payment_method === 'cartao_credito' && i.payment_status !== 'pago').length}
+                {receivableCardPending}
               </p>
               <p className="text-xs text-slate-500">parcelas pendentes</p>
             </Card>
@@ -1423,38 +1387,7 @@ export default function Reports() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Parcelas a Receber</CardTitle>
               <Button onClick={() => {
-                const data = installments
-                  .filter(inst => {
-                    const getCurrentMonthDateRange = () => {
-                      const now = new Date();
-                      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                      return { start, end };
-                    };
-
-                    // Filtro de período
-                    if (!dueDateStart && !dueDateEnd) {
-                      const { start, end } = getCurrentMonthDateRange();
-                      const dueDate = new Date(inst.due_date);
-                      if (!(dueDate >= start && dueDate <= end)) return false;
-                    } else if (dueDateStart || dueDateEnd) {
-                      const dueDate = new Date(inst.due_date);
-                      if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
-                      if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
-                    }
-
-                    // Filtro de status
-                    const statusFilter = paymentDateStart;
-                    if (statusFilter === 'pago' && inst.payment_status !== 'pago') return false;
-                    if (statusFilter === 'pendente' && inst.payment_status === 'pago') return false;
-
-                    return true;
-                  })
-                  .sort((a, b) => {
-                    const dateA = (a.last_payment_date || a.due_date || '').toString().split('T')[0];
-                    const dateB = (b.last_payment_date || b.due_date || '').toString().split('T')[0];
-                    return dateA.localeCompare(dateB);
-                  })
+                const data = filteredReceivables
                   .map(i => {
                    const feeRate = i.fee_rate || 0;
                    const isCard = i.payment_method === 'cartao_credito';
@@ -1501,38 +1434,7 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {installments
-                      .filter(inst => {
-                        const getCurrentMonthDateRange = () => {
-                          const now = new Date();
-                          const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                          return { start, end };
-                        };
-
-                        // Filtro de período
-                        if (!dueDateStart && !dueDateEnd) {
-                          const { start, end } = getCurrentMonthDateRange();
-                          const dueDate = new Date(inst.due_date);
-                          if (!(dueDate >= start && dueDate <= end)) return false;
-                        } else if (dueDateStart || dueDateEnd) {
-                          const dueDate = new Date(inst.due_date);
-                          if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
-                          if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
-                        }
-
-                        // Filtro de status
-                        const statusFilter = paymentDateStart;
-                        if (statusFilter === 'pago' && inst.payment_status !== 'pago') return false;
-                        if (statusFilter === 'pendente' && inst.payment_status === 'pago') return false;
-
-                        return true;
-                      })
-                      .sort((a, b) => {
-                        const dateA = (a.last_payment_date || a.due_date || '').toString().split('T')[0];
-                        const dateB = (b.last_payment_date || b.due_date || '').toString().split('T')[0];
-                        return dateA.localeCompare(dateB);
-                      })
+                    {filteredReceivables
                       .map(inst => (
                         <TableRow key={inst.id}>
                          <TableCell className="font-medium">{inst.client_name}</TableCell>
@@ -1580,32 +1482,21 @@ export default function Reports() {
                 <Label>Período Inicial</Label>
                 <Input
                   type="date"
-                  value={dueDateStart}
-                  onChange={(e) => setDueDateStart(e.target.value)}
+                  value={payableDateStart}
+                  onChange={(e) => setPayableDateStart(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Período Final</Label>
                 <Input
                   type="date"
-                  value={dueDateEnd}
-                  onChange={(e) => setDueDateEnd(e.target.value)}
+                  value={payableDateEnd}
+                  onChange={(e) => setPayableDateEnd(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select
-                  value={paymentDateStart || 'todos'}
-                  onValueChange={(value) => {
-                    if (value === 'todos') {
-                      setPaymentDateStart('');
-                      setPaymentDateEnd('');
-                    } else {
-                      setPaymentDateStart(value);
-                      setPaymentDateEnd('');
-                    }
-                  }}
-                >
+                <Select value={payableStatus} onValueChange={setPayableStatus}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1621,10 +1512,9 @@ export default function Reports() {
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setDueDateStart('');
-                    setDueDateEnd('');
-                    setPaymentDateStart('');
-                    setPaymentDateEnd('');
+                    setPayableDateStart('');
+                    setPayableDateEnd('');
+                    setPayableStatus('todos');
                   }}
                   className="w-full"
                 >
@@ -1638,29 +1528,25 @@ export default function Reports() {
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">A Pagar</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">
-                {formatCurrency(expenses.filter(e => e.status !== 'pago').reduce((sum, e) => sum + (e.amount || 0), 0))}
+                {formatCurrency(payableToPay)}
               </p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Pago</p>
               <p className="text-2xl font-bold text-emerald-600 mt-1">
-                {formatCurrency(expenses.filter(e => e.status === 'pago').reduce((sum, e) => sum + (e.amount || 0), 0))}
+                {formatCurrency(payablePaid)}
               </p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Atrasado</p>
               <p className="text-2xl font-bold text-red-600 mt-1">
-                {formatCurrency(expenses.filter(e => {
-                  if (e.status === 'pago') return false;
-                  const dueDate = new Date(e.due_date);
-                  return dueDate < new Date();
-                }).reduce((sum, e) => sum + (e.amount || 0), 0))}
+                {formatCurrency(payableOverdue)}
               </p>
             </Card>
             <Card className="p-4 border-0 shadow-sm">
               <p className="text-sm text-slate-500">Total Despesas</p>
               <p className="text-2xl font-bold text-slate-800 mt-1">
-                {expenses.length}
+                {filteredPayables.length}
               </p>
             </Card>
           </div>
@@ -1669,43 +1555,7 @@ export default function Reports() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Despesas Cadastradas</CardTitle>
               <Button onClick={() => {
-                const data = expenses
-                  .filter(exp => {
-                    const getCurrentMonthDateRange = () => {
-                      const now = new Date();
-                      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                      return { start, end };
-                    };
-
-                    // Filtro de período
-                    if (!dueDateStart && !dueDateEnd) {
-                      const { start, end } = getCurrentMonthDateRange();
-                      const dueDate = new Date(exp.due_date);
-                      if (!(dueDate >= start && dueDate <= end)) return false;
-                    } else if (dueDateStart || dueDateEnd) {
-                      const dueDate = new Date(exp.due_date);
-                      if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
-                      if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
-                    }
-
-                    // Filtro de status
-                    const statusFilter = paymentDateStart;
-                    const today = new Date();
-                    const dueDate = new Date(exp.due_date);
-                    const actualStatus = exp.status === 'pago' ? 'pago' : (dueDate < today ? 'atrasado' : 'a_pagar');
-
-                    if (statusFilter === 'pago' && actualStatus !== 'pago') return false;
-                    if (statusFilter === 'a_pagar' && actualStatus !== 'a_pagar') return false;
-                    if (statusFilter === 'atrasado' && actualStatus !== 'atrasado') return false;
-
-                    return true;
-                  })
-                  .sort((a, b) => {
-                    const dateA = (a.payment_date || a.due_date || '').toString().split('T')[0];
-                    const dateB = (b.payment_date || b.due_date || '').toString().split('T')[0];
-                    return dateA.localeCompare(dateB);
-                  })
+                const data = filteredPayables
                   .map(e => ({
                    'Categoria': e.category_name,
                    'Fornecedor': e.counterparty_name || '',
@@ -1741,43 +1591,7 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {expenses
-                      .filter(exp => {
-                        const getCurrentMonthDateRange = () => {
-                          const now = new Date();
-                          const start = new Date(now.getFullYear(), now.getMonth(), 1);
-                          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                          return { start, end };
-                        };
-
-                        // Filtro de período
-                        if (!dueDateStart && !dueDateEnd) {
-                          const { start, end } = getCurrentMonthDateRange();
-                          const dueDate = new Date(exp.due_date);
-                          if (!(dueDate >= start && dueDate <= end)) return false;
-                        } else if (dueDateStart || dueDateEnd) {
-                          const dueDate = new Date(exp.due_date);
-                          if (dueDateStart && dueDate < new Date(dueDateStart)) return false;
-                          if (dueDateEnd && dueDate > new Date(dueDateEnd)) return false;
-                        }
-
-                        // Filtro de status
-                        const statusFilter = paymentDateStart;
-                        const today = new Date();
-                        const dueDate = new Date(exp.due_date);
-                        const actualStatus = exp.status === 'pago' ? 'pago' : (dueDate < today ? 'atrasado' : 'a_pagar');
-
-                        if (statusFilter === 'pago' && actualStatus !== 'pago') return false;
-                        if (statusFilter === 'a_pagar' && actualStatus !== 'a_pagar') return false;
-                        if (statusFilter === 'atrasado' && actualStatus !== 'atrasado') return false;
-
-                        return true;
-                      })
-                      .sort((a, b) => {
-                        const dateA = (a.payment_date || a.due_date || '').toString().split('T')[0];
-                        const dateB = (b.payment_date || b.due_date || '').toString().split('T')[0];
-                        return dateA.localeCompare(dateB);
-                      })
+                    {filteredPayables
                       .map(exp => {
                         const today = new Date();
                         const dueDate = new Date(exp.due_date);
@@ -1824,16 +1638,16 @@ export default function Reports() {
                 <Label>Data Início</Label>
                 <Input
                   type="date"
-                  value={dateStart}
-                  onChange={(e) => setDateStart(e.target.value)}
+                  value={referralDateStart}
+                  onChange={(e) => setReferralDateStart(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Data Fim</Label>
                 <Input
                   type="date"
-                  value={dateEnd}
-                  onChange={(e) => setDateEnd(e.target.value)}
+                  value={referralDateEnd}
+                  onChange={(e) => setReferralDateEnd(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -1854,8 +1668,8 @@ export default function Reports() {
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setDateStart('');
-                    setDateEnd('');
+                    setReferralDateStart('');
+                    setReferralDateEnd('');
                     setReferralProfFilter('todos');
                   }}
                 >
@@ -1874,7 +1688,7 @@ export default function Reports() {
                   Exportar CSV
                 </Button>
                 <ReferralReportPDFButton
-                  rows={filteredSales.map(sale => {
+                  rows={filteredReferralSales.map(sale => {
                     if (!hasSerializedItem(sale)) return null;
                     const prof = getReferralProfForSale(sale);
                     if (!prof) return null;
@@ -1890,8 +1704,8 @@ export default function Reports() {
                     };
                   }).filter(Boolean)}
                   filters={{
-                    dateStart,
-                    dateEnd,
+                    dateStart: referralDateStart,
+                    dateEnd: referralDateEnd,
                     professionalName: referralProfFilter !== 'todos'
                       ? professionals.find(p => p.id === referralProfFilter)?.full_name || 'Todos'
                       : 'Todos',
@@ -1913,7 +1727,7 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSales.map(sale => {
+                    {filteredReferralSales.map(sale => {
                       if (!hasSerializedItem(sale)) return null;
                       const prof = getReferralProfForSale(sale);
                       if (!prof) return null;
@@ -1924,7 +1738,7 @@ export default function Reports() {
                           <TableCell className="font-medium">{prof.full_name}</TableCell>
                           <TableCell className="capitalize">{prof.specialty}</TableCell>
                           <TableCell>{sale.client_name}</TableCell>
-                          <TableCell>{safeFormat(sale.sale_date || sale.created_date)}</TableCell>
+                          <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
                           <TableCell className="text-right font-bold text-[#A4D233]">
                             {formatCurrency(getTotalPayments(sale) * 0.10)}
