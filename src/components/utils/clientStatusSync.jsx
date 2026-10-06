@@ -37,20 +37,18 @@ export const syncClientStatusFromTest = async (clientId, testStatus) => {
 };
 
 /**
- * Recalcula o status do cliente com base nas vendas válidas (pago ou pendente).
+ * Recalcula o status do cliente com base nas vendas válidas.
+ * Venda válida = qualquer venda não cancelada (pago, pendente ou parcial).
  * - Sem vendas válidas → lead
  * - Com vendas válidas e era lead → cliente_ativo
  * - Com vendas válidas e já era cliente_ativo/pos_venda → mantém
- * Esta função deve ser chamada após criar, cancelar ou excluir vendas.
+ * Esta função deve ser chamada após criar, editar, cancelar ou excluir vendas.
  */
 export const recalculateClientStatus = async (clientId) => {
   if (!clientId) return;
   try {
-    const [paidSales, pendingSales] = await Promise.all([
-      base44.entities.Sale.filter({ client_id: clientId, status: 'pago' }),
-      base44.entities.Sale.filter({ client_id: clientId, status: 'pendente' })
-    ]);
-    const validSales = [...paidSales, ...pendingSales];
+    const clientSales = await base44.entities.Sale.filter({ client_id: clientId });
+    const validSales = (clientSales || []).filter(s => s.status !== 'cancelado');
 
     if (validSales.length === 0) {
       await base44.entities.Client.update(clientId, { status: 'lead' });

@@ -670,6 +670,12 @@ export default function NewSaleForm({ open, onOpenChange, sale, quote, onSuccess
         await base44.entities.Sale.update(sale.id, dataToUpdate);
         await syncInstallmentsForSale({ ...dataToUpdate, id: sale.id }, saleDate, firstDueDate);
         await logEdit('Venda', `${saleNumber} - ${formData.client_name}`, sale.id);
+
+        // Recalcular status do cliente (a edição pode ter mudado o status da venda)
+        if (formData.client_id) {
+          try { await recalculateClientStatus(formData.client_id); } catch (e) { console.warn(e); }
+        }
+
         toast.success('Venda atualizada com sucesso!');
         onOpenChange(false);
         if (onSuccess) await onSuccess();

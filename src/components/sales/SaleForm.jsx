@@ -311,6 +311,8 @@ export default function SaleForm({ open, onOpenChange, sale, quote, onSuccess, p
 
       if (sale) {
         await base44.entities.Sale.update(sale.id, dataToSave);
+        // Recalcular status do cliente (a edição pode ter mudado o status da venda)
+        await recalculateClientStatus(formData.client_id);
         toast.success('Venda atualizada!');
       } else {
         // Criar venda
