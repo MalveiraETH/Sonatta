@@ -201,6 +201,9 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
 
   // Recalculate cost_price when cost inputs change; sale_price (Preço Final) is NOT auto-overridden
   useEffect(() => {
+    // Sem a configuração de billing carregada não é possível saber o custo operacional:
+    // recalcular aqui gravaria um custo total sem o fixo mensal.
+    if (!billingCfg) return;
     const eff = includeFixedCost ? fixedCost : 0;
     const tc = Number(formData.product_cost || 0) + Number(formData.icms || 0) + Number(formData.ipi || 0) + eff;
     setFormData((prev) => ({
