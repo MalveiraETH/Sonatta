@@ -48,6 +48,7 @@ import TrialProductForm from '@/components/inventory/TrialProductForm';
 import ServicesTab from '@/components/inventory/ServicesTab';
 import DiscardsTab from '@/components/inventory/DiscardsTab';
 import DiscardProductDialog from '@/components/inventory/DiscardProductDialog';
+import SubstituteProductDialog from '@/components/inventory/SubstituteProductDialog';
 import { 
   Search, 
   Filter, 
@@ -68,7 +69,8 @@ import {
   ArrowDownCircle,
   Edit3,
   Wrench,
-  PackageX
+  PackageX,
+  ArrowLeftRight
 } from 'lucide-react';
 import { useTabs } from '@/lib/TabsContext';
 import { toast } from 'sonner';
@@ -107,6 +109,7 @@ export default function Inventory() {
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [substituteOpen, setSubstituteOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -828,6 +831,12 @@ export default function Inventory() {
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
+                            {product.status === 'vendido' && product.client_id && (
+                              <DropdownMenuItem onClick={() => { setSelectedProduct(product); setSubstituteOpen(true); }}>
+                                <ArrowLeftRight className="h-4 w-4 mr-2" />
+                                Substituir Aparelho
+                              </DropdownMenuItem>
+                            )}
                             {currentUser?.role === 'admin' && (
                               <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
                                 <PackageX className="h-4 w-4 mr-2" />
@@ -890,6 +899,12 @@ export default function Inventory() {
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
+                          {product.status === 'vendido' && product.client_id && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setSubstituteOpen(true); }}>
+                              <ArrowLeftRight className="h-4 w-4 mr-2" />
+                              Substituir Aparelho
+                            </DropdownMenuItem>
+                          )}
                           {currentUser?.role === 'admin' && (
                             <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
                               <PackageX className="h-4 w-4 mr-2" />
@@ -1513,6 +1528,14 @@ export default function Inventory() {
         onOpenChange={setDiscardOpen}
         product={selectedProduct}
         onSuccess={loadData}
+      />
+
+      {/* Substitute Product Dialog */}
+      <SubstituteProductDialog
+        open={substituteOpen}
+        onOpenChange={setSubstituteOpen}
+        product={selectedProduct}
+        onSubstituted={loadData}
       />
     </div>
   );
