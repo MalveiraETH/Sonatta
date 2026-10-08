@@ -185,6 +185,56 @@
       "type": "string",
       "format": "date",
       "description": "Data da associa\u00e7\u00e3o manual do produto ao cliente"
+    },
+    "substitution_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da substitui\u00e7\u00e3o (troca de aparelho com defeito)"
+    },
+    "substitution_problem": {
+      "type": "string",
+      "description": "Defeito relatado no aparelho substitu\u00eddo"
+    },
+    "substitution_notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es da substitui\u00e7\u00e3o"
+    },
+    "substitution_stage": {
+      "type": "string",
+      "enum": [
+        "aguardando_conserto",
+        "conserto_concluido"
+      ],
+      "description": "Etapa do conserto do aparelho substitu\u00eddo"
+    },
+    "substitution_client_id": {
+      "type": "string",
+      "description": "ID do cliente atendido na substitui\u00e7\u00e3o"
+    },
+    "substitution_client_name": {
+      "type": "string",
+      "description": "Nome do cliente atendido na substitui\u00e7\u00e3o"
+    },
+    "substituted_by_id": {
+      "type": "string",
+      "description": "ID do aparelho que substituiu este"
+    },
+    "substituted_by_serial": {
+      "type": "string",
+      "description": "N\u00famero de s\u00e9rie do aparelho que substituiu este"
+    },
+    "replaced_product_id": {
+      "type": "string",
+      "description": "ID do aparelho com defeito que este aparelho substituiu"
+    },
+    "replaced_serial": {
+      "type": "string",
+      "description": "N\u00famero de s\u00e9rie do aparelho com defeito que este substituiu"
+    },
+    "returned_to_stock_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de retorno ao estoque ap\u00f3s o conserto"
     }
   },
   "required": [

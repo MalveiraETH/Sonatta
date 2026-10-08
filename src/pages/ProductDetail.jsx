@@ -17,9 +17,15 @@ import {
   TrendingUp,
   TrendingDown,
   UserCheck,
-  User
+  User,
+  ArrowLeftRight,
+  Wrench,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import AssociateProductDialog from '@/components/inventory/AssociateProductDialog';
+import SubstituteProductDialog from '@/components/inventory/SubstituteProductDialog';
+import SubstitutionStatusCard from '@/components/inventory/SubstitutionStatusCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -52,6 +58,8 @@ export default function ProductDetail() {
   const [sales, setSales] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [associateDialogOpen, setAssociateDialogOpen] = useState(false);
+  const [substituteDialogOpen, setSubstituteDialogOpen] = useState(false);
+  const [concludingRepair, setConcludingRepair] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
@@ -106,6 +114,19 @@ export default function ProductDetail() {
     } catch (error) {
       console.error('Error:', error);
       toast.error(`Erro ao excluir: ${error.message || 'Tente novamente'}`);
+    }
+  };
+
+  const handleConcluirConserto = async () => {
+    setConcludingRepair(true);
+    try {
+      await base44.functions.invoke('concluirConsertoSubstituicao', { defective_product_id: product.id });
+      toast.success('Conserto concluído — aparelho devolvido ao estoque');
+      await loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.error || error.message || 'Erro ao concluir o conserto');
+    } finally {
+      setConcludingRepair(false);
     }
   };
 
@@ -194,6 +215,15 @@ export default function ProductDetail() {
               Associar Produto
             </Button>
           )}
+          {product.stock_type === 'serializado' && product.status === 'vendido' && product.client_id && (
+            <Button
+              onClick={() => setSubstituteDialogOpen(true)}
+              className="bg-[#6B3FA0] hover:bg-[#5a2f8a] text-white"
+            >
+              <ArrowLeftRight className="h-4 w-4 mr-2" />
+              Substituir Aparelho
+            </Button>
+          )}
           {currentUser?.user_role === 'admin' && (
             <Button 
               variant="destructive"
@@ -206,6 +236,13 @@ export default function ProductDetail() {
         </div>
       </div>
 
+      {/* Substituição por defeito */}
+      <SubstitutionStatusCard
+        product={product}
+        concluding={concludingRepair}
+        onConcluirConserto={handleConcluirConserto}
+      />
+
       {/* Cliente vinculado (associação manual) */}
       {product.stock_type === 'serializado' && product.status === 'vendido' && product.client_id && (
         <Card className="border-0 shadow-sm bg-[#6B3FA0]/5">
@@ -215,7 +252,9 @@ export default function ProductDetail() {
                 <User className="h-5 w-5 text-[#6B3FA0]" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Cliente vinculado (associação manual)</p>
+                <p className="text-sm text-slate-500">
+                  {product.replaced_product_id ? 'Cliente vinculado (substituição por defeito)' : 'Cliente vinculado (associação manual)'}
+                </p>
                 <p className="font-medium">
                   {product.client_name}
                   {product.association_date && (
@@ -455,6 +494,14 @@ export default function ProductDetail() {
             association_date: res.association_date
           } : prev);
         }}
+      />
+
+      {/* Substitute Product Dialog */}
+      <SubstituteProductDialog
+        open={substituteDialogOpen}
+        onOpenChange={setSubstituteDialogOpen}
+        product={product}
+        onSubstituted={loadData}
       />
 
       {/* Delete Confirmation Dialog */}
