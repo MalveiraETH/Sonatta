@@ -36,7 +36,7 @@ const emptyForm = () => ({
   nota_fiscal_entrada: '',
   entry_date: new Date().toISOString().split('T')[0],
   warranty_years: 2,
-  power_type: 'pilha',
+  power_type: 'bateria_recarregavel',
   notes: '',
 });
 
@@ -297,6 +297,7 @@ export default function TrialProductForm({ open, onOpenChange, product, onSucces
               <Select value={String(formData.warranty_years)} onValueChange={(v) => setField('warranty_years', Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="1">1 ano</SelectItem>
                   <SelectItem value="2">2 anos</SelectItem>
                   <SelectItem value="3">3 anos</SelectItem>
                   <SelectItem value="4">4 anos</SelectItem>

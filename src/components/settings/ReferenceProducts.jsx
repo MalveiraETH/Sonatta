@@ -394,6 +394,7 @@ export default function ReferenceProducts() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="1">1 ano</SelectItem>
                             <SelectItem value="2">2 anos</SelectItem>
                             <SelectItem value="3">3 anos</SelectItem>
                             <SelectItem value="4">4 anos</SelectItem>
