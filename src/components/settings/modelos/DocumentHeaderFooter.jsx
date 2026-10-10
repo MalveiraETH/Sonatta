@@ -3,13 +3,15 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { LayoutTemplate, Loader2, Save } from 'lucide-react';
-import HeaderFooterEditor from './HeaderFooterEditor';
+import HeaderLayoutEditor from './HeaderLayoutEditor';
+import FooterLayoutEditor from './FooterLayoutEditor';
 
 const SETTING_KEY = 'document_header_footer';
 
 export default function DocumentHeaderFooter({ canEdit }) {
-  const [header, setHeader] = useState('');
-  const [footer, setFooter] = useState('');
+  const [headerImage, setHeaderImage] = useState('');
+  const [headerText, setHeaderText] = useState('');
+  const [footerText, setFooterText] = useState('');
   const [recordId, setRecordId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -20,9 +22,14 @@ export default function DocumentHeaderFooter({ canEdit }) {
       .then((res) => {
         const record = (res.items || [])[0];
         if (!active || !record) return;
+
+        const saved = record.setting_value || {};
         setRecordId(record.id);
-        setHeader(record.setting_value?.header || '');
-        setFooter(record.setting_value?.footer || '');
+        setHeaderImage(
+          saved.header_image_url || (typeof saved.header === 'object' ? saved.header?.image_url : '') || ''
+        );
+        setHeaderText(typeof saved.header === 'string' ? saved.header : saved.header?.text || '');
+        setFooterText(typeof saved.footer === 'string' ? saved.footer : saved.footer?.text || '');
       })
       .catch(() => toast.error('Erro ao carregar o cabeçalho e o rodapé'))
       .finally(() => {
@@ -36,7 +43,11 @@ export default function DocumentHeaderFooter({ canEdit }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const setting_value = { header, footer };
+      const setting_value = {
+        header_image_url: headerImage,
+        header_text: headerText,
+        footer_text: footerText,
+      };
       if (recordId) {
         await base44.entities.AppSettings.update(recordId, { setting_value });
       } else {
@@ -127,21 +138,15 @@ export default function DocumentHeaderFooter({ canEdit }) {
         </p>
       )}
 
-      <HeaderFooterEditor
-        label="Cabeçalho"
-        description="Aparece no topo do documento. Ideal para a logo e os dados da clínica."
-        value={header}
-        onChange={setHeader}
+      <HeaderLayoutEditor
+        imageUrl={headerImage}
+        onImageChange={setHeaderImage}
+        text={headerText}
+        onTextChange={setHeaderText}
         canEdit={canEdit}
       />
 
-      <HeaderFooterEditor
-        label="Rodapé"
-        description="Aparece no fim do documento. Ideal para endereço, telefone e redes sociais."
-        value={footer}
-        onChange={setFooter}
-        canEdit={canEdit}
-      />
+      <FooterLayoutEditor text={footerText} onTextChange={setFooterText} canEdit={canEdit} />
     </div>
   );
 }
