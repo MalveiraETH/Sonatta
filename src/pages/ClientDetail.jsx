@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
+import ManualDeviceCard from '@/components/clients/ManualDeviceCard';
 // Lazy loading — carregados apenas quando necessário, reduz bundle inicial
 const AppointmentForm = lazy(() => import('@/components/appointments/AppointmentForm'));
 const QuoteForm = lazy(() => import('@/components/quotes/QuoteForm'));
@@ -71,6 +72,7 @@ export default function ClientDetail() {
   const [sales, setSales] = useState([]);
   const [history, setHistory] = useState([]);
   const [clientDevices, setClientDevices] = useState([]);
+  const [linkedProducts, setLinkedProducts] = useState([]);
   const [tests, setTests] = useState([]);
   const [moldOrders, setMoldOrders] = useState([]);
   const [repairs, setRepairs] = useState([]);
@@ -99,7 +101,7 @@ export default function ClientDetail() {
     }
 
     try {
-      const [clientData, appointmentsData, quotesData, salesData, historyData, testsData, moldOrdersData, repairsData, user] = await Promise.all([
+      const [clientData, appointmentsData, quotesData, salesData, historyData, testsData, moldOrdersData, repairsData, productsData, user] = await Promise.all([
         base44.entities.Client.filter({ id: clientId }),
         base44.entities.Appointment.filter({ client_id: clientId }, '-date'),
         base44.entities.Quote.filter({ client_id: clientId }, '-created_date'),
@@ -108,6 +110,7 @@ export default function ClientDetail() {
         base44.entities.Test.filter({ client_id: clientId }, '-created_date'),
         base44.entities.MoldOrder.filter({ client_id: clientId }, '-created_date'),
         base44.entities.DeviceRepair.filter({ client_id: clientId }, '-created_date'),
+        base44.entities.Product.filter({ client_id: clientId }),
         base44.auth.me()
       ]);
 
@@ -138,6 +141,13 @@ export default function ClientDetail() {
         }
       }
       setClientDevices(devices);
+
+      // Produtos associados manualmente ao cliente (sem venda vinculada)
+      const soldProductIds = new Set();
+      salesData.forEach(sale => (sale.items || []).forEach(item => {
+        if (item.product_id) soldProductIds.add(item.product_id);
+      }));
+      setLinkedProducts(productsData.filter(p => p.association_date && !soldProductIds.has(p.id)));
     } catch (error) {
       console.error(error);
     } finally {
@@ -417,7 +427,7 @@ export default function ClientDetail() {
               <CardTitle>Aparelhos do Cliente</CardTitle>
             </CardHeader>
             <CardContent>
-              {clientDevices.length > 0 ? (
+              {(clientDevices.length > 0 || linkedProducts.length > 0) ? (
                 <div className="space-y-4">
                   {clientDevices.map((device, idx) => {
                     const warrantyDays = getWarrantyDaysRemaining(device.warranty_end);
@@ -492,9 +502,12 @@ export default function ClientDetail() {
                       </div>
                     );
                   })}
+                  {linkedProducts.map((product) => (
+                    <ManualDeviceCard key={product.id} product={product} />
+                  ))}
                 </div>
               ) : (
-                <p className="text-center text-slate-500 py-4">Nenhum aparelho comprado ainda</p>
+                <p className="text-center text-slate-500 py-4">Nenhum aparelho vinculado a este cliente</p>
               )}
             </CardContent>
           </Card>
@@ -715,14 +728,23 @@ export default function ClientDetail() {
             </CardHeader>
             <CardContent>
               {(() => {
-                const allProducts = sales.flatMap(sale =>
-                  (sale.items || []).map(item => ({
-                    ...item,
-                    sale_number: sale.sale_number,
-                    sale_date: sale.sale_date || sale.created_date,
-                    sale_status: sale.status
+                const allProducts = [
+                  ...sales.flatMap(sale =>
+                    (sale.items || []).map(item => ({
+                      ...item,
+                      sale_number: sale.sale_number,
+                      sale_date: sale.sale_date || sale.created_date,
+                      sale_status: sale.status
+                    }))
+                  ),
+                  ...linkedProducts.map(product => ({
+                    product_name: product.name,
+                    serial_number: product.serial_number,
+                    manual: true,
+                    replaced: !!product.replaced_product_id,
+                    association_date: product.association_date
                   }))
-                );
+                ];
                 if (allProducts.length === 0) {
                   return <p className="text-center text-slate-500 py-4">Nenhum produto comprado ainda</p>;
                 }
@@ -745,12 +767,20 @@ export default function ClientDetail() {
                           <TableRow key={idx}>
                             <TableCell className="font-medium">{item.product_name}</TableCell>
                             <TableCell className="text-slate-500">{item.serial_number || '-'}</TableCell>
-                            <TableCell>{item.quantity || 1}</TableCell>
-                            <TableCell>{formatCurrency(item.unit_price)}</TableCell>
-                            <TableCell className="font-semibold">{formatCurrency(item.total || (item.unit_price * (item.quantity || 1)))}</TableCell>
-                            <TableCell className="text-sm text-[#6B3FA0]">{item.sale_number}</TableCell>
+                            <TableCell>{item.manual ? '-' : (item.quantity || 1)}</TableCell>
+                            <TableCell>{item.manual ? '-' : formatCurrency(item.unit_price)}</TableCell>
+                            <TableCell className="font-semibold">{item.manual ? '-' : formatCurrency(item.total || (item.unit_price * (item.quantity || 1)))}</TableCell>
+                            <TableCell className="text-sm text-[#6B3FA0]">
+                              {item.manual ? (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                  {item.replaced ? 'Substituição' : 'Associado manualmente'}
+                                </span>
+                              ) : item.sale_number}
+                            </TableCell>
                             <TableCell className="text-sm text-slate-500">
-                              {item.sale_date ? format(new Date(item.sale_date), "dd/MM/yyyy", { locale: ptBR }) : '-'}
+                              {item.manual
+                                ? (item.association_date ? format(new Date(item.association_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR }) : '-')
+                                : (item.sale_date ? format(new Date(item.sale_date), "dd/MM/yyyy", { locale: ptBR }) : '-')}
                             </TableCell>
                           </TableRow>
                         ))}

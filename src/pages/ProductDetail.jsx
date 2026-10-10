@@ -56,6 +56,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [movements, setMovements] = useState([]);
   const [sales, setSales] = useState([]);
+  const [client, setClient] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [associateDialogOpen, setAssociateDialogOpen] = useState(false);
   const [substituteDialogOpen, setSubstituteDialogOpen] = useState(false);
@@ -93,6 +94,15 @@ export default function ProductDetail() {
         sale.items?.some(item => item.product_id === productId)
       );
       setSales(productSales);
+
+      // Cliente associado (associação manual, substituição ou venda)
+      const associatedClientId = productData[0]?.client_id || productSales[0]?.client_id;
+      if (associatedClientId) {
+        const clientsData = await base44.entities.Client.filter({ id: associatedClientId });
+        setClient(clientsData[0] || null);
+      } else {
+        setClient(null);
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -183,6 +193,11 @@ export default function ProductDetail() {
     );
   }
 
+  const associatedDate = product.association_date || sales[0]?.created_date;
+  const clientOrigin = product.client_id
+    ? (product.replaced_product_id ? 'Substituição por defeito' : 'Associação manual')
+    : (sales.length > 0 ? `Venda ${sales[0].sale_number}` : '-');
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -242,32 +257,6 @@ export default function ProductDetail() {
         concluding={concludingRepair}
         onConcluirConserto={handleConcluirConserto}
       />
-
-      {/* Cliente vinculado (associação manual) */}
-      {product.stock_type === 'serializado' && product.status === 'vendido' && product.client_id && (
-        <Card className="border-0 shadow-sm bg-[#6B3FA0]/5">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center">
-                <User className="h-5 w-5 text-[#6B3FA0]" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">
-                  {product.replaced_product_id ? 'Cliente vinculado (substituição por defeito)' : 'Cliente vinculado (associação manual)'}
-                </p>
-                <p className="font-medium">
-                  {product.client_name}
-                  {product.association_date && (
-                    <span className="text-sm text-slate-500 font-normal ml-2">
-                      · {format(new Date(product.association_date), 'dd/MM/yyyy', { locale: ptBR })}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -402,6 +391,7 @@ export default function ProductDetail() {
         <TabsList>
           <TabsTrigger value="movements">Movimentações</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
+          <TabsTrigger value="client">Cliente</TabsTrigger>
         </TabsList>
 
         <TabsContent value="movements">
@@ -479,6 +469,61 @@ export default function ProductDetail() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="client">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle>Cliente Associado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {client ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-[#6B3FA0]/10 flex items-center justify-center flex-shrink-0">
+                      <User className="h-6 w-6 text-[#6B3FA0]" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">{client.full_name}</p>
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                        {clientOrigin}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-slate-500">CPF</p>
+                      <p className="font-medium">{client.cpf || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Telefone (WhatsApp)</p>
+                      <p className="font-medium">{client.phone || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">E-mail</p>
+                      <p className="font-medium break-all">{client.email || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Data da Associação</p>
+                      <p className="font-medium">
+                        {associatedDate
+                          ? format(new Date(associatedDate.length === 10 ? associatedDate + 'T12:00:00' : associatedDate), 'dd/MM/yyyy', { locale: ptBR })
+                          : '-'}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/ClientDetail?id=${client.id}`}
+                    className="inline-block text-sm font-medium text-[#6B3FA0] hover:underline"
+                  >
+                    Ver cliente
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-4">Nenhum cliente associado a este produto</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Associate Product Dialog */}
@@ -486,14 +531,7 @@ export default function ProductDetail() {
         open={associateDialogOpen}
         onOpenChange={setAssociateDialogOpen}
         product={product}
-        onAssociated={(res) => {
-          setProduct(prev => prev ? {
-            ...prev,
-            client_id: res.client_id,
-            client_name: res.client_name,
-            association_date: res.association_date
-          } : prev);
-        }}
+        onAssociated={() => loadData()}
       />
 
       {/* Substitute Product Dialog */}
