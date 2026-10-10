@@ -49,13 +49,14 @@ import TrialProductForm from '@/components/inventory/TrialProductForm';
 import ServicesTab from '@/components/inventory/ServicesTab';
 import DiscardsTab from '@/components/inventory/DiscardsTab';
 import DiscardProductDialog from '@/components/inventory/DiscardProductDialog';
+import AssociateProductDialog from '@/components/inventory/AssociateProductDialog';
 import SubstituteProductDialog from '@/components/inventory/SubstituteProductDialog';
 import { 
   Search, 
   Filter, 
   MoreVertical, 
-  Edit, 
-  Eye, 
+  Edit,
+  UserPlus,
   Trash2, 
   Plus, 
   X, 
@@ -111,6 +112,7 @@ export default function Inventory() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [substituteOpen, setSubstituteOpen] = useState(false);
+  const [associateOpen, setAssociateOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -258,6 +260,16 @@ export default function Inventory() {
       loadData();
     } catch (error) {
       toast.error('Erro ao ajustar estoque');
+    }
+  };
+
+  const openProductDetail = (product, tab = 'serialized') => {
+    if (openTab) {
+      openTab('ProductDetail', product.name, { id: product.id });
+    } else {
+      navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, {
+        state: { fromInventory: true, activeTab: tab, searchTerm, categoryFilter, statusFilter }
+      });
     }
   };
 
@@ -723,7 +735,7 @@ export default function Inventory() {
                   </TableRow>
                 ) : (
                   filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').map(product => (
-                    <TableRow key={product.id} className="hover:bg-slate-50">
+                    <TableRow key={product.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => openProductDetail(product)}>
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
                       <TableCell>{categoryLabels[product.category]}</TableCell>
@@ -744,7 +756,7 @@ export default function Inventory() {
                            product.status === 'indisponivel' ? 'Indisponível' : 'Baixo'}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -752,14 +764,16 @@ export default function Inventory() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab, searchTerm, categoryFilter, statusFilter } })}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Detalhes
-                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(product)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
+                            {product.status === 'vendido' && !product.client_id && (
+                              <DropdownMenuItem onClick={() => { setSelectedProduct(product); setAssociateOpen(true); }}>
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Associar Cliente
+                              </DropdownMenuItem>
+                            )}
                             {product.status === 'vendido' && product.client_id && (
                               <DropdownMenuItem onClick={() => { setSelectedProduct(product); setSubstituteOpen(true); }}>
                                 <ArrowLeftRight className="h-4 w-4 mr-2" />
@@ -794,7 +808,7 @@ export default function Inventory() {
               <Card className="p-8 text-center text-slate-500">Nenhum produto encontrado</Card>
             ) : (
               filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').map(product => (
-                <Card key={product.id} className="p-4">
+                <Card key={product.id} className="p-4 cursor-pointer" onClick={() => openProductDetail(product)}>
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -815,19 +829,21 @@ export default function Inventory() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab, searchTerm, categoryFilter, statusFilter } })}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Detalhes
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEdit(product)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
+                          {product.status === 'vendido' && !product.client_id && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setAssociateOpen(true); }}>
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Associar Cliente
+                            </DropdownMenuItem>
+                          )}
                           {product.status === 'vendido' && product.client_id && (
                             <DropdownMenuItem onClick={() => { setSelectedProduct(product); setSubstituteOpen(true); }}>
                               <ArrowLeftRight className="h-4 w-4 mr-2" />
@@ -905,7 +921,7 @@ export default function Inventory() {
                       const trialInfo = trialProductMap[product.id];
                       const test = trialInfo?.test;
                       return (
-                        <TableRow key={product.id} className="hover:bg-slate-50">
+                        <TableRow key={product.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => openProductDetail(product, 'trial')}>
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
                           <TableCell className="text-sm">{test?.client_name || '-'}</TableCell>
@@ -928,7 +944,7 @@ export default function Inventory() {
                             {test ? `${formatLocalDate(test.start_date)} → ${formatLocalDate(test.end_date)}` : '-'}
                           </TableCell>
                           <TableCell className="text-right font-semibold text-slate-600">{formatCurrency(product.cost_price)}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -936,10 +952,6 @@ export default function Inventory() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab: 'trial' } })}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Ver Detalhes
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => { setSelectedProduct(product); setTrialFormOpen(true); }}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Editar
@@ -972,7 +984,7 @@ export default function Inventory() {
                   const trialInfo = trialProductMap[product.id];
                   const test = trialInfo?.test;
                   return (
-                    <Card key={product.id} className="p-4">
+                    <Card key={product.id} className="p-4 cursor-pointer" onClick={() => openProductDetail(product, 'trial')}>
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -1003,15 +1015,11 @@ export default function Inventory() {
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openTab ? openTab('ProductDetail', product.name, { id: product.id }) : navigate(`${createPageUrl('ProductDetail')}?id=${product.id}`, { state: { fromInventory: true, activeTab: 'trial' } })}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Detalhes
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setSelectedProduct(product); setTrialFormOpen(true); }}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Editar
@@ -1457,6 +1465,14 @@ export default function Inventory() {
         onOpenChange={setDiscardOpen}
         product={selectedProduct}
         onSuccess={loadData}
+      />
+
+      {/* Associate Product Dialog */}
+      <AssociateProductDialog
+        open={associateOpen}
+        onOpenChange={setAssociateOpen}
+        product={selectedProduct}
+        onAssociated={loadData}
       />
 
       {/* Substitute Product Dialog */}
