@@ -33,6 +33,12 @@ const statusConfig = {
   assinado: { label: 'Assinado', color: 'bg-emerald-100 text-emerald-700' },
   arquivado: { label: 'Arquivado', color: 'bg-blue-100 text-blue-700' },
 
+  // Rental Status
+  ativa: { label: 'Ativa', color: 'bg-emerald-100 text-emerald-700' },
+  encerrada: { label: 'Encerrada', color: 'bg-slate-100 text-slate-600' },
+  cancelada: { label: 'Cancelada', color: 'bg-red-100 text-red-700' },
+  parcial: { label: 'Parcial', color: 'bg-amber-100 text-amber-700' },
+
   // Product Status
   disponivel: { label: 'Disponível', color: 'bg-emerald-100 text-emerald-700' },
   reservado: { label: 'Reservado', color: 'bg-amber-100 text-amber-700' },

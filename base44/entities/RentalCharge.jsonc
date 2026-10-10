@@ -1,0 +1,116 @@
+{
+  "name": "RentalCharge",
+  "type": "object",
+  "properties": {
+    "rental_id": {
+      "type": "string",
+      "description": "ID da loca\u00e7\u00e3o"
+    },
+    "rental_number": {
+      "type": "string",
+      "description": "N\u00famero da loca\u00e7\u00e3o"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nome do cliente"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Aparelho locado"
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "N\u00famero de s\u00e9rie do aparelho locado"
+    },
+    "period": {
+      "type": "string",
+      "description": "Per\u00edodo da cobran\u00e7a (AAAA-MM)"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de vencimento"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor da cobran\u00e7a (R$)"
+    },
+    "paid_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor j\u00e1 recebido"
+    },
+    "remaining_amount": {
+      "type": "number",
+      "description": "Saldo a receber"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "pago",
+        "parcial",
+        "cancelado"
+      ],
+      "default": "pendente",
+      "description": "Status da cobran\u00e7a"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do \u00faltimo recebimento"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Forma de pagamento utilizada"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es"
+    },
+    "payment_history": {
+      "type": "array",
+      "description": "Hist\u00f3rico de recebimentos",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "rental_id",
+    "client_id",
+    "period",
+    "due_date",
+    "amount"
+  ],
+  "rls": {
+    "read": true,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": true,
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

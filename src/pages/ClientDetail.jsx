@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
 import ManualDeviceCard from '@/components/clients/ManualDeviceCard';
+import ClientRentalsPanel from '@/components/rentals/ClientRentalsPanel';
 // Lazy loading — carregados apenas quando necessário, reduz bundle inicial
 const AppointmentForm = lazy(() => import('@/components/appointments/AppointmentForm'));
 const QuoteForm = lazy(() => import('@/components/quotes/QuoteForm'));
@@ -419,6 +420,7 @@ export default function ClientDetail() {
           <TabsTrigger value="records">Prontuários</TabsTrigger>
           <TabsTrigger value="observations">Observações</TabsTrigger>
           <TabsTrigger value="repairs">Consertos</TabsTrigger>
+          <TabsTrigger value="rentals">Locações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="devices">
@@ -850,6 +852,15 @@ export default function ClientDetail() {
           <Suspense fallback={<div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-[#6B3FA0]/30 border-t-[#6B3FA0] rounded-full animate-spin" /></div>}>
             <ObservationsTimeline clientId={client.id} clientName={client.full_name} />
           </Suspense>
+        </TabsContent>
+
+        <TabsContent value="rentals">
+          <ClientRentalsPanel
+            clientId={client.id}
+            clientName={client.full_name}
+            clientPhone={client.phone}
+            onChanged={loadData}
+          />
         </TabsContent>
 
         <TabsContent value="repairs">

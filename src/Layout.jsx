@@ -23,7 +23,8 @@ import {
   Bot,
   Layers,
   Search,
-  TrendingDown
+  TrendingDown,
+  Repeat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,6 +46,7 @@ const menuItems = [
   { name: 'Estoque', page: 'Inventory', icon: Package },
   { name: 'Orçamentos', page: 'Quotes', icon: FileText },
   { name: 'Vendas', page: 'Sales', icon: ShoppingCart },
+  { name: 'Locações', page: 'Rentals', icon: Repeat },
   { name: 'Contratos', page: 'Contracts', icon: FileSignature },
   { name: 'Consertos', page: 'DeviceRepairs', icon: Wrench },
   { name: 'Moldes & Tampões', page: 'MoldOrders', icon: Layers },

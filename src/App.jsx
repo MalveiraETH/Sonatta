@@ -11,6 +11,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { useState } from 'react';
 import SplashScreen from '@/components/SplashScreen';
 import VendasPerdidas from '@/pages/VendasPerdidas';
+import Rentals from '@/pages/Rentals';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -63,6 +64,7 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/VendasPerdidas" element={<LayoutWrapper currentPageName="VendasPerdidas"><VendasPerdidas /></LayoutWrapper>} />
+      <Route path="/Rentals" element={<LayoutWrapper currentPageName="Rentals"><Rentals /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -40,7 +40,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Filter, MoreVertical, Eye, DollarSign, AlertCircle, Clock, CheckCircle2, Search, X, CreditCard, Wallet, Pencil, Zap } from 'lucide-react';
+import { Filter, MoreVertical, Eye, DollarSign, AlertCircle, Clock, CheckCircle2, Search, X, CreditCard, Wallet, Pencil, Zap, Repeat } from 'lucide-react';
+import RentalChargesReceivable from '@/components/financial/RentalChargesReceivable';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -71,6 +72,7 @@ export default function AccountsReceivable() {
   const [liquidating, setLiquidating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 40;
+  const [view, setView] = useState('sales');
 
   useEffect(() => {
     loadInstallments();
@@ -384,6 +386,10 @@ export default function AccountsReceivable() {
     </div>
   );
 
+  if (view === 'rentals') {
+    return <RentalChargesReceivable onBack={() => setView('sales')} />;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -400,6 +406,10 @@ export default function AccountsReceivable() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Contas a Receber</h1>
           <p className="text-sm text-slate-500 mt-1">Gerencie seus recebíveis e parcelas</p>
         </div>
+        <Button variant="outline" onClick={() => setView('rentals')} className="w-full sm:w-auto">
+          <Repeat className="h-4 w-4 mr-2" />
+          Cobranças de Locação
+        </Button>
       </div>
 
       {/* KPIs */}

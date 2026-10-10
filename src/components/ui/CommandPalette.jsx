@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import {
   LayoutDashboard, Users, Calendar, Package, FileText,
   ShoppingCart, FileSignature, Ear, DollarSign, Wrench,
-  Bot, Layers, Bell, Search, ArrowRight, User
+  Bot, Layers, Bell, Search, ArrowRight, User, Repeat
 } from 'lucide-react';
 
 const pages = [
@@ -16,6 +16,7 @@ const pages = [
   { name: 'Estoque', page: 'Inventory', icon: Package },
   { name: 'Orçamentos', page: 'Quotes', icon: FileText },
   { name: 'Vendas', page: 'Sales', icon: ShoppingCart },
+  { name: 'Locações', page: 'Rentals', icon: Repeat },
   { name: 'Contratos', page: 'Contracts', icon: FileSignature },
   { name: 'Consertos', page: 'DeviceRepairs', icon: Wrench },
   { name: 'Moldes & Tampões', page: 'MoldOrders', icon: Layers },

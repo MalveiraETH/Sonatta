@@ -26,6 +26,7 @@ import StatCard from '@/components/ui/StatCard';
 import ReferralReportPDFButton from '@/components/reports/ReferralReportPDF';
 import TestsReportPDFButton from '@/components/reports/TestsReportPDF';
 import RepairsReportTab from '@/components/reports/RepairsReportTab';
+import RentalsReportTab from '@/components/rentals/RentalsReportTab';
 import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSign, Calendar, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -502,6 +503,7 @@ export default function Reports() {
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="referral">Repasse Indicação</TabsTrigger>
           <TabsTrigger value="repairs">Consertos</TabsTrigger>
+          <TabsTrigger value="rentals">Locações</TabsTrigger>
         </TabsList>
 
         {/* ESTOQUE */}
@@ -1751,6 +1753,10 @@ export default function Reports() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        {/* LOCAÇÕES */}
+        <TabsContent value="rentals" className="space-y-6">
+          <RentalsReportTab />
         </TabsContent>
         {/* CONSERTOS */}
         <TabsContent value="repairs">
