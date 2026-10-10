@@ -774,7 +774,7 @@ export default function Inventory() {
                                 Associar Cliente
                               </DropdownMenuItem>
                             )}
-                            {product.status === 'vendido' && product.client_id && (
+                            {product.substitution_stage !== 'aguardando_conserto' && (
                               <DropdownMenuItem onClick={() => { setSelectedProduct(product); setSubstituteOpen(true); }}>
                                 <ArrowLeftRight className="h-4 w-4 mr-2" />
                                 Substituir Aparelho

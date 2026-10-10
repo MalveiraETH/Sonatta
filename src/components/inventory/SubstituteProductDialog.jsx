@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, ArrowLeftRight, Check, Loader2, Package, Wrench } from 'lucide-react';
+import { Search, ArrowLeftRight, Check, Loader2, Package, Wrench, User } from 'lucide-react';
 import { toast } from 'sonner';
+import ClientSearchList from '@/components/inventory/ClientSearchList';
 
 export default function SubstituteProductDialog({ open, onOpenChange, product, onSubstituted }) {
   const [available, setAvailable] = useState([]);
@@ -23,6 +24,10 @@ export default function SubstituteProductDialog({ open, onOpenChange, product, o
   const [problem, setProblem] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+
+  // Aparelho sem cliente vinculado: a substituição pede a escolha do cliente
+  const needsClient = !product?.client_id;
 
   useEffect(() => {
     if (open) {
@@ -30,6 +35,7 @@ export default function SubstituteProductDialog({ open, onOpenChange, product, o
       setSearchTerm('');
       setProblem('');
       setNotes('');
+      setSelectedClient(null);
       loadAvailable();
     }
   }, [open]);
@@ -70,6 +76,10 @@ export default function SubstituteProductDialog({ open, onOpenChange, product, o
       toast.error('Descreva o defeito do aparelho');
       return;
     }
+    if (needsClient && !selectedClient) {
+      toast.error('Selecione o cliente que está com o aparelho');
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await base44.functions.invoke('substituirAparelho', {
@@ -77,9 +87,11 @@ export default function SubstituteProductDialog({ open, onOpenChange, product, o
         replacement_product_id: selected.id,
         problem: problem.trim(),
         notes: notes.trim(),
+        client_id: selectedClient?.id,
+        client_name: selectedClient?.full_name,
       });
       const data = res?.data ?? res;
-      toast.success(`Substituição registrada — NS ${selected.serial_number || '-'} vinculado a ${data?.client_name || 'cliente'}`);
+      toast.success(`Substituição registrada — NS ${selected.serial_number || '-'} vinculado a ${data?.client_name || selectedClient?.full_name || 'cliente'}`);
       onSubstituted?.(data);
       onOpenChange(false);
     } catch (e) {
@@ -118,6 +130,25 @@ export default function SubstituteProductDialog({ open, onOpenChange, product, o
               </div>
             </div>
           </div>
+
+          {/* Cliente do aparelho */}
+          {product?.client_id ? (
+            <div className="rounded-lg border p-3 flex items-center gap-2">
+              <User className="h-4 w-4 text-slate-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-500 uppercase">Cliente vinculado</p>
+                <p className="text-sm font-medium text-slate-800 truncate">{product?.client_name || '-'}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Cliente do aparelho *</Label>
+              <p className="text-xs text-slate-500">
+                Este aparelho não está vinculado a um cliente. Selecione o cliente que está com o aparelho com defeito.
+              </p>
+              <ClientSearchList value={selectedClient} onChange={setSelectedClient} />
+            </div>
+          )}
 
           {/* Defeito */}
           <div>
@@ -205,7 +236,7 @@ export default function SubstituteProductDialog({ open, onOpenChange, product, o
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={submitting || !selected || !problem.trim()}
+            disabled={submitting || !selected || !problem.trim() || (needsClient && !selectedClient)}
             className="bg-[#6B3FA0] hover:bg-[#5a2f8a] text-white"
           >
             {submitting ? (
