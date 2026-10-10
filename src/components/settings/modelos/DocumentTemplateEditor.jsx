@@ -9,7 +9,12 @@ import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import TemplateToolbar from './TemplateToolbar';
 import TableEditorDialog from './TableEditorDialog';
-import { parseTableValue, renderTableHtml, serializeTable } from '@/lib/docTable';
+import {
+  parseTableValue,
+  patchTablesToEmbeds,
+  renderTableHtml,
+  serializeTable,
+} from '@/lib/docTable';
 
 // Blot de variável: mantém o token {{ variavel }} destacado no editor
 // e preserva o destaque ao salvar/reabrir o modelo.
@@ -112,6 +117,24 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
       }
     }
     setTableDialog({ open: false, index: null, data: '' });
+  };
+
+  // Tabelas coladas (Excel, Word, páginas e outros documentos) entram como
+  // tabelas do Sonatta, em vez de texto achatado
+  const handleEditorPaste = (e) => {
+    if (!canEdit) return;
+    const html = e.clipboardData?.getData('text/html') || '';
+    const patched = patchTablesToEmbeds(html);
+    if (patched === html) return;
+
+    const quill = quillRef.current?.getEditor();
+    const range = quill?.getSelection(true);
+    if (!quill || !range) return;
+
+    e.preventDefault();
+    if (range.length) quill.deleteText(range.index, range.length, 'user');
+    quill.clipboard.dangerouslyPasteHTML(range.index, patched, 'user');
+    toast.success('Tabela colada no documento');
   };
 
   const handleSave = async () => {
@@ -286,7 +309,7 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
           onInsertTable={() => setTableDialog({ open: true, index: null, data: '' })}
           tableDisabled={!canEdit}
         />
-        <div onClick={handleEditorClick}>
+        <div onClick={handleEditorClick} onPasteCapture={handleEditorPaste}>
           <ReactQuill
             ref={quillRef}
             theme="snow"
@@ -299,7 +322,8 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
           />
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Clique em uma tabela dentro do documento para editar as células.
+          Clique em uma tabela do documento para editar as células. Você também pode colar tabelas
+          do Excel, do Word ou de outros documentos.
         </p>
       </div>
 

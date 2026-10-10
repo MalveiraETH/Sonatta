@@ -6,7 +6,8 @@ export const MAX_TABLE_ROWS = 20;
 export const MAX_TABLE_COLS = 8;
 
 const TABLE_STYLE = 'border-collapse:collapse;width:100%;';
-const CELL_STYLE = 'border:1px solid #cbd5e1;padding:6px 8px;font-size:14px;min-width:70px;vertical-align:top;';
+const CELL_STYLE =
+  'border:1px solid #cbd5e1;padding:6px 8px;font-size:14px;min-width:70px;vertical-align:top;';
 const HEAD_STYLE = `${CELL_STYLE}background:#F1ECFA;font-weight:600;text-align:left;`;
 
 export function emptyTable(rows = 3, cols = 3) {
@@ -69,4 +70,45 @@ export function renderTableHtml(data) {
     : '';
 
   return `<table style="${TABLE_STYLE}">${head}${body}</table>`;
+}
+
+const cellText = (cell) => (cell.textContent || '').replace(/\s+/g, ' ').trim();
+
+// Lê uma tabela vinda de fora (Excel, Word, página da web ou outro documento)
+export function tableFromElement(table) {
+  const rows = Array.from(table.querySelectorAll('tr'))
+    .map((tr) => Array.from(tr.querySelectorAll('th, td')).map(cellText))
+    .filter((row) => row.length > 0);
+  if (!rows.length) return null;
+
+  const cols = Math.min(MAX_TABLE_COLS, Math.max(...rows.map((row) => row.length)));
+  const limited = rows.slice(0, MAX_TABLE_ROWS).map((row) => {
+    const cells = row.slice(0, cols);
+    while (cells.length < cols) cells.push('');
+    return cells;
+  });
+
+  // Por padrão a primeira linha entra como cabeçalho (ajustável ao editar a tabela)
+  return { header: true, rows: limited };
+}
+
+// Troca as tabelas de um HTML colado pelo bloco de tabela do Sonatta
+export function patchTablesToEmbeds(html) {
+  if (!html || !/<table[\s>]/i.test(html)) return html;
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  doc.querySelectorAll('table').forEach((table) => {
+    if (table.closest('.doc-table-embed')) return; // já é uma tabela do Sonatta
+
+    const data = tableFromElement(table);
+    if (!data) return;
+
+    const embed = doc.createElement('div');
+    embed.className = 'doc-table-embed';
+    embed.setAttribute('data-rows', serializeTable(data).replace(/"/g, '&quot;'));
+    table.replaceWith(embed);
+  });
+
+  return doc.body.innerHTML;
 }

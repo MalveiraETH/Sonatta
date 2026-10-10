@@ -6,11 +6,16 @@ import { toast } from 'sonner';
 import { usePermissions } from '@/lib/usePermissions';
 import DocumentTemplateList from './DocumentTemplateList';
 import DocumentTemplateEditor from './DocumentTemplateEditor';
+import DocumentHeaderFooter from './DocumentHeaderFooter';
 
 const CATEGORIES = [
   { key: 'documento', label: 'Documentos' },
   { key: 'prontuario', label: 'Prontuários' },
 ];
+
+// Aba extra: formatação do cabeçalho e do rodapé dos documentos
+const LAYOUT_TAB = { key: 'layout', label: 'Cabeçalho e Rodapé' };
+const TABS = [...CATEGORIES, LAYOUT_TAB];
 
 export default function ModelosSettings() {
   const [user, setUser] = useState(null);
@@ -34,7 +39,7 @@ export default function ModelosSettings() {
   const canDelete = isAdmin || can('Modelos', 'Excluir modelos');
 
   useEffect(() => {
-    if (!permsReady || editorOpen) return;
+    if (!permsReady || editorOpen || category === 'layout') return;
     let active = true;
     setLoading(true);
     base44.entities.DocumentTemplate.filter(
@@ -125,7 +130,7 @@ export default function ModelosSettings() {
             com os dados do cliente.
           </p>
         </div>
-        {canEdit && (
+        {canEdit && category !== 'layout' && (
           <Button
             onClick={() => openEditor(null)}
             className="bg-[#A4D233] hover:bg-[#B8E047] text-slate-900 font-semibold flex-shrink-0"
@@ -137,7 +142,7 @@ export default function ModelosSettings() {
       </div>
 
       <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-        {CATEGORIES.map((c) => (
+        {TABS.map((c) => (
           <button
             key={c.key}
             type="button"
@@ -153,14 +158,18 @@ export default function ModelosSettings() {
         ))}
       </div>
 
-      <DocumentTemplateList
-        templates={templates}
-        loading={loading}
-        canDelete={canDelete}
-        onOpen={openEditor}
-        onDelete={handleDelete}
-        emptyLabel={CATEGORIES.find((c) => c.key === category)?.label || 'Documentos'}
-      />
+      {category === 'layout' ? (
+        <DocumentHeaderFooter canEdit={isAdmin} />
+      ) : (
+        <DocumentTemplateList
+          templates={templates}
+          loading={loading}
+          canDelete={canDelete}
+          onOpen={openEditor}
+          onDelete={handleDelete}
+          emptyLabel={CATEGORIES.find((c) => c.key === category)?.label || 'Documentos'}
+        />
+      )}
     </div>
   );
 }
