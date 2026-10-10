@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { loadDocLayout, drawDocHeader, drawDocFooter } from '@/lib/pdfLetterhead';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -19,33 +20,35 @@ const statusLabel = (status, dueDate) => {
 export default function InstallmentsPDFButton({ installments, clientName, paymentMethod }) {
   const [generating, setGenerating] = useState(false);
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     setGenerating(true);
     try {
+      const layout = await loadDocLayout();
       const doc = new jsPDF();
       const title = paymentMethod === 'pix_parcelado' ? 'Relatório de Parcelas PIX' : 'Relatório de Parcelas Cartão';
       const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
 
-      // Header
-      doc.setFillColor(107, 63, 160);
-      doc.rect(0, 0, 210, 28, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16);
+      // Cabeçalho configurado (imagem à esquerda, texto à direita)
+      const headerH = drawDocHeader(doc, layout, { x: 14, y: 6, width: 182 });
+      let y = 6 + Math.max(headerH, 16) + 6;
+
+      // Título do relatório
+      doc.setDrawColor(107, 63, 160);
+      doc.setLineWidth(0.4);
+      doc.line(14, y, 196, y);
+      doc.setTextColor(107, 63, 160);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('SONATTA', 14, 12);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Soluções Auditivas', 14, 20);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(title, 105, 16, { align: 'center' });
+      doc.text(title, 14, y + 8);
+      y += 15;
 
       // Client info
       doc.setTextColor(50, 50, 50);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Cliente: ${clientName}`, 14, 36);
-      doc.text(`Emitido em: ${now}`, 14, 43);
+      doc.text(`Cliente: ${clientName}`, 14, y);
+      doc.text(`Emitido em: ${now}`, 14, y + 7);
+      y += 12;
 
       // Summary
       const paid = installments.filter(i => i.payment_status === 'pago');
@@ -54,15 +57,15 @@ export default function InstallmentsPDFButton({ installments, clientName, paymen
       const totalPending = pending.reduce((s, i) => s + (i.remaining_amount || 0), 0);
 
       doc.setFillColor(245, 245, 250);
-      doc.rect(14, 48, 182, 22, 'F');
+      doc.rect(14, y, 182, 22, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text(`Total de parcelas: ${installments.length}`, 18, 56);
-      doc.text(`Pagas: ${paid.length}  |  Total pago: ${formatCurrency(totalPaid)}`, 18, 63);
-      doc.text(`Pendentes/Atrasadas: ${pending.length}  |  Saldo devedor: ${formatCurrency(totalPending)}`, 100, 63);
+      doc.text(`Total de parcelas: ${installments.length}`, 18, y + 8);
+      doc.text(`Pagas: ${paid.length}  |  Total pago: ${formatCurrency(totalPaid)}`, 18, y + 15);
+      doc.text(`Pendentes/Atrasadas: ${pending.length}  |  Saldo devedor: ${formatCurrency(totalPending)}`, 100, y + 15);
+      y += 32;
 
       // Table header
-      let y = 80;
       doc.setFillColor(107, 63, 160);
       doc.rect(14, y - 6, 182, 8, 'F');
       doc.setTextColor(255, 255, 255);
@@ -119,14 +122,11 @@ export default function InstallmentsPDFButton({ installments, clientName, paymen
         y += 9;
       });
 
-      // Footer
+      // Rodapé configurado em todas as páginas (contagem de páginas + texto + barra verde)
       const pageCount = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setFontSize(7);
-        doc.setTextColor(150, 150, 150);
-        doc.text('Sonatta Soluções Auditivas - Relatório gerado automaticamente', 14, 290);
-        doc.text(`Página ${i}/${pageCount}`, 196, 290, { align: 'right' });
+        drawDocFooter(doc, layout, { x: 14, y: 284, width: 182, page: i, total: pageCount });
       }
 
       const filename = `parcelas_${paymentMethod === 'pix_parcelado' ? 'pix' : 'cartao'}_${clientName.replace(/\s+/g, '_')}.pdf`;

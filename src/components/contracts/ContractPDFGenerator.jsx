@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
+import { loadDocLayout, drawDocHeader, drawDocFooter } from '@/lib/pdfLetterhead';
 
 // Configurações padrão de PDF (mesmas do orçamento)
 const DEFAULT_PDF_CFG = {
@@ -161,57 +162,21 @@ export default function ContractPDFGenerator({ contract, contractText }) {
       const FOOTER_H = 20;
       const footerY = pageH - FOOTER_H;
 
-      // Carregar logo (mesma URL e lógica do orçamento)
-      let logoB64 = null;
-      if (cfg.logo_url) {
-        const res = await loadImageAsBase64(cfg.logo_url);
-        logoB64 = res?.dataUrl || null;
-      }
+      // Cabeçalho e rodapé configurados (Configurações → Modelos)
+      const layout = await loadDocLayout({ fallbackImageUrl: cfg.logo_url });
 
-      // Altura real do logo para calcular onde começa o conteúdo
-      let logoRenderedH = 16;
-      let logoRenderedW = 50;
-      if (logoB64) {
-        const tmpImg = new Image();
-        await new Promise(r => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = logoB64; });
-        const LOGO_MAX_H = 16, LOGO_MAX_W = 50;
-        const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
-        logoRenderedW = LOGO_MAX_H * ratio;
-        logoRenderedH = LOGO_MAX_H;
-        if (logoRenderedW > LOGO_MAX_W) { logoRenderedW = LOGO_MAX_W; logoRenderedH = logoRenderedW / ratio; }
-      }
-
-      // Linha verde abaixo do cabeçalho (igual orçamento): Y = 5 (logo) + 16 (altura) + 6 (gap)
-      const headerLineY = marginTop + logoRenderedH + 6;
-      const headerH = headerLineY + 8; // conteúdo começa abaixo da linha (gap maior)
+      // Linha verde abaixo do cabeçalho (igual orçamento)
+      const headerLineY = 26;
+      const headerH = headerLineY + 8; // conteúdo começa abaixo da linha
 
       const drawHeader = () => {
-        if (logoB64) {
-          pdf.addImage(logoB64, 'PNG', marginL, marginTop, logoRenderedW, logoRenderedH, undefined, 'NONE');
-        } else {
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(14);
-          pdf.setTextColor(98, 42, 126);
-          pdf.text('SONATTA', marginL, marginTop + 12);
-        }
-        // Linha verde separadora (igual orçamento)
+        drawDocHeader(pdf, layout, { x: marginL, y: marginTop, width: contentW });
         pdf.setFillColor(136, 188, 7);
         pdf.rect(marginL, headerLineY, contentW, 0.7, 'F');
       };
 
-      const drawFooter = () => {
-        // Linha verde no rodapé (igual orçamento)
-        const FY = pageH - 16;
-        pdf.setFillColor(136, 188, 7);
-        pdf.rect(marginL, FY, contentW, 0.6, 'F');
-        const FL = FY + 5;
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(7);
-        pdf.setTextColor(66, 63, 51);
-        pdf.text((cfg.address || ''), marginL, FL);
-        pdf.text((cfg.phone || '') + '  ·  ' + (cfg.email || ''), marginL, FL + 4.5);
-        pdf.setTextColor(98, 42, 126);
-        pdf.text((cfg.website || '') + '  ·  ' + (cfg.instagram || ''), pageW - marginR, FL, { align: 'right' });
+      const drawFooter = (page, total) => {
+        drawDocFooter(pdf, layout, { x: marginL, y: pageH - 13, width: contentW, page, total });
       };
 
       // Parse do HTML do contrato
@@ -231,7 +196,6 @@ export default function ContractPDFGenerator({ contract, contractText }) {
 
       const initPage = () => {
         drawHeader();
-        drawFooter();
         curY = headerH;
       };
 
@@ -333,6 +297,13 @@ export default function ContractPDFGenerator({ contract, contractText }) {
           curY += lines.length * effectiveLH + effectiveMB;
           continue;
         }
+      }
+
+      // Rodapé configurado em todas as páginas
+      const totalPages = pdf.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        pdf.setPage(p);
+        drawFooter(p, totalPages);
       }
 
       pdf.save(`contrato_${contract.contract_number || 'documento'}.pdf`);

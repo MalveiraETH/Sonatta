@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
 import { base44 } from '@/api/base44Client';
+import { loadDocLayout, drawDocHeader, drawDocFooter } from '@/lib/pdfLetterhead';
 
 const DEFAULT_CFG = {
   logo_url: 'https://media.base44.com/images/public/694e93aa7609bf14847de917/073de81ba_SONATTA_CARDS-10.png',
@@ -129,20 +130,6 @@ const fmtDate = (raw) => {
   } catch { return '—'; }
 };
 
-const loadB64 = (url) =>
-  new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.width; c.height = img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
-      resolve(c.toDataURL('image/png'));
-    };
-    img.onerror = () => resolve(null);
-    img.src = url;
-  });
-
 async function loadCfg() {
   try {
     const all = await base44.entities.AppSettings.list();
@@ -180,34 +167,28 @@ async function buildPDF(quote, cfg) {
 
   setFill(P.pageBg); doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
-  // ── HEADER ──
-  const LOGO_MAX_H = 16, LOGO_MAX_W = 50;
-  const logoB64 = await loadB64(cfg.logo_url);
-  if (logoB64) {
-    const tmpImg = new Image();
-    await new Promise((r) => { tmpImg.onload = r; tmpImg.onerror = r; tmpImg.src = logoB64; });
-    const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
-    let lw = LOGO_MAX_H * ratio, lh = LOGO_MAX_H;
-    if (lw > LOGO_MAX_W) { lw = LOGO_MAX_W; lh = lw / ratio; }
-    doc.addImage(logoB64, 'PNG', ML, 5, lw, lh, undefined, 'NONE');
-  } else {
-    setFont('bold', 16); setTxt(P.purple); doc.text('SONATTA', ML, 18);
-  }
+  // ── HEADER — cabeçalho configurado (imagem à esquerda, texto à direita) ──
+  const layout = await loadDocLayout({ fallbackImageUrl: cfg.logo_url });
+  const headerH = drawDocHeader(doc, layout, { x: ML, y: 5, width: CW });
+  const headerLineY = 5 + Math.max(headerH, 16) + 5;
+  setFill(P.green); doc.rect(ML, headerLineY, CW, 0.7, 'F');
 
-  const RX = PAGE_W - MR;
   const validDays = quote.validity_days || cfg.validity_days || 30;
   const vd = new Date(); vd.setDate(vd.getDate() + validDays);
   const validUntil = String(vd.getDate()).padStart(2,'0') + '/' + String(vd.getMonth()+1).padStart(2,'0') + '/' + vd.getFullYear();
 
   setFont('bold', 12); setTxt(P.purple);
-  doc.text(cfg.document_title || 'PROPOSTA COMERCIAL', RX, 9, { align: 'right' });
-  setFont('normal', 7); setTxt(P.textSub);
-  doc.text('Nº ' + (quote.quote_number || '—'), RX, 14, { align: 'right' });
-  doc.text('Data: ' + fmtDate(quote.created_date), RX, 18, { align: 'right' });
-  doc.text('Válida até: ' + validUntil, RX, 22, { align: 'right' });
+  doc.text(cfg.document_title || 'PROPOSTA COMERCIAL', ML, headerLineY + 8);
+  setFont('normal', 7.5); setTxt(P.textSub);
+  doc.text(
+    'Nº ' + (quote.quote_number || '—') +
+      '  ·  Data: ' + fmtDate(quote.created_date) +
+      '  ·  Válida até: ' + validUntil,
+    ML,
+    headerLineY + 14
+  );
 
-  setFill(P.green); doc.rect(ML, 27, CW, 0.7, 'F');
-  Y = 32;
+  Y = headerLineY + 20;
 
   // ── Helper: cabeçalho de seção ──
   const secGap = cfg.section_content_gap ?? 3;
@@ -359,15 +340,8 @@ async function buildPDF(quote, cfg) {
   setFont('normal', 7); setTxt(P.textSub);
   doc.text(cfg.signer_role || 'Comercial Sonatta', SIG_X + SIG_W/2, SIG_Y + LH * 2, { align: 'center' });
 
-  // ── FOOTER ──
-  const FY = PAGE_H - 16;
-  setFill(P.green); doc.rect(ML, FY, CW, 0.6, 'F');
-  const FL = FY + 5;
-  setFont('normal', 7); setTxt(P.textSub);
-  doc.text(cfg.address || '', ML, FL);
-  doc.text((cfg.phone || '') + '  ·  ' + (cfg.email || ''), ML, FL + 4.5);
-  setFont('normal', 7); setTxt(P.purple);
-  doc.text((cfg.website || '') + '  ·  ' + (cfg.instagram || ''), PAGE_W-MR, FL, { align: 'right' });
+  // ── FOOTER — contagem de páginas | texto + barra verde ──
+  drawDocFooter(doc, layout, { x: ML, y: PAGE_H - 13, width: CW, page: 1, total: 1 });
 
   return doc;
 }
