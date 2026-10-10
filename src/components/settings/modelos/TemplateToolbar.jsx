@@ -9,6 +9,7 @@ import {
   List,
   ListChecks,
   ListOrdered,
+  Table,
   Underline,
 } from 'lucide-react';
 import TemplateVariablesMenu from './TemplateVariablesMenu';
@@ -21,7 +22,12 @@ const btn =
 const headerBtn =
   'ql-header flex items-center justify-center h-8 min-w-8 px-1.5 rounded-md text-[11px] font-semibold text-slate-600 hover:bg-slate-100 transition-colors';
 
-export default function TemplateToolbar({ onInsertVariable, variablesDisabled }) {
+export default function TemplateToolbar({
+  onInsertVariable,
+  variablesDisabled,
+  onInsertTable,
+  tableDisabled,
+}) {
   return (
     <div className="flex flex-wrap items-center gap-1 border border-slate-200 border-b-0 rounded-t-xl bg-white px-2 py-1.5">
       <div id="doc-template-toolbar" className="flex flex-wrap items-center gap-0.5">
@@ -68,6 +74,18 @@ export default function TemplateToolbar({ onInsertVariable, variablesDisabled })
           <ListChecks className="h-4 w-4" />
         </button>
       </div>
+
+      <span className="w-px h-5 bg-slate-200 mx-1" />
+
+      <button
+        type="button"
+        onClick={onInsertTable}
+        disabled={tableDisabled}
+        title="Inserir tabela"
+        className={`${btn} disabled:opacity-40 disabled:hover:bg-transparent`}
+      >
+        <Table className="h-4 w-4" />
+      </button>
 
       <span className="w-px h-5 bg-slate-200 mx-1" />
 

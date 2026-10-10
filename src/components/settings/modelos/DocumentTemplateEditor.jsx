@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import TemplateToolbar from './TemplateToolbar';
+import TableEditorDialog from './TableEditorDialog';
+import { parseTableValue, renderTableHtml, serializeTable } from '@/lib/docTable';
 
 // Blot de variável: mantém o token {{ variavel }} destacado no editor
 // e preserva o destaque ao salvar/reabrir o modelo.
@@ -24,10 +26,37 @@ if (Quill) {
   } catch (e) {
     /* já registrado */
   }
+  try {
+    const BlockEmbed = Quill.import('blots/block/embed');
+
+    // O Quill não tem tabela nativa: ela entra como bloco atômico com as
+    // linhas guardadas em JSON e é editada pelo diálogo (clique na tabela).
+    class DocTableBlot extends BlockEmbed {
+      static blotName = 'doctable';
+      static tagName = 'div';
+      static className = 'doc-table-embed';
+
+      static create(value) {
+        const node = super.create();
+        const data = parseTableValue(value);
+        node.setAttribute('data-rows', serializeTable(data));
+        node.setAttribute('contenteditable', 'false');
+        node.innerHTML = renderTableHtml(data);
+        return node;
+      }
+
+      static value(node) {
+        return node.getAttribute('data-rows') || '';
+      }
+    }
+    Quill.register(DocTableBlot, true);
+  } catch (e) {
+    /* já registrado */
+  }
 }
 
 const QUILL_MODULES = { toolbar: { container: '#doc-template-toolbar' } };
-const QUILL_FORMATS = ['header', 'bold', 'italic', 'underline', 'align', 'list', 'docvar'];
+const QUILL_FORMATS = ['header', 'bold', 'italic', 'underline', 'align', 'list', 'docvar', 'doctable'];
 
 const CATEGORY_LABEL = { documento: 'Documento', prontuario: 'Prontuário' };
 
@@ -36,6 +65,7 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
   const [content, setContent] = useState(template?.content || '');
   const [isActive, setIsActive] = useState(template?.is_active !== false);
   const [saving, setSaving] = useState(false);
+  const [tableDialog, setTableDialog] = useState({ open: false, index: null, data: '' });
   const quillRef = useRef(null);
 
   const categoryLabel = CATEGORY_LABEL[category] || 'Documento';
@@ -48,6 +78,40 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
     const text = `${token} `;
     quill.insertText(index, text, { docvar: true }, 'user');
     quill.setSelection(index + text.length, 0);
+  };
+
+  // Clique em uma tabela do documento abre o editor de linhas e colunas
+  const handleEditorClick = (e) => {
+    if (!canEdit) return;
+    const embed = e.target.closest?.('.doc-table-embed');
+    if (!embed) return;
+    const quill = quillRef.current?.getEditor();
+    const blot = quill ? Quill.find(embed) : null;
+    if (!quill || !blot) return;
+    setTableDialog({
+      open: true,
+      index: quill.getIndex(blot),
+      data: blot.domNode.getAttribute('data-rows') || '',
+    });
+  };
+
+  const handleConfirmTable = (data) => {
+    const quill = quillRef.current?.getEditor();
+    const value = serializeTable(data);
+    if (quill) {
+      if (tableDialog.index != null) {
+        quill.deleteText(tableDialog.index, 1, 'user');
+        quill.insertEmbed(tableDialog.index, 'doctable', value, 'user');
+        quill.setSelection(tableDialog.index + 1, 0);
+      } else {
+        const range = quill.getSelection(true);
+        const index = range ? range.index : Math.max(0, quill.getLength() - 1);
+        quill.insertEmbed(index, 'doctable', value, 'user');
+        quill.insertText(index + 1, '\n', 'user');
+        quill.setSelection(index + 2, 0);
+      }
+    }
+    setTableDialog({ open: false, index: null, data: '' });
   };
 
   const handleSave = async () => {
@@ -185,9 +249,30 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
         }
         .doc-editor .ql-editor .doc-var {
           background: #EDE9FE;
-          color: #5B21B6;
+          color: #6B3FA0;
+          border: 1px dashed #A78BFA;
           border-radius: 4px;
-          padding: 1px 4px;
+          padding: 0 4px;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+        .doc-editor .ql-editor .doc-table-embed {
+          margin: 10px 0;
+          cursor: pointer;
+        }
+        .doc-editor .ql-editor .doc-table-embed:hover {
+          outline: 2px dashed #A4D233;
+          outline-offset: 2px;
+        }
+        .doc-editor .ql-editor table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+        .doc-editor .ql-editor table th,
+        .doc-editor .ql-editor table td {
+          border: 1px solid #cbd5e1;
+          padding: 6px 8px;
+          font-size: 14px;
         }
         .doc-editor .ql-editor h1 { font-size: 1.6em; font-weight: 700; }
         .doc-editor .ql-editor h2 { font-size: 1.3em; font-weight: 700; }
@@ -195,18 +280,35 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
       `}</style>
 
       <div className="doc-editor">
-        <TemplateToolbar onInsertVariable={insertVariable} variablesDisabled={!canEdit} />
-        <ReactQuill
-          ref={quillRef}
-          theme="snow"
-          value={content}
-          onChange={(html) => setContent(html)}
-          modules={QUILL_MODULES}
-          formats={QUILL_FORMATS}
-          readOnly={!canEdit}
-          placeholder="Insira aqui o conteúdo..."
+        <TemplateToolbar
+          onInsertVariable={insertVariable}
+          variablesDisabled={!canEdit}
+          onInsertTable={() => setTableDialog({ open: true, index: null, data: '' })}
+          tableDisabled={!canEdit}
         />
+        <div onClick={handleEditorClick}>
+          <ReactQuill
+            ref={quillRef}
+            theme="snow"
+            value={content}
+            onChange={(html) => setContent(html)}
+            modules={QUILL_MODULES}
+            formats={QUILL_FORMATS}
+            readOnly={!canEdit}
+            placeholder="Insira aqui o conteúdo..."
+          />
+        </div>
+        <p className="mt-2 text-xs text-slate-400">
+          Clique em uma tabela dentro do documento para editar as células.
+        </p>
       </div>
+
+      <TableEditorDialog
+        open={tableDialog.open}
+        data={tableDialog.data}
+        onOpenChange={(open) => setTableDialog((prev) => ({ ...prev, open }))}
+        onConfirm={handleConfirmTable}
+      />
     </div>
   );
 }
