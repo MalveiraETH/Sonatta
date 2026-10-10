@@ -25,7 +25,7 @@ export const PAGE_PERMISSION_MAP = {
   AssistenteSonatta:    'Assistente IA',
   Reports:              'Relatórios',
   Registrations:        'Cadastros',
-  Settings:             'Configurações',
+  Settings:             ['Configurações', 'Modelos'],
 };
 
 // Defaults caso não haja registros salvos — fonte única de verdade
@@ -71,6 +71,9 @@ export const DEFAULT_PERMISSIONS = [
   { module: 'Cadastros',      action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Configurações',  action: 'Ver página',                admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
   { module: 'Configurações',  action: 'Gerenciar usuários',       admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
+  { module: 'Modelos',        action: 'Ver página',                admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
+  { module: 'Modelos',        action: 'Criar/Editar modelos',       admin: true, fonoaudiologo: true,  comercial: false, recepcao: false },
+  { module: 'Modelos',        action: 'Excluir modelos',            admin: true, fonoaudiologo: false, comercial: false, recepcao: false },
 ];
 
 let cachedPerms = null;
@@ -136,9 +139,11 @@ export function usePermissions(user) {
     if (!user) return false;
     if (user.role === 'admin') return true; // admin sempre tem acesso total, independente de loading
     if (loading) return false; // outros roles aguardam o carregamento
-    const module = PAGE_PERMISSION_MAP[pageName];
-    if (!module) return true; // página sem restrição mapeada
-    return can(module, 'Ver página');
+    const modules = PAGE_PERMISSION_MAP[pageName];
+    if (!modules) return true; // página sem restrição mapeada
+    // Um mapeamento pode aceitar mais de um módulo (ex: Configurações | Modelos)
+    const list = Array.isArray(modules) ? modules : [modules];
+    return list.some((m) => can(m, 'Ver página'));
   }, [can, user, loading]);
 
   return { can, canAccessPage, loading };

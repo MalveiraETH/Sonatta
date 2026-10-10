@@ -1,0 +1,59 @@
+{
+  "name": "DocumentTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome do modelo"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "documento",
+        "prontuario"
+      ],
+      "default": "documento",
+      "description": "Categoria do modelo (documento ou prontu\u00e1rio)"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado formatado do modelo (HTML) com vari\u00e1veis din\u00e2micas"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o modelo est\u00e1 ativo para uso"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Usu\u00e1rio que criou o modelo"
+    },
+    "updated_by_name": {
+      "type": "string",
+      "description": "Usu\u00e1rio da \u00faltima altera\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "content"
+  ],
+  "rls": {
+    "read": true,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

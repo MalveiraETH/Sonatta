@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHeader from '@/components/ui/PageHeader';
+import { base44 } from '@/api/base44Client';
+import { usePermissions } from '@/lib/usePermissions';
 import WorkingHours from '@/components/settings/WorkingHours';
 import AuditLog from '@/components/settings/AuditLog';
 import Billing from '@/components/settings/Billing';
@@ -17,8 +19,20 @@ import UsersManagement from '@/components/settings/UsersManagement';
 import AccessPermissions from '@/components/settings/AccessPermissions';
 import WhatsAppCampaignTemplates from '@/components/settings/WhatsAppCampaignTemplates';
 import WhatsAppBateriaTemplates from '@/components/settings/WhatsAppBateriaTemplates';
+import ModelosSettings from '@/components/settings/modelos/ModelosSettings';
 
 export default function Settings() {
+  const [user, setUser] = useState(null);
+  const { can } = usePermissions(user);
+  const [tab, setTab] = useState('hours');
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => setUser(null));
+  }, []);
+
+  // Quem não tem acesso às Configurações vê apenas a aba Modelos
+  const fullSettings = !user || user.role === 'admin' || can('Configurações', 'Ver página');
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -27,8 +41,11 @@ export default function Settings() {
         actionIcon={SettingsIcon}
       />
 
-      <Tabs defaultValue="hours" className="space-y-6">
+      <Tabs value={fullSettings ? tab : 'modelos'} onValueChange={setTab} className="space-y-6">
         <TabsList className="bg-slate-100 flex-wrap h-auto gap-1 p-1">
+          <TabsTrigger value="modelos" className="text-xs sm:text-sm">Modelos</TabsTrigger>
+          {fullSettings && (
+            <>
           <TabsTrigger value="hours" className="text-xs sm:text-sm">Horário</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">WhatsApp Orçamento</TabsTrigger>
           <TabsTrigger value="whatsapp_sale" className="text-xs sm:text-sm">WhatsApp Venda</TabsTrigger>
@@ -44,8 +61,16 @@ export default function Settings() {
           <TabsTrigger value="permissions" className="text-xs sm:text-sm">Permissões</TabsTrigger>
           <TabsTrigger value="campaign_templates" className="text-xs sm:text-sm">📣 Campanhas WhatsApp</TabsTrigger>
           <TabsTrigger value="bateria_templates" className="text-xs sm:text-sm">🔋 WhatsApp Baterias</TabsTrigger>
+            </>
+          )}
         </TabsList>
 
+        <TabsContent value="modelos">
+          <ModelosSettings />
+        </TabsContent>
+
+        {fullSettings && (
+          <>
         <TabsContent value="hours">
           <WorkingHours />
         </TabsContent>
@@ -105,6 +130,8 @@ export default function Settings() {
         <TabsContent value="bateria_templates">
           <WhatsAppBateriaTemplates />
         </TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   );
