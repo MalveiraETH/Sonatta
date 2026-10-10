@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SerializedProductForm from '@/components/inventory/SerializedProductForm';
+import StockByNameCard from '@/components/inventory/StockByNameCard';
 import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
 import TrialProductForm from '@/components/inventory/TrialProductForm';
 import ServicesTab from '@/components/inventory/ServicesTab';
@@ -605,80 +606,8 @@ export default function Inventory() {
             </Card>
           </div>
 
-          {/* Tabela de Aparelhos por Nome */}
-          <Card>
-            <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold mb-1">Aparelhos em Estoque por Nome</h3>
-              <p className="text-xs text-slate-500 mb-4">Apenas aparelhos auditivos disponíveis</p>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50">
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Marca</TableHead>
-                      <TableHead className="text-center">Quantidade</TableHead>
-                      <TableHead className="text-right">Preço Venda</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(() => {
-                      const hearingAids = products.filter(p =>
-                        ['aparelho_auditivo', 'microfone', 'carregador'].includes(p.category) &&
-                        !allTrialIds.has(p.id) &&
-                        (p.stock_type === 'nao_serializado' ? (p.quantity || 0) > 0 : p.status === 'disponivel')
-                      );
-                      const normalize = (s) => (s || '')
-                        .toString()
-                        .normalize('NFD')
-                        .replace(/[\u0300-\u036f]/g, '')
-                        .toUpperCase()
-                        .trim();
-                      const nameGroups = hearingAids.reduce((acc, product) => {
-                        const key = normalize(product.name);
-                        if (!acc[key]) {
-                          acc[key] = {
-                            name: product.name,
-                            brand: product.brand,
-                            quantity: 0,
-                            price: product.sale_price || 0
-                          };
-                        }
-                        acc[key].quantity += product.stock_type === 'serializado' ? 1 : (product.quantity || 0);
-                        return acc;
-                      }, {});
-
-                      const sortedNames = Object.values(nameGroups).sort((a, b) =>
-                        a.name.localeCompare(b.name, 'pt-BR')
-                      );
-
-                      if (sortedNames.length === 0) {
-                        return (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-slate-500">
-                              Nenhum aparelho auditivo em estoque
-                            </TableCell>
-                          </TableRow>
-                        );
-                      }
-
-                      return sortedNames.map((item, index) => (
-                        <TableRow key={index} className="hover:bg-slate-50">
-                          <TableCell className="font-medium">{item.name || '-'}</TableCell>
-                          <TableCell>{item.brand || '-'}</TableCell>
-                          <TableCell className="text-center font-semibold text-[#6B3FA0]">
-                            {item.quantity}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatCurrency(item.price)}
-                          </TableCell>
-                        </TableRow>
-                      ));
-                    })()}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </Card>
+          {/* Estoque por Nome (abas por categoria) */}
+          <StockByNameCard products={products} allTrialIds={allTrialIds} />
         </TabsContent>
 
         {/* PRODUTO (A) SERIALIZADO */}
