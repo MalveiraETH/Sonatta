@@ -55,9 +55,30 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
     }
     setSnErrorIndex(null);
     setClientSearch('');
+    const clientId = repair?.client_id || preselectedClient?.id;
+    if (clientId) loadClientProducts(clientId);
   }, [repair, open, preselectedClient]);
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  // Carrega aparelhos serializados associados ao cliente (associação manual ou venda)
+  // e os mescla à lista geral, garantindo que apareçam na busca e passem na validação.
+  const loadClientProducts = async (clientId) => {
+    if (!clientId) return;
+    try {
+      const clientProducts = await base44.entities.Product.filter(
+        { stock_type: 'serializado', client_id: clientId },
+        '-created_date',
+        500
+      );
+      setSerializedProducts(prev => {
+        const ids = new Set(prev.map(p => p.id));
+        return [...prev, ...clientProducts.filter(p => !ids.has(p.id))];
+      });
+    } catch (e) {
+      console.warn('Erro ao carregar aparelhos do cliente:', e);
+    }
+  };
 
   const handleProductSelect = (index, product) => {
     setForm(prev => {
@@ -113,6 +134,7 @@ export default function RepairForm({ open, onClose, repair, onSaved, preselected
       set('client_id', client.id);
       set('client_name', client.full_name);
       set('client_phone', client.phone);
+      loadClientProducts(client.id);
     }
   };
 
