@@ -169,13 +169,141 @@ export function fillDocumentVariables(html, ctx) {
   });
 }
 
-// Remove os tokens que continuaram sem valor (usado no PDF final, para o
-// documento não sair impresso com {{ variavel }}).
+// ── Limpeza do documento final ─────────────────────────────────────────────
+// Depois do preenchimento, as variáveis que continuaram sem valor saem do texto
+// junto com o que sobra no lugar delas (rótulo solto, separador repetido,
+// parágrafo ou item de lista vazio), deixando o documento limpo e ajustado.
+const BLOCK_TAGS = new Set([
+  'P',
+  'LI',
+  'H1',
+  'H2',
+  'H3',
+  'H4',
+  'H5',
+  'H6',
+  'DIV',
+  'TD',
+  'TH',
+  'BLOCKQUOTE',
+  'PRE',
+]);
+const KEEP_EMPTY_TAGS = new Set(['TD', 'TH']);
+const MEDIA_SELECTOR = 'img, table, hr, iframe, svg, video, audio, .doc-table-embed';
+const SEPARATOR_CHARS = '\\s\\-–—·|,;/';
+const ONLY_SEPARATORS = new RegExp(`^[${SEPARATOR_CHARS}]+$`);
+const EDGE_SEPARATORS = new RegExp(`^[${SEPARATOR_CHARS}]+|[${SEPARATOR_CHARS}]+$`, 'g');
+// "Telefone: |" ficou sem valor: o rótulo e o separador saem juntos.
+const DANGLING_LABEL = /[^\s:]{1,45}:\s*[|·;,\/]\s*/g;
+// Bloco inteiro reduzido a um rótulo ("CPF:") também sai.
+const LABEL_ONLY = /^[^:]{1,45}:\s*$/;
+
+const textNodesOf = (root) => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  return nodes;
+};
+
+const blockOf = (node, root) => {
+  let element = node;
+  while (element && element !== root) {
+    if (element.nodeType === 1 && BLOCK_TAGS.has(element.tagName)) return element;
+    element = element.parentNode;
+  }
+  return root;
+};
+
+const depthOf = (element) => {
+  let depth = 0;
+  let current = element;
+  while (current) {
+    depth += 1;
+    current = current.parentElement;
+  }
+  return depth;
+};
+
+// Ajusta o bloco onde uma variável foi anulada e o remove se ele ficou sem nada.
+function tidyBlock(block, holder) {
+  const tidy = (value) =>
+    value
+      .replace(/\u00a0/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/ +([,.;:!?])/g, '$1')
+      .replace(DANGLING_LABEL, '')
+      .replace(/ ?([,;·|])(?:\s*[,;·|])+/g, '$1');
+
+  const pass = () => {
+    const nodes = textNodesOf(block);
+    nodes.forEach((node) => {
+      node.nodeValue = tidy(node.nodeValue);
+    });
+    const filled = nodes.filter((node) => {
+      if (ONLY_SEPARATORS.test(node.nodeValue)) node.nodeValue = '';
+      return node.nodeValue !== '';
+    });
+    if (!filled.length) return;
+    // Separador que sobrou na borda do bloco ("Manaus - ") também sai.
+    [filled[0], filled[filled.length - 1]].forEach((node) => {
+      node.nodeValue = node.nodeValue.replace(EDGE_SEPARATORS, '');
+      if (ONLY_SEPARATORS.test(node.nodeValue)) node.nodeValue = '';
+    });
+  };
+
+  pass();
+  pass();
+
+  const text = (block.textContent || '').replace(/\u00a0/g, ' ').trim();
+  const isEmpty = !text.replace(/\s/g, '');
+  if (!isEmpty && !LABEL_ONLY.test(text)) return;
+  if (block === holder || KEEP_EMPTY_TAGS.has(block.tagName)) return;
+  if (block.querySelector(MEDIA_SELECTOR)) return;
+  block.remove();
+}
+
+// Remove as variáveis que continuaram sem valor — usado no documento gerado e no
+// PDF final, para nada sair com {{ variavel }} nem com sobras de formatação.
 export function stripUnresolvedVariables(html) {
   if (!html) return '';
-  return String(html)
-    .replace(/&nbsp;|&#160;|&#xa0;/gi, ' ')
-    .replace(/\{\{[^{}]*\}\}/g, '')
-    .replace(/[ \t]{2,}/g, ' ')
-    .replace(/ +([,.;:])/g, '$1');
+  const source = String(html).replace(/&nbsp;|&#160;|&#xa0;/gi, ' ');
+
+  if (typeof document === 'undefined') {
+    return source
+      .replace(/\{\{[^{}]*\}\}/g, '')
+      .replace(DANGLING_LABEL, '')
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/ +([,.;:])/g, '$1');
+  }
+
+  const holder = document.createElement('div');
+  holder.innerHTML = source;
+
+  // Todo bloco que perdeu uma variável é marcado para ser reajustado.
+  const affected = new Set();
+  const mark = (node) => affected.add(blockOf(node, holder));
+
+  textNodesOf(holder).forEach((node) => {
+    if (!node.nodeValue.includes('{{')) return;
+    mark(node.parentNode);
+    node.nodeValue = node.nodeValue.replace(/\{\{[^{}]*\}\}/g, '');
+  });
+
+  // Destaque de variável que ficou sem texto sai inteiro (sem selo vazio).
+  holder.querySelectorAll('.doc-var').forEach((span) => {
+    if (span.textContent.replace(/[\s\u00a0]/g, '')) return;
+    mark(span.parentNode);
+    span.remove();
+  });
+
+  // Do bloco mais interno para o mais externo, para o invólucro vazio também sair.
+  [...affected]
+    .sort((a, b) => depthOf(b) - depthOf(a))
+    .forEach((block) => tidyBlock(block, holder));
+
+  holder.querySelectorAll('ul, ol').forEach((list) => {
+    if (!list.querySelector('li')) list.remove();
+  });
+
+  return holder.innerHTML.trim() || '<p></p>';
 }
