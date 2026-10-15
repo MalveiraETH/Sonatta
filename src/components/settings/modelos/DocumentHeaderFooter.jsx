@@ -28,8 +28,16 @@ export default function DocumentHeaderFooter({ canEdit }) {
         setHeaderImage(
           saved.header_image_url || (typeof saved.header === 'object' ? saved.header?.image_url : '') || ''
         );
-        setHeaderText(typeof saved.header === 'string' ? saved.header : saved.header?.text || '');
-        setFooterText(typeof saved.footer === 'string' ? saved.footer : saved.footer?.text || '');
+        setHeaderText(
+          typeof saved.header === 'string'
+            ? saved.header
+            : saved.header_text || saved.header?.text || ''
+        );
+        setFooterText(
+          typeof saved.footer === 'string'
+            ? saved.footer
+            : saved.footer_text || saved.footer?.text || ''
+        );
       })
       .catch(() => toast.error('Erro ao carregar o cabeçalho e o rodapé'))
       .finally(() => {
