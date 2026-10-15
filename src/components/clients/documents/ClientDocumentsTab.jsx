@@ -17,7 +17,16 @@ import {
 import DocumentTemplatePicker from './DocumentTemplatePicker';
 import ClientDocumentEditor from './ClientDocumentEditor';
 import ClientDocumentRow from './ClientDocumentRow';
-import { loadDocumentContext, fillDocumentVariables } from '@/lib/fillDocumentVariables';
+import {
+  loadDocumentContext,
+  fillDocumentVariables,
+  stripUnresolvedVariables,
+} from '@/lib/fillDocumentVariables';
+
+// Preenche o que existe e anula o que não tem dado cadastrado, já com a
+// formatação ajustada (sem rótulos soltos, separadores repetidos ou linhas vazias).
+const resolveContent = (content, ctx) =>
+  stripUnresolvedVariables(fillDocumentVariables(content, ctx));
 
 export default function ClientDocumentsTab({ client }) {
   const [documents, setDocuments] = useState([]);
@@ -60,7 +69,7 @@ export default function ClientDocumentsTab({ client }) {
         document: null,
         template,
         title: template.name || 'Documento',
-        content: fillDocumentVariables(template.content || '', ctx),
+        content: resolveContent(template.content || '', ctx),
         ctx,
       });
     } catch (e) {
@@ -80,7 +89,7 @@ export default function ClientDocumentsTab({ client }) {
       template: null,
       title: document.title || '',
       // Relê as variáveis com os dados atuais do paciente ao reabrir.
-      content: fillDocumentVariables(document.content || '', ctx),
+      content: resolveContent(document.content || '', ctx),
       ctx,
     });
   };
@@ -96,7 +105,7 @@ export default function ClientDocumentsTab({ client }) {
         client_id: client.id,
         client_name: client.full_name,
         title: title.trim(),
-        content: fillDocumentVariables(content, editor.ctx || {}),
+        content: resolveContent(content, editor.ctx || {}),
         updated_by_name: currentUser?.full_name || '',
       };
 

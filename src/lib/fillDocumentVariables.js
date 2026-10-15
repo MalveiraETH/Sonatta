@@ -191,12 +191,16 @@ const BLOCK_TAGS = new Set([
 const KEEP_EMPTY_TAGS = new Set(['TD', 'TH']);
 const MEDIA_SELECTOR = 'img, table, hr, iframe, svg, video, audio, .doc-table-embed';
 const SEPARATOR_CHARS = '\\s\\-–—·|,;/';
-const ONLY_SEPARATORS = new RegExp(`^[${SEPARATOR_CHARS}]+$`);
+// Nó que só sobrou com separador (",", " | ", " - ") é limpo; o espaço que
+// separa duas palavras dentro do bloco é preservado.
+const SEPARATOR_ONLY = /^[\s\-–—·|,;/]*[\-–—·|,;/][\s\-–—·|,;/]*$/;
 const EDGE_SEPARATORS = new RegExp(`^[${SEPARATOR_CHARS}]+|[${SEPARATOR_CHARS}]+$`, 'g');
 // "Telefone: |" ficou sem valor: o rótulo e o separador saem juntos.
 const DANGLING_LABEL = /[^\s:]{1,45}:\s*[|·;,\/]\s*/g;
-// Bloco inteiro reduzido a um rótulo ("CPF:") também sai.
-const LABEL_ONLY = /^[^:]{1,45}:\s*$/;
+// Bloco inteiro reduzido a um rótulo ("CPF:") também sai; frases que introduzem
+// o que vem depois ("conforme abaixo:") são preservadas.
+const LABEL_ONLY =
+  /^(?!.*(?:abaixo|acima|seguir|seguem|seguinte|conforme|relação|lista|detalhamento|verifique|confira))[^:]{1,45}:\s*$/i;
 
 const textNodesOf = (root) => {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -240,14 +244,14 @@ function tidyBlock(block, holder) {
       node.nodeValue = tidy(node.nodeValue);
     });
     const filled = nodes.filter((node) => {
-      if (ONLY_SEPARATORS.test(node.nodeValue)) node.nodeValue = '';
+      if (SEPARATOR_ONLY.test(node.nodeValue)) node.nodeValue = '';
       return node.nodeValue !== '';
     });
     if (!filled.length) return;
     // Separador que sobrou na borda do bloco ("Manaus - ") também sai.
     [filled[0], filled[filled.length - 1]].forEach((node) => {
       node.nodeValue = node.nodeValue.replace(EDGE_SEPARATORS, '');
-      if (ONLY_SEPARATORS.test(node.nodeValue)) node.nodeValue = '';
+      if (SEPARATOR_ONLY.test(node.nodeValue)) node.nodeValue = '';
     });
   };
 

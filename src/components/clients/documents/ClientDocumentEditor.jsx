@@ -50,7 +50,8 @@ export default function ClientDocumentEditor({
 
           <p className="text-xs text-slate-400">
             Edite o conteúdo livremente. Você pode inserir variáveis dinâmicas e tabelas; elas são
-            preenchidas com os dados do paciente ao salvar.
+            preenchidas com os dados do paciente ao salvar. As variáveis que não tiverem dado
+            cadastrado são anuladas, junto com o rótulo e os separadores que ficariam soltos.
           </p>
         </div>
 
