@@ -31,8 +31,10 @@ export function htmlToLines(html) {
 export async function loadDocLayout({ fallbackImageUrl } = {}) {
   let saved = {};
   try {
-    const res = await base44.entities.AppSettings.filter({ setting_key: DOC_LAYOUT_KEY });
-    saved = (res.items || [])[0]?.setting_value || {};
+    // filter() sem opções devolve um array simples; com opções devolve { items }.
+    const res = await base44.entities.AppSettings.filter({ setting_key: DOC_LAYOUT_KEY }, { limit: 1 });
+    const record = Array.isArray(res) ? res[0] : (res.items || [])[0];
+    saved = record?.setting_value || {};
   } catch (e) {
     saved = {};
   }
@@ -77,7 +79,7 @@ export function drawDocHeader(pdf, layout, { x, y, width, logoMaxH = 16, logoMax
 
   if (lines.length) {
     pdf.setTextColor(...TEXT_COLOR);
-    const shown = lines.slice(0, 3);
+    const shown = lines.slice(0, 6);
     shown.forEach((line, i) => {
       pdf.text(line, x + width, y + 4 + i * LINE_H, { align: 'right' });
     });

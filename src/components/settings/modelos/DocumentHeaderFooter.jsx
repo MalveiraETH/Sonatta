@@ -18,9 +18,9 @@ export default function DocumentHeaderFooter({ canEdit }) {
 
   useEffect(() => {
     let active = true;
-    base44.entities.AppSettings.filter({ setting_key: SETTING_KEY })
+    base44.entities.AppSettings.filter({ setting_key: SETTING_KEY }, { limit: 1 })
       .then((res) => {
-        const record = (res.items || [])[0];
+        const record = Array.isArray(res) ? res[0] : (res.items || [])[0];
         if (!active || !record) return;
 
         const saved = record.setting_value || {};

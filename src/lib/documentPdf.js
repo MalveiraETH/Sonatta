@@ -4,6 +4,7 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { loadDocLayout, drawDocHeader, drawDocFooter } from '@/lib/pdfLetterhead';
+import { stripUnresolvedVariables } from '@/lib/fillDocumentVariables';
 import { openWhatsApp } from '@/utils/whatsapp';
 
 const PAGE_W = 210;
@@ -38,7 +39,7 @@ async function renderContentCanvas(html) {
 
   const body = document.createElement('div');
   body.className = 'doc-pdf-body';
-  body.innerHTML = html || '<p></p>';
+  body.innerHTML = stripUnresolvedVariables(html) || '<p></p>';
 
   holder.appendChild(style);
   holder.appendChild(body);

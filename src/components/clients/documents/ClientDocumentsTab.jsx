@@ -79,7 +79,8 @@ export default function ClientDocumentsTab({ client }) {
       document,
       template: null,
       title: document.title || '',
-      content: document.content || '',
+      // Relê as variáveis com os dados atuais do paciente ao reabrir.
+      content: fillDocumentVariables(document.content || '', ctx),
       ctx,
     });
   };
