@@ -152,10 +152,21 @@ export function sanitizeFileName(name) {
   );
 }
 
-export async function generateDocumentPdf(html, title) {
+// Primeiro e último nome do cliente, usados para compor o nome do arquivo.
+export function shortClientName(fullName) {
+  const parts = String(fullName || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length < 2) return parts[0] || '';
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+}
+
+export async function generateDocumentPdf(html, title, clientName) {
   const layout = await loadDocLayout();
   const doc = await buildDocumentPdf({ html, layout });
-  return { doc, fileName: `${sanitizeFileName(title)}.pdf` };
+  const base = [title, shortClientName(clientName)].filter(Boolean).join(' ');
+  return { doc, fileName: `${sanitizeFileName(base)}.pdf` };
 }
 
 // Baixa no celular ou computador

@@ -30,7 +30,11 @@ export default function ClientDocumentRow({ document, client, canDelete, onOpen,
   const handleDownload = async () => {
     setBusy('pdf');
     try {
-      const { doc, fileName } = await generateDocumentPdf(document.content, document.title);
+      const { doc, fileName } = await generateDocumentPdf(
+        document.content,
+        document.title,
+        client?.full_name || document.client_name,
+      );
       downloadDocumentPdf(doc, fileName);
       toast.success('PDF gerado e baixado');
     } catch (e) {
@@ -43,7 +47,11 @@ export default function ClientDocumentRow({ document, client, canDelete, onOpen,
   const handleShare = async () => {
     setBusy('share');
     try {
-      const { doc, fileName } = await generateDocumentPdf(document.content, document.title);
+      const { doc, fileName } = await generateDocumentPdf(
+        document.content,
+        document.title,
+        client?.full_name || document.client_name,
+      );
       const result = await shareDocumentPdf(doc, fileName, {
         title: document.title,
         phone: client?.phone,
