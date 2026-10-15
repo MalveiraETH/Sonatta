@@ -1,0 +1,53 @@
+{
+  "name": "ClientDocument",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do paciente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nome do paciente"
+    },
+    "template_id": {
+      "type": "string",
+      "description": "ID do modelo de origem"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Nome do modelo de origem"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do documento"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado do documento (HTML edit\u00e1vel)"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Usu\u00e1rio que gerou o documento"
+    },
+    "updated_by_name": {
+      "type": "string",
+      "description": "Usu\u00e1rio da \u00faltima altera\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "client_id",
+    "title",
+    "content"
+  ],
+  "rls": {
+    "read": true,
+    "create": true,
+    "update": true,
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
