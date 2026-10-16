@@ -31,9 +31,12 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 
+const CATEGORY_OPTIONS = ['90', '70', '50', '30', '10', '5'];
+
 export default function ReferenceProducts() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [billingConfig, setBillingConfig] = useState(null);
@@ -216,6 +219,10 @@ export default function ReferenceProducts() {
     return bFinal - aFinal;
   });
 
+  const visibleProducts = categoryFilter === 'all'
+    ? sortedProducts
+    : sortedProducts.filter((p) => p.category === categoryFilter);
+
   const exportToExcel = () => {
     try {
       const exportData = products.map(product => ({
@@ -259,12 +266,25 @@ export default function ReferenceProducts() {
     <div className="space-y-6">
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-[#6B3FA0]" />
               <CardTitle>Produtos Referência</CardTitle>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-[190px]">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
+                  {CATEGORY_OPTIONS.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {getCategoryLabel(cat)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 onClick={exportToExcel}
                 variant="outline"
@@ -459,14 +479,16 @@ export default function ReferenceProducts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.length === 0 ? (
+                {visibleProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={11} className="text-center text-slate-500 py-8">
-                      Nenhum produto cadastrado
+                      {products.length === 0
+                        ? 'Nenhum produto cadastrado'
+                        : 'Nenhum produto nesta categoria'}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedProducts.map((product) => {
+                  visibleProducts.map((product) => {
                     const includeFixedCost = product.include_fixed_cost !== false;
                     return (
                       <TableRow key={product.id}>
