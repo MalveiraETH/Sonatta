@@ -21,12 +21,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -40,9 +34,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Search, Filter, MoreVertical, Eye, MessageCircle, Mail, CheckCircle, Archive, Trash2, X, FileText, Shield, BookOpen } from 'lucide-react';
+import { Search, Filter, Mail, CheckCircle, X, FileText } from 'lucide-react';
 import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
 import CarnePDFGenerator from '@/components/contracts/CarnePDFGenerator';
+import ContractActionsMenu from '@/components/contracts/ContractActionsMenu';
+import { buildContractPdf } from '@/lib/contractPdf';
+import { buildCarnePdf } from '@/lib/carnePdf';
+import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -60,6 +58,7 @@ export default function Contracts() {
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -116,56 +115,83 @@ export default function Contracts() {
     }
   };
 
-  const handleStatusChange = async (contract, newStatus) => {
+  // O status "enviado" registra que o documento foi compartilhado com o cliente.
+  const markAsSent = async (contract) => {
+    if (contract.status !== 'gerado') return;
     try {
-      const updateData = { status: newStatus };
-      if (newStatus === 'assinado') {
-        updateData.signature_date = format(new Date(), 'yyyy-MM-dd');
-      }
-      await base44.entities.Contract.update(contract.id, updateData);
-      toast.success('Status atualizado');
+      await base44.entities.Contract.update(contract.id, { status: 'enviado' });
       loadData();
-    } catch (error) {
-      toast.error('Erro ao atualizar status');
+    } catch (e) {
+      console.warn('Não foi possível atualizar o status do contrato:', e.message);
     }
   };
 
-  const sendWhatsApp = async (contract) => {
-    // Sempre busca o telefone atual do cliente
-    let phone = '';
+  // Sempre busca o telefone atual do cliente (evita número desatualizado)
+  const clientPhoneOf = async (contract) => {
     try {
       const client = await base44.entities.Client.get(contract.client_id);
-      phone = (client?.phone || contract.client_phone || '').replace(/\D/g, '');
+      return (client?.phone || contract.client_phone || '').replace(/\D/g, '');
     } catch (e) {
-      phone = (contract.client_phone || '').replace(/\D/g, '');
+      return (contract.client_phone || '').replace(/\D/g, '');
     }
-    if (!phone) {
-      toast.error('Cliente não possui telefone cadastrado');
-      return;
-    }
-    const message = encodeURIComponent(
-      `Olá ${contract.client_name}!\n\nSeu contrato está disponível:\n\n*Nº ${contract.contract_number}*\nValor: ${formatCurrency(contract.total_value)}\n\nPor favor, entre em contato para assinatura.\n\n*Sonatta Soluções Auditivas*`
-    );
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
-    handleStatusChange(contract, 'enviado');
   };
 
-  const sendEmail = async (contract) => {
-    if (!contract.client_email) {
-      toast.error('Cliente não possui e-mail cadastrado');
+  // Baixa o PDF e abre a conversa do WhatsApp para o arquivo ser anexado.
+  const sendCarne = async (contract) => {
+    if (sending) return;
+    if (!contract.sale_id) {
+      toast.error('Este contrato não está vinculado a uma venda');
       return;
     }
-
+    setSending(true);
     try {
-      await base44.integrations.Core.SendEmail({
-        to: contract.client_email,
-        subject: `Contrato ${contract.contract_number} - Sonatta`,
-        body: `<h2>Olá ${contract.client_name}!</h2><p>Seu contrato está disponível.</p>`
-      });
-      toast.success('E-mail enviado com sucesso!');
-      handleStatusChange(contract, 'enviado');
+      const phone = await clientPhoneOf(contract);
+      if (!phone) {
+        toast.error('Cliente não possui telefone cadastrado');
+        return;
+      }
+      const sale = await base44.entities.Sale.get(contract.sale_id);
+      const { doc, fileName, estimated } = await buildCarnePdf({ contract, sale });
+      doc.save(fileName);
+      if (estimated) {
+        toast.warning('Parcelas estimadas: não há parcelas registradas em Contas a Receber para esta venda.');
+      }
+      const message = `Olá ${contract.client_name}!\n\nSegue o carnê de pagamento referente ao contrato ${contract.contract_number}.\n\n*Sonatta Soluções Auditivas*`;
+      openWhatsApp(`55${phone}`, message);
+      toast.success('PDF baixado. Anexe o arquivo na conversa do WhatsApp.');
+      await markAsSent(contract);
     } catch (error) {
-      toast.error('Erro ao enviar e-mail');
+      console.error(error);
+      toast.error(error?.message || 'Erro ao enviar o carnê');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Baixa o PDF do contrato e abre a conversa do WhatsApp para anexá-lo.
+  const sendContrato = async (contract) => {
+    if (sending) return;
+    setSending(true);
+    try {
+      const phone = await clientPhoneOf(contract);
+      if (!phone) {
+        toast.error('Cliente não possui telefone cadastrado');
+        return;
+      }
+      const { doc, fileName } = await buildContractPdf({
+        contract,
+        contractText: contract.contract_text || ''
+      });
+      doc.save(fileName);
+      const message = `Olá ${contract.client_name}!\n\nSegue o contrato referente à sua compra.\n\nContrato nº ${contract.contract_number}\nValor total: ${formatCurrency(contract.total_value)}\n\n*Sonatta Soluções Auditivas*`;
+      openWhatsApp(`55${phone}`, message);
+      toast.success('PDF baixado. Anexe o arquivo na conversa do WhatsApp.');
+      await markAsSent(contract);
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.message || 'Erro ao enviar o contrato');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -436,45 +462,15 @@ export default function Contracts() {
                   </TableCell>
                   <TableCell>{contract.warranty_period}</TableCell>
                   <TableCell className="text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openDetail(contract)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => sendWhatsApp(contract)}>
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          WhatsApp
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => sendEmail(contract)}>
-                          <Mail className="h-4 w-4 mr-2" />
-                          E-mail
-                        </DropdownMenuItem>
-                        {contract.status !== 'assinado' && (
-                          <DropdownMenuItem onClick={() => handleStatusChange(contract, 'assinado')}>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Marcar Assinado
-                          </DropdownMenuItem>
-                        )}
-                        {contract.status === 'assinado' && (
-                          <DropdownMenuItem onClick={() => handleStatusChange(contract, 'arquivado')}>
-                            <Archive className="h-4 w-4 mr-2" />
-                            Arquivar
-                          </DropdownMenuItem>
-                        )}
-                        {currentUser?.role === 'admin' && (
-                          <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDeleteOpen(true); }} className="text-red-600">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <ContractActionsMenu
+                      contract={contract}
+                      canDelete={currentUser?.role === 'admin'}
+                      busy={sending}
+                      onView={openDetail}
+                      onSendCarne={sendCarne}
+                      onSendContrato={sendContrato}
+                      onDelete={(c) => { setSelectedContract(c); setDeleteOpen(true); }}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -512,35 +508,15 @@ export default function Contracts() {
                       {contract.client_name} • {formatLocalDate(contract.created_date)}
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openDetail(contract)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Detalhes
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => sendWhatsApp(contract)}>
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        WhatsApp
-                      </DropdownMenuItem>
-                      {contract.status !== 'assinado' && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(contract, 'assinado')}>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Marcar Assinado
-                        </DropdownMenuItem>
-                      )}
-                      {currentUser?.role === 'admin' && (
-                        <DropdownMenuItem onClick={() => { setSelectedContract(contract); setDeleteOpen(true); }} className="text-red-600">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ContractActionsMenu
+                    contract={contract}
+                    canDelete={currentUser?.role === 'admin'}
+                    busy={sending}
+                    onView={openDetail}
+                    onSendCarne={sendCarne}
+                    onSendContrato={sendContrato}
+                    onDelete={(c) => { setSelectedContract(c); setDeleteOpen(true); }}
+                  />
                 </div>
                 <div className="text-2xl font-bold text-slate-900">{formatCurrency(contract.total_value)}</div>
                 <div className="text-xs text-slate-500">Garantia: {contract.warranty_period}</div>

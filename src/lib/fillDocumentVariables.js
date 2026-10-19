@@ -52,7 +52,7 @@ async function findAttendingName(client) {
 // Monta o mapa de variáveis resolvíveis. A clínica, o profissional e os dados
 // comerciais são buscados em modo "melhor esforço": se não existirem, os tokens
 // permanecem no texto para o usuário completar.
-export async function loadDocumentContext({ client, user }) {
+export async function loadDocumentContext({ client, user, sale }) {
   const ctx = {};
   const now = new Date();
 
@@ -140,7 +140,7 @@ export async function loadDocumentContext({ client, user }) {
       /* dados do profissional indisponíveis */
     }
 
-    Object.assign(ctx, await buildBusinessContext(client));
+    Object.assign(ctx, await buildBusinessContext(client, sale));
   }
 
   return ctx;

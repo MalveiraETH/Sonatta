@@ -42,7 +42,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import NewSaleForm from '@/components/sales/NewSaleForm';
-import ContractGenerator from '@/components/contracts/ContractGenerator';
+import GenerateCarneDialog from '@/components/contracts/GenerateCarneDialog';
 import InvoiceDialog from '@/components/sales/InvoiceDialog';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import QuitarSaldoDialog from '@/components/sales/QuitarSaldoDialog';
@@ -721,7 +721,7 @@ Obrigado pela preferência!
                           )}
                           <DropdownMenuItem onClick={() => { setSelectedSale(sale); setContractOpen(true); }}>
                             <FileSignature className="h-4 w-4 mr-2" />
-                            Gerar Contrato
+                            Gerar Carnê
                           </DropdownMenuItem>
                           {sale.status === 'cancelado' && (
                             <DropdownMenuItem onClick={() => { setSaleToEdit(sale); setEditFormOpen(true); }}>
@@ -862,7 +862,7 @@ Obrigado pela preferência!
                         )}
                         <DropdownMenuItem onClick={() => { setSelectedSale(sale); setContractOpen(true); }}>
                           <FileSignature className="h-4 w-4 mr-2" />
-                          Contrato
+                          Gerar Carnê
                         </DropdownMenuItem>
                         {sale.status === 'cancelado' && (
                           <DropdownMenuItem onClick={() => { setSaleToEdit(sale); setEditFormOpen(true); }}>
@@ -907,10 +907,11 @@ Obrigado pela preferência!
         onSuccess={loadData}
       />
 
-      <ContractGenerator 
+      <GenerateCarneDialog
         open={contractOpen}
         onOpenChange={setContractOpen}
         sale={selectedSale}
+        user={currentUser}
         onSuccess={loadData}
       />
 

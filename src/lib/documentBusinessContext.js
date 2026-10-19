@@ -363,12 +363,15 @@ const rentalContext = (rental, nextCharge) => ({
 });
 
 // Reúne todas as variáveis comerciais do paciente.
-export async function buildBusinessContext(client) {
+export async function buildBusinessContext(client, saleOverride = null) {
   const clientId = clean(client?.id);
   if (!clientId) return {};
 
-  const [sale, quote, contract, record, test, rental] = await Promise.all([
-    best(() => loadSale(clientId), null),
+  // Uma venda específica pode ser informada (ex.: contrato de uma venda antiga);
+  // sem ela, usa a venda mais recente do paciente.
+  const sale = clean(saleOverride?.id) ? saleOverride : await best(() => loadSale(clientId), null);
+
+  const [quote, contract, record, test, rental] = await Promise.all([
     best(() => loadLatest(base44.entities.Quote, { client_id: clientId }, '-created_date'), null),
     best(() => loadLatest(base44.entities.Contract, { client_id: clientId }, '-created_date'), null),
     best(() => loadLatest(base44.entities.MedicalRecord, { client_id: clientId }, '-date'), null),
