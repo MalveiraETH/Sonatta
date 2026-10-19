@@ -31,6 +31,7 @@ import { FileText, Download, Package, Users, ShoppingCart, TrendingUp, DollarSig
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
+import { resolveSaleProfessionals } from '@/lib/saleProfessionals';
 
 const REPAIR_STATUS_CONFIG = {
   aberto: { label: 'Aberto', color: 'bg-blue-100 text-blue-700' },
@@ -342,8 +343,12 @@ export default function Reports() {
     
     filteredSales.forEach(s => {
       const client = clients.find(c => c.id === s.client_id);
-      const profIndicacao = professionals.find(p => p.id === client?.referral_professional);
-      const profResponsavel = professionals.find(p => p.id === client?.responsible_professional);
+      const { referralName, responsibleName } = resolveSaleProfessionals(s, {
+        tests,
+        appointments,
+        professionals,
+        client
+      });
       
       // Se tem payment_details (novo formato), criar linha para cada método
       if (s.payment_details && s.payment_details.length > 0) {
@@ -368,8 +373,8 @@ export default function Reports() {
             'Cliente': s.client_name,
             'Responsável Pagamento': client?.payer_name || '',
             'CPF/CNPJ Responsável': client?.payer_document || '',
-            'Prof. Indicação': profIndicacao?.full_name || '',
-            'Prof. Responsável': profResponsavel?.full_name || '',
+            'Prof. Indicação': referralName,
+            'Prof. Responsável': responsibleName,
             'Valor Bruto': toExcelNum(pd.amount),
             'Bandeira': pd.card_brand || '',
             'Taxa Cartão (%)': feeRate || '',
@@ -401,8 +406,8 @@ export default function Reports() {
           'Cliente': s.client_name,
           'Responsável Pagamento': client?.payer_name || '',
           'CPF/CNPJ Responsável': client?.payer_document || '',
-          'Prof. Indicação': profIndicacao?.full_name || '',
-          'Prof. Responsável': profResponsavel?.full_name || '',
+          'Prof. Indicação': referralName,
+          'Prof. Responsável': responsibleName,
           'Valor Bruto': toExcelNum(s.total),
           'Bandeira': '',
           'Taxa Cartão (%)': '',
@@ -1158,25 +1163,20 @@ export default function Reports() {
                       .filter(() => true)
                       .map(sale => {
                         const client = clients.find(c => c.id === sale.client_id);
-                        // Busca o teste mais recente do cliente para obter profissionais do atendimento
-                        const clientTest = tests
-                          .filter(t => t.client_id === sale.client_id)
-                          .sort((a, b) => new Date(b.start_date) - new Date(a.start_date))[0];
-                        const profIndicacao = sale.test_referral_name ||
-                          clientTest?.referral_professional_name ||
-                          professionals.find(p => p.id === sale.test_referral_id)?.full_name ||
-                          professionals.find(p => p.id === client?.referral_professional)?.full_name || '-';
-                        const profResponsavel = sale.seller_name ||
-                          clientTest?.professional_name ||
-                          professionals.find(p => p.id === sale.seller_id)?.full_name ||
-                          professionals.find(p => p.id === client?.responsible_professional)?.full_name || '-';
+                        // Profissionais do atendimento (indicação e responsável)
+                        const { referralName, responsibleName } = resolveSaleProfessionals(sale, {
+                          tests,
+                          appointments,
+                          professionals,
+                          client
+                        });
                         
                         return (
                           <TableRow key={sale.id}>
                             <TableCell className="font-medium">{sale.sale_number}</TableCell>
                             <TableCell>{sale.client_name}</TableCell>
-                            <TableCell className="text-sm">{profIndicacao}</TableCell>
-                            <TableCell className="text-sm">{profResponsavel}</TableCell>
+                            <TableCell className="text-sm">{referralName || '-'}</TableCell>
+                            <TableCell className="text-sm">{responsibleName || '-'}</TableCell>
                             <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
                             <TableCell>
                               {sale.status === 'pago' ? safeFormat(sale.updated_date) : '-'}
