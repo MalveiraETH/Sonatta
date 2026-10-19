@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -113,6 +113,18 @@ export default function Inventory() {
   const [discardOpen, setDiscardOpen] = useState(false);
   const [substituteOpen, setSubstituteOpen] = useState(false);
   const [associateOpen, setAssociateOpen] = useState(false);
+
+  // Toque no menu de ações (mobile): no toque, o clique pode "atravessar" o botão e chegar no
+  // card, abrindo o detalhe do produto. Guardamos o instante do toque no menu e ignoramos
+  // o clique de navegação que venha logo em seguida.
+  const actionTapRef = useRef(0);
+  const markActionTap = () => { actionTapRef.current = Date.now(); };
+  const handleRowClick = (product, tab = 'serialized') => {
+    const elapsed = Date.now() - actionTapRef.current;
+    actionTapRef.current = 0;
+    if (elapsed < 700) return;
+    openProductDetail(product, tab);
+  };
 
   useEffect(() => {
     loadData();
@@ -735,7 +747,7 @@ export default function Inventory() {
                   </TableRow>
                 ) : (
                   filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').map(product => (
-                    <TableRow key={product.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => openProductDetail(product)}>
+                    <TableRow key={product.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => handleRowClick(product)}>
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
                       <TableCell>{categoryLabels[product.category]}</TableCell>
@@ -756,7 +768,7 @@ export default function Inventory() {
                            product.status === 'indisponivel' ? 'Indisponível' : 'Baixo'}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()} onPointerDown={markActionTap}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -808,7 +820,7 @@ export default function Inventory() {
               <Card className="p-8 text-center text-slate-500">Nenhum produto encontrado</Card>
             ) : (
               filteredProducts.filter(p => p.stock_type === 'serializado' && !allTrialIds.has(p.id) && p.status !== 'descartado').map(product => (
-                <Card key={product.id} className="p-4 cursor-pointer" onClick={() => openProductDetail(product)}>
+                <Card key={product.id} className="p-4 cursor-pointer" onClick={() => handleRowClick(product)}>
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -829,7 +841,7 @@ export default function Inventory() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} onPointerDown={markActionTap}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -921,7 +933,7 @@ export default function Inventory() {
                       const trialInfo = trialProductMap[product.id];
                       const test = trialInfo?.test;
                       return (
-                        <TableRow key={product.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => openProductDetail(product, 'trial')}>
+                        <TableRow key={product.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => handleRowClick(product, 'trial')}>
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell className="text-sm text-slate-600">{product.serial_number}</TableCell>
                           <TableCell className="text-sm">{test?.client_name || '-'}</TableCell>
@@ -944,7 +956,7 @@ export default function Inventory() {
                             {test ? `${formatLocalDate(test.start_date)} → ${formatLocalDate(test.end_date)}` : '-'}
                           </TableCell>
                           <TableCell className="text-right font-semibold text-slate-600">{formatCurrency(product.cost_price)}</TableCell>
-                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()} onPointerDown={markActionTap}>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -984,7 +996,7 @@ export default function Inventory() {
                   const trialInfo = trialProductMap[product.id];
                   const test = trialInfo?.test;
                   return (
-                    <Card key={product.id} className="p-4 cursor-pointer" onClick={() => openProductDetail(product, 'trial')}>
+                    <Card key={product.id} className="p-4 cursor-pointer" onClick={() => handleRowClick(product, 'trial')}>
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -1015,7 +1027,7 @@ export default function Inventory() {
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} onPointerDown={markActionTap}>
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
