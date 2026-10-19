@@ -35,10 +35,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Search, Filter, Mail, CheckCircle, X, FileText } from 'lucide-react';
-import ContractPDFGenerator from '@/components/contracts/ContractPDFGenerator';
-import CarnePDFGenerator from '@/components/contracts/CarnePDFGenerator';
 import ContractActionsMenu from '@/components/contracts/ContractActionsMenu';
-import { buildContractPdf } from '@/lib/contractPdf';
 import { buildCarnePdf } from '@/lib/carnePdf';
 import { openWhatsApp } from '@/utils/whatsapp';
 import { toast } from 'sonner';
@@ -53,12 +50,11 @@ export default function Contracts() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedContract, setSelectedContract] = useState(null);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState(null);
-  const [sending, setSending] = useState(false);
+  // Guarda o contrato em processamento: apenas o menu desse registro fica carregando.
+  const [sendingId, setSendingId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -101,20 +97,6 @@ export default function Contracts() {
     setFilteredContracts(filtered);
   };
 
-  const openDetail = async (contract) => {
-    setSelectedContract(contract);
-    setSelectedSale(null);
-    setDetailOpen(true);
-    if (contract.sale_id) {
-      try {
-        const sale = await base44.entities.Sale.get(contract.sale_id);
-        setSelectedSale(sale);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
-
   // O status "enviado" registra que o documento foi compartilhado com o cliente.
   const markAsSent = async (contract) => {
     if (contract.status !== 'gerado') return;
@@ -138,12 +120,12 @@ export default function Contracts() {
 
   // Baixa o PDF e abre a conversa do WhatsApp para o arquivo ser anexado.
   const sendCarne = async (contract) => {
-    if (sending) return;
+    if (sendingId) return;
     if (!contract.sale_id) {
       toast.error('Este contrato não está vinculado a uma venda');
       return;
     }
-    setSending(true);
+    setSendingId(contract.id);
     try {
       const phone = await clientPhoneOf(contract);
       if (!phone) {
@@ -164,34 +146,7 @@ export default function Contracts() {
       console.error(error);
       toast.error(error?.message || 'Erro ao enviar o carnê');
     } finally {
-      setSending(false);
-    }
-  };
-
-  // Baixa o PDF do contrato e abre a conversa do WhatsApp para anexá-lo.
-  const sendContrato = async (contract) => {
-    if (sending) return;
-    setSending(true);
-    try {
-      const phone = await clientPhoneOf(contract);
-      if (!phone) {
-        toast.error('Cliente não possui telefone cadastrado');
-        return;
-      }
-      const { doc, fileName } = await buildContractPdf({
-        contract,
-        contractText: contract.contract_text || ''
-      });
-      doc.save(fileName);
-      const message = `Olá ${contract.client_name}!\n\nSegue o contrato referente à sua compra.\n\nContrato nº ${contract.contract_number}\nValor total: ${formatCurrency(contract.total_value)}\n\n*Sonatta Soluções Auditivas*`;
-      openWhatsApp(`55${phone}`, message);
-      toast.success('PDF baixado. Anexe o arquivo na conversa do WhatsApp.');
-      await markAsSent(contract);
-    } catch (error) {
-      console.error(error);
-      toast.error(error?.message || 'Erro ao enviar o contrato');
-    } finally {
-      setSending(false);
+      setSendingId(null);
     }
   };
 
@@ -465,10 +420,8 @@ export default function Contracts() {
                     <ContractActionsMenu
                       contract={contract}
                       canDelete={currentUser?.role === 'admin'}
-                      busy={sending}
-                      onView={openDetail}
+                      busy={sendingId === contract.id}
                       onSendCarne={sendCarne}
-                      onSendContrato={sendContrato}
                       onDelete={(c) => { setSelectedContract(c); setDeleteOpen(true); }}
                     />
                   </TableCell>
@@ -511,10 +464,8 @@ export default function Contracts() {
                   <ContractActionsMenu
                     contract={contract}
                     canDelete={currentUser?.role === 'admin'}
-                    busy={sending}
-                    onView={openDetail}
+                    busy={sendingId === contract.id}
                     onSendCarne={sendCarne}
-                    onSendContrato={sendContrato}
                     onDelete={(c) => { setSelectedContract(c); setDeleteOpen(true); }}
                   />
                 </div>
@@ -525,49 +476,6 @@ export default function Contracts() {
           ))
         )}
       </div>
-
-      {/* Detail Dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg pr-6 break-words">
-              Contrato {selectedContract?.contract_number}
-            </DialogTitle>
-          </DialogHeader>
-          {selectedContract && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
-                <div>
-                  <span className="text-slate-500">Cliente:</span>
-                  <p className="font-medium break-words">{selectedContract.client_name}</p>
-                </div>
-                <div>
-                  <span className="text-slate-500">Valor:</span>
-                  <p className="font-medium text-lg">{formatCurrency(selectedContract.total_value)}</p>
-                </div>
-              </div>
-              {selectedContract.contract_text && selectedContract.contract_text !== 'Template não configurado' && (
-                <div className="bg-slate-50 p-3 sm:p-4 rounded max-h-60 overflow-y-auto text-sm">
-                  {selectedContract.contract_text.includes('<') 
-                    ? <div dangerouslySetInnerHTML={{ __html: selectedContract.contract_text }} className="prose prose-sm max-w-none break-words" />
-                    : <pre className="text-xs whitespace-pre-wrap break-words overflow-hidden">{selectedContract.contract_text}</pre>
-                  }
-                </div>
-              )}
-              {/* Botões de exportação */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t">
-                <ContractPDFGenerator
-                  contract={selectedContract}
-                  contractText={selectedContract.contract_text || ''}
-                />
-                {selectedSale?.payment_details?.some(p => p.method === 'pix_parcelado') && (
-                  <CarnePDFGenerator contract={selectedContract} sale={selectedSale} />
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

@@ -911,7 +911,6 @@ Obrigado pela preferência!
         open={contractOpen}
         onOpenChange={setContractOpen}
         sale={selectedSale}
-        user={currentUser}
         onSuccess={loadData}
       />
 

@@ -6,17 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BookOpen, Eye, FileSignature, Loader2, MoreVertical, Trash2 } from 'lucide-react';
+import { BookOpen, Loader2, MoreVertical, Trash2 } from 'lucide-react';
 
-export default function ContractActionsMenu({
-  contract,
-  canDelete,
-  busy,
-  onView,
-  onSendCarne,
-  onSendContrato,
-  onDelete,
-}) {
+export default function ContractActionsMenu({ contract, canDelete, busy, onSendCarne, onDelete }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -32,14 +24,6 @@ export default function ContractActionsMenu({
         <DropdownMenuItem onClick={() => onSendCarne(contract)}>
           <BookOpen className="h-4 w-4 mr-2" />
           Enviar carnê
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onSendContrato(contract)}>
-          <FileSignature className="h-4 w-4 mr-2" />
-          Enviar contrato
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onView(contract)}>
-          <Eye className="h-4 w-4 mr-2" />
-          Ver contrato
         </DropdownMenuItem>
         {canDelete && (
           <DropdownMenuItem onClick={() => onDelete(contract)} className="text-red-600">

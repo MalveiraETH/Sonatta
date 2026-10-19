@@ -1,12 +1,9 @@
-// Criação do contrato de uma venda a partir do modelo de documento
-// "Contrato de Compromisso de Pagamento" (Configurações → Modelos), com as
-// variáveis preenchidas pelos dados desta venda. Um contrato por venda: se já
-// existir, ele é reaproveitado em vez de gerar duplicidade.
+// Criação do contrato de uma venda: apenas o registro (número, cliente, valor,
+// condições de pagamento e garantia). O documento do contrato NÃO é gerado aqui:
+// ele é produzido depois, na aba Documentos dos detalhes do cliente.
+// Um contrato por venda: se já existir, ele é reaproveitado em vez de duplicar.
 import { base44 } from '@/api/base44Client';
-import { loadDocumentContext, fillDocumentVariables, stripUnresolvedVariables } from '@/lib/fillDocumentVariables';
 import { money } from '@/lib/docVarsShared';
-
-export const CONTRACT_TEMPLATE_NAME = 'Contrato de Compromisso de Pagamento';
 
 const METHOD_LABELS = {
   dinheiro: 'Dinheiro',
@@ -37,6 +34,24 @@ const paymentConditions = (sale) =>
     .filter(Boolean)
     .join(' + ');
 
+// Garantia informativa do contrato: maior garantia entre os aparelhos da venda.
+async function warrantyLabelOf(sale) {
+  const ids = (sale.items || []).map((item) => item.product_id).filter(Boolean);
+  if (!ids.length) return '12 meses';
+
+  const res = await base44.entities.Product
+    .filter({ id: { $in: ids } }, { limit: 50, fields: ['warranty_years'] })
+    .catch(() => ({ items: [] }));
+
+  const years = (res.items || [])
+    .map((product) => Number(product.warranty_years))
+    .filter((value) => value > 0);
+  if (!years.length) return '12 meses';
+
+  const max = Math.max(...years);
+  return `${max} ${max === 1 ? 'ano' : 'anos'}`;
+}
+
 // Busca o contrato já vinculado à venda (um contrato por venda).
 export async function findContractBySale(saleId) {
   if (!saleId) return null;
@@ -44,35 +59,19 @@ export async function findContractBySale(saleId) {
   return (res.items || [])[0] || null;
 }
 
-// Devolve o contrato da venda, criando-o a partir do modelo quando ainda não existe.
-export async function ensureContractForSale({ sale, user }) {
+// Devolve o contrato da venda, registrando-o quando ainda não existe.
+export async function ensureContractForSale({ sale }) {
   if (!sale?.id) throw new Error('Venda não informada');
 
   const existing = await findContractBySale(sale.id);
   if (existing) return { contract: existing, created: false };
 
-  const [templates, client] = await Promise.all([
-    base44.entities.DocumentTemplate.filter({ name: CONTRACT_TEMPLATE_NAME }),
-    sale.client_id
-      ? base44.entities.Client.get(sale.client_id).catch(() => null)
-      : Promise.resolve(null),
-  ]);
-
-  const template = templates[0];
-  if (!template) {
-    throw new Error(`Modelo "${CONTRACT_TEMPLATE_NAME}" não encontrado em Configurações → Modelos`);
-  }
-
-  const contractNumber = generateContractNumber();
-  // O contexto é montado com esta venda (e não com a última venda do cliente),
-  // para o contrato refletir exatamente a venda que está sendo processada.
-  const ctx = await loadDocumentContext({ client, user, sale });
-  ctx.contract_number = contractNumber;
-
-  const contractText = stripUnresolvedVariables(fillDocumentVariables(template.content || '', ctx));
+  const client = sale.client_id
+    ? await base44.entities.Client.get(sale.client_id).catch(() => null)
+    : null;
 
   const contract = await base44.entities.Contract.create({
-    contract_number: contractNumber,
+    contract_number: generateContractNumber(),
     sale_id: sale.id,
     client_id: sale.client_id,
     client_name: client?.full_name || sale.client_name || '',
@@ -88,8 +87,7 @@ export async function ensureContractForSale({ sale, user }) {
     })),
     total_value: sale.total,
     payment_conditions: paymentConditions(sale),
-    warranty_period: ctx.product_warranty || '12 meses',
-    contract_text: contractText,
+    warranty_period: await warrantyLabelOf(sale),
     status: 'gerado',
   });
 

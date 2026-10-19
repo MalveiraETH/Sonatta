@@ -11,18 +11,17 @@ import {
 import { AlertTriangle, BookOpen, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildCarnePdf } from '@/lib/carnePdf';
-import { CONTRACT_TEMPLATE_NAME, ensureContractForSale, findContractBySale } from '@/lib/contractFromSale';
+import { ensureContractForSale, findContractBySale } from '@/lib/contractFromSale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 
-// Gera o carnê da venda e cria o contrato correspondente a partir do modelo de
-// documento configurado em Configurações → Modelos.
-export default function GenerateCarneDialog({ open, onOpenChange, sale, user, onSuccess }) {
+// Gera o carnê da venda e registra o contrato correspondente (número).
+// O documento do contrato é gerado depois, na aba Documentos do cliente.
+export default function GenerateCarneDialog({ open, onOpenChange, sale, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [templateFound, setTemplateFound] = useState(false);
   const [existingContract, setExistingContract] = useState(null);
   const [installmentsCount, setInstallmentsCount] = useState(0);
 
@@ -34,13 +33,11 @@ export default function GenerateCarneDialog({ open, onOpenChange, sale, user, on
     setLoading(true);
     (async () => {
       try {
-        const [templates, contract, installmentsRes] = await Promise.all([
-          base44.entities.DocumentTemplate.filter({ name: CONTRACT_TEMPLATE_NAME }),
+        const [contract, installmentsRes] = await Promise.all([
           findContractBySale(sale.id),
           base44.entities.Installment.filter({ sale_id: sale.id }, { limit: 200 }),
         ]);
         if (!active) return;
-        setTemplateFound(!!templates[0]);
         setExistingContract(contract);
         setInstallmentsCount(
           (installmentsRes.items || []).filter((i) => i.payment_method === 'pix_parcelado').length
@@ -57,14 +54,14 @@ export default function GenerateCarneDialog({ open, onOpenChange, sale, user, on
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const { contract, created } = await ensureContractForSale({ sale, user });
+      const { contract, created } = await ensureContractForSale({ sale });
       const { doc, fileName, estimated } = await buildCarnePdf({ contract, sale });
       doc.save(fileName);
 
       toast.success(
         created
-          ? 'Carnê gerado e contrato criado a partir do modelo.'
-          : 'Carnê gerado. O contrato desta venda já existia.'
+          ? `Carnê gerado e contrato nº ${contract.contract_number} registrado.`
+          : `Carnê gerado para o contrato nº ${contract.contract_number}.`
       );
       if (estimated) {
         toast.warning('Parcelas estimadas: não há parcelas registradas em Contas a Receber para esta venda.');
@@ -127,8 +124,11 @@ export default function GenerateCarneDialog({ open, onOpenChange, sale, user, on
               <p>
                 Contrato:{' '}
                 {existingContract
-                  ? `já gerado (nº ${existingContract.contract_number})`
-                  : `será criado pelo modelo "${CONTRACT_TEMPLATE_NAME}"`}
+                  ? `já registrado (nº ${existingContract.contract_number})`
+                  : 'será registrado agora com um novo número'}
+              </p>
+              <p className="text-xs text-slate-500">
+                O documento do contrato é gerado depois, na aba Documentos dos detalhes do cliente.
               </p>
             </div>
 
@@ -139,17 +139,7 @@ export default function GenerateCarneDialog({ open, onOpenChange, sale, user, on
               </div>
             )}
 
-            {pixPayment && !templateFound && (
-              <div className="flex gap-2 items-start bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <p>
-                  O modelo "{CONTRACT_TEMPLATE_NAME}" não foi encontrado em Configurações → Modelos.
-                  O contrato não poderá ser criado.
-                </p>
-              </div>
-            )}
-
-            {pixPayment && templateFound && installmentsCount === 0 && (
+            {pixPayment && installmentsCount === 0 && (
               <div className="flex gap-2 items-start bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-700">
                 <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <p>
@@ -165,7 +155,7 @@ export default function GenerateCarneDialog({ open, onOpenChange, sale, user, on
               </Button>
               <Button
                 onClick={handleGenerate}
-                disabled={generating || !pixPayment || !templateFound}
+                disabled={generating || !pixPayment}
                 className="bg-[#6B3FA0] hover:bg-[#834CB8]"
               >
                 {generating ? (
