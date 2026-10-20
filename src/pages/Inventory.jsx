@@ -856,7 +856,7 @@ export default function Inventory() {
                               Associar Cliente
                             </DropdownMenuItem>
                           )}
-                          {product.status === 'vendido' && product.client_id && (
+                          {product.substitution_stage !== 'aguardando_conserto' && (
                             <DropdownMenuItem onClick={() => { setSelectedProduct(product); setSubstituteOpen(true); }}>
                               <ArrowLeftRight className="h-4 w-4 mr-2" />
                               Substituir Aparelho
@@ -1242,7 +1242,7 @@ export default function Inventory() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => { setSelectedProduct(product); setAdjustmentData({ type: 'entrada', quantity: '', reason: '', notes: '' }); setAdjustOpen(true); }}>
                             <Edit3 className="h-4 w-4 mr-2" />
-                            Ajustar
+                            Ajustar Quantidade
                           </DropdownMenuItem>
                           {currentUser?.role === 'admin' && (
                             <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
