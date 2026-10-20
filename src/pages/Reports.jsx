@@ -340,7 +340,31 @@ export default function Reports() {
       boleto: 'Boleto',
       transferencia: 'Transferência'
     };
-    
+
+    // Valor líquido da venda (soma das formas de pagamento já descontadas as taxas)
+    const saleNetTotal = (s) => {
+      if (s.payment_details && s.payment_details.length > 0) {
+        return s.payment_details.reduce((sum, pd) => {
+          const feeRate = pd.fee_rate || 0;
+          const isCard = ['cartao_credito', 'cartao_debito'].includes(pd.method);
+          return sum + (isCard && feeRate > 0 ? (pd.amount || 0) * (1 - feeRate / 100) : (pd.amount || 0));
+        }, 0);
+      }
+      return s.total_net_amount || s.total || 0;
+    };
+
+    // Custo do produto: custo calculado cadastrado no produto de cada item vendido
+    const saleProductCost = (s) => (s.items || []).reduce((sum, item) => {
+      const product = products.find(p => p.id === item.product_id);
+      return sum + (product?.cost_price || 0) * (item.quantity || 1);
+    }, 0);
+
+    // Repasse de indicação: mesma regra da aba Repasse Indicação (10% para venda com aparelho serializado e profissional indicante)
+    const saleReferralRepasse = (s) => {
+      if (!hasSerializedItem(s) || !getReferralProfForSale(s)) return 0;
+      return getTotalPayments(s) * 0.10;
+    };
+
     filteredSales.forEach(s => {
       const client = clients.find(c => c.id === s.client_id);
       const { referralName, responsibleName } = resolveSaleProfessionals(s, {
@@ -349,10 +373,15 @@ export default function Reports() {
         professionals,
         client
       });
+
+      const saleNet = saleNetTotal(s);
+      const saleCost = saleProductCost(s);
+      const saleRepasse = saleReferralRepasse(s);
       
       // Se tem payment_details (novo formato), criar linha para cada método
       if (s.payment_details && s.payment_details.length > 0) {
-        s.payment_details.forEach(pd => {
+        const detailRows = s.payment_details;
+        detailRows.forEach(pd => {
           // PIX à vista usa data da venda como data de pagamento
           const isPixAVista = pd.method === 'pix' && (!pd.installments || pd.installments === 1);
           let dataPagamento = '-';
@@ -368,6 +397,10 @@ export default function Reports() {
           const feeRate = pd.fee_rate || 0;
           const isCard = ['cartao_credito', 'cartao_debito'].includes(pd.method);
           const netAmount = isCard && feeRate > 0 ? (pd.amount || 0) * (1 - feeRate / 100) : (pd.amount || 0);
+          // Rateio proporcional ao líquido da forma de pagamento, para os totais fecharem com a venda
+          const share = saleNet > 0 ? netAmount / saleNet : 1 / detailRows.length;
+          const repasseShare = saleRepasse * share;
+          const costShare = saleCost * share;
           data.push({
             'Número': s.sale_number,
             'Cliente': s.client_name,
@@ -379,6 +412,9 @@ export default function Reports() {
             'Bandeira': pd.card_brand || '',
             'Taxa Cartão (%)': feeRate || '',
             'Valor Líquido': toExcelNum(netAmount),
+            'Repasse indicação': toExcelNum(repasseShare),
+            'Custo do produto': toExcelNum(costShare),
+            'Resultado líquido total': toExcelNum(netAmount - repasseShare - costShare),
             'Método': paymentMethodLabels[pd.method] || pd.method,
             'Parcelas': pd.installments > 1 ? pd.installments : '',
             'Status': status,
@@ -412,6 +448,9 @@ export default function Reports() {
           'Bandeira': '',
           'Taxa Cartão (%)': '',
           'Valor Líquido': toExcelNum(s.total),
+          'Repasse indicação': toExcelNum(saleRepasse),
+          'Custo do produto': toExcelNum(saleCost),
+          'Resultado líquido total': toExcelNum(saleNet - saleRepasse - saleCost),
           'Método': paymentMethodLabels[s.payment_method] || s.payment_method || '',
           'Parcelas': s.installments > 1 ? s.installments : '',
           'Status': status,
