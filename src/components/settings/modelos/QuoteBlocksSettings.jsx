@@ -37,7 +37,7 @@ function RichField({ label, hint, value, onChange, disabled }) {
       <div className="border border-slate-200 rounded-md overflow-hidden bg-white">
         <ReactQuill
           theme="snow"
-          value={value || ''}
+          defaultValue={value || ''}
           onChange={onChange}
           modules={QUILL_MODULES}
           formats={QUILL_FORMATS}
@@ -59,7 +59,10 @@ export default function QuoteBlocksSettings({ canEdit }) {
 
   const current = blocks?.[category] || { warranty_text: '', followup_text: '' };
   const setField = (key, value) =>
-    setBlocks((prev) => ({ ...(prev || {}), [category]: { ...current, [key]: value } }));
+    setBlocks((prev) => {
+      const base = prev?.[category] || { warranty_text: '', followup_text: '' };
+      return { ...(prev || {}), [category]: { ...base, [key]: value } };
+    });
 
   const handleSave = async () => {
     setSaving(true);
@@ -118,6 +121,7 @@ export default function QuoteBlocksSettings({ canEdit }) {
 
       <div className="quote-blocks-editor space-y-4">
         <RichField
+          key={`warranty-${category}`}
           label="Prazos de garantia"
           hint="Título e condições de garantia exibidos na seção de garantia do orçamento"
           value={current.warranty_text}
@@ -125,6 +129,7 @@ export default function QuoteBlocksSettings({ canEdit }) {
           disabled={!canEdit}
         />
         <RichField
+          key={`followup-${category}`}
           label="Acompanhamento vitalício"
           hint="Revisões e benefícios inclusos no acompanhamento"
           value={current.followup_text}
