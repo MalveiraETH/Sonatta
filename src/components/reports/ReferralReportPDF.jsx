@@ -59,14 +59,15 @@ export async function buildReferralPDF(rows, filters) {
     return startY + parts.length * 4 + 4;
   };
 
+  // A tabela ocupa exatamente a mesma largura do cabeçalho e da linha verde
   const COLS = [
-    { key: 'patient',      label: 'Paciente',     w: 70 },
-    { key: 'saleDate',     label: 'Data Venda',    w: 35, align: 'center' },
-    { key: 'totalValue',   label: 'Valor Total',  w: 45, align: 'right' },
-    { key: 'referralValue',label: 'Repasse 10%',  w: 45, align: 'right' },
+    { key: 'patient',      label: 'Paciente',     w: 80 },
+    { key: 'saleDate',     label: 'Data Venda',    w: 30, align: 'center' },
+    { key: 'totalValue',   label: 'Valor Total',  w: 35, align: 'right' },
+    { key: 'referralValue',label: 'Repasse 10%',  w: 35, align: 'right' },
   ];
   const totalW = COLS.reduce((s, c) => s + c.w, 0);
-  const tableX = ML + (CW - totalW) / 2;
+  const tableX = ML;
 
   const formatter = {
     specialty: (v) => (v || '-').replace(/_/g, ' '),
