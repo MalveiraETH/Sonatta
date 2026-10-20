@@ -838,6 +838,11 @@ export default function Inventory() {
                         <div className="text-sm text-slate-600">
                           NS: {product.serial_number} • {categoryLabels[product.category]}
                         </div>
+                        {(product.brand || product.model) && (
+                          <div className="text-sm text-slate-600">
+                            {product.brand} {product.model}
+                          </div>
+                        )}
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1226,7 +1231,7 @@ export default function Inventory() {
                           </span>
                         </div>
                         <div className="text-sm text-slate-600">
-                          {categoryLabels[product.category]} • Qtd: {product.quantity || 0}
+                          {categoryLabels[product.category]} • Qtd: {product.quantity || 0} • Mín: {product.min_stock || 5}
                         </div>
                       </div>
                       <DropdownMenu>
@@ -1384,6 +1389,8 @@ export default function Inventory() {
                       <p className="text-sm text-slate-600">
                         Qtd: {movement.type === 'entrada' ? '+' : movement.type === 'saida' ? '-' : ''}{movement.quantity}
                       </p>
+                      <p className="text-sm text-slate-600">Motivo: {movement.reason || '-'}</p>
+                      <p className="text-xs text-slate-500">Usuário: {movement.created_by || '-'}</p>
                     </div>
                   </div>
                 </Card>

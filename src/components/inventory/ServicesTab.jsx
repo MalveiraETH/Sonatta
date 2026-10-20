@@ -315,9 +315,16 @@ export default function ServicesTab() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <p className="font-semibold text-slate-900">{service.name}</p>
-                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 mt-1">
-                      {categoryLabels[service.category]}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 mt-1">
+                        {categoryLabels[service.category]}
+                      </span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${
+                        service.is_active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {service.is_active !== false ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </div>
                   </div>
                   {currentUser?.role === 'admin' && (
                     <DropdownMenu>
