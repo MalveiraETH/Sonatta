@@ -63,7 +63,11 @@ if (Quill) {
 const QUILL_MODULES = { toolbar: { container: '#doc-template-toolbar' } };
 const QUILL_FORMATS = ['header', 'bold', 'italic', 'underline', 'align', 'list', 'docvar', 'doctable'];
 
-const CATEGORY_LABEL = { documento: 'Documento', prontuario: 'Prontuário' };
+const CATEGORY_LABEL = {
+  documento: 'Documento',
+  prontuario: 'Prontuário',
+  orcamento: 'Orçamento',
+};
 
 export default function DocumentTemplateEditor({ template, category, canEdit, onBack, onSaved }) {
   const [name, setName] = useState(template?.name || '');
@@ -184,7 +188,9 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
             {name || `Novo modelo de ${categoryLabel}`}
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            Monte o conteúdo e insira as variáveis que serão preenchidas com os dados do cliente.
+            {category === 'orcamento'
+              ? 'Monte o orçamento e insira as variáveis e os blocos (dados do cliente, produtos, pagamento, garantias e acompanhamento).'
+              : 'Monte o conteúdo e insira as variáveis que serão preenchidas com os dados do cliente.'}
           </p>
         </div>
         {canEdit ? (

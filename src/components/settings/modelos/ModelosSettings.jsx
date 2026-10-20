@@ -7,10 +7,12 @@ import { usePermissions } from '@/lib/usePermissions';
 import DocumentTemplateList from './DocumentTemplateList';
 import DocumentTemplateEditor from './DocumentTemplateEditor';
 import DocumentHeaderFooter from './DocumentHeaderFooter';
+import QuoteBlocksSettings from './QuoteBlocksSettings';
 
 const CATEGORIES = [
   { key: 'documento', label: 'Documentos' },
   { key: 'prontuario', label: 'Prontuários' },
+  { key: 'orcamento', label: 'Orçamentos' },
 ];
 
 // Aba extra: formatação do cabeçalho e do rodapé dos documentos
@@ -161,14 +163,17 @@ export default function ModelosSettings() {
       {category === 'layout' ? (
         <DocumentHeaderFooter canEdit={isAdmin} />
       ) : (
-        <DocumentTemplateList
-          templates={templates}
-          loading={loading}
-          canDelete={canDelete}
-          onOpen={openEditor}
-          onDelete={handleDelete}
-          emptyLabel={CATEGORIES.find((c) => c.key === category)?.label || 'Documentos'}
-        />
+        <div className="space-y-6">
+          <DocumentTemplateList
+            templates={templates}
+            loading={loading}
+            canDelete={canDelete}
+            onOpen={openEditor}
+            onDelete={handleDelete}
+            emptyLabel={CATEGORIES.find((c) => c.key === category)?.label || 'Documentos'}
+          />
+          {category === 'orcamento' && <QuoteBlocksSettings canEdit={canEdit} />}
+        </div>
       )}
     </div>
   );

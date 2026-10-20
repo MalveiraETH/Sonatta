@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 
 const MODULE_NAME = 'Modelos';
-const CATEGORIES = ['documento', 'prontuario'];
+const CATEGORIES = ['documento', 'prontuario', 'orcamento'];
 
 export default async function (req) {
   try {

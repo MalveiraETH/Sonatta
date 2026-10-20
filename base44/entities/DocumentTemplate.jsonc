@@ -10,10 +10,11 @@
       "type": "string",
       "enum": [
         "documento",
-        "prontuario"
+        "prontuario",
+        "orcamento"
       ],
       "default": "documento",
-      "description": "Categoria do modelo (documento ou prontu\u00e1rio)"
+      "description": "Categoria do modelo (documento, prontu\u00e1rio ou or\u00e7amento)"
     },
     "content": {
       "type": "string",

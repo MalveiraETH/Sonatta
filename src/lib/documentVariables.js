@@ -180,6 +180,20 @@ export const VARIABLE_GROUPS = [
       { token: '{{ quote_validity_days }}', label: 'Validade (dias)' },
       { token: '{{ quote_valid_until }}', label: 'Válido até' },
       { token: '{{ quote_notes }}', label: 'Observações do orçamento' },
+      { token: '{{ quote_subtotal }}', label: 'Subtotal do orçamento' },
+      { token: '{{ quote_discount }}', label: 'Desconto do orçamento' },
+      { token: '{{ quote_items }}', label: 'Itens do orçamento (resumo)' },
+      { token: '{{ quote_items_count }}', label: 'Quantidade de itens' },
+    ],
+  },
+  {
+    group: 'Blocos do orçamento',
+    items: [
+      { token: '{{ dados_cliente }}', label: 'Dados do cliente' },
+      { token: '{{ tabela_itens }}', label: 'Tabela de produtos' },
+      { token: '{{ resumo_financeiro }}', label: 'Resumo financeiro / pagamento' },
+      { token: '{{ garantias }}', label: 'Garantias (por categoria)' },
+      { token: '{{ acompanhamento }}', label: 'Acompanhamento vitalício (por categoria)' },
     ],
   },
   {

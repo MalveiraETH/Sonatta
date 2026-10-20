@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,23 +27,11 @@ const DEFAULT = {
   payment_label_card: 'PARCELADO  (Cartão de Crédito)',
   payment_installments: 18,
   payment_installments_label: 'Parcelamento em até {n}×',
-  warranty_text: '<h3><strong>Garantia de Fábrica</strong></h3><p>Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).</p><p><br></p><h3><strong>Garantia de Adaptação</strong></h3><p>Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.</p>',
-  vip_text: '<p>Todas as revisões abaixo são <strong>TOTALMENTE GRATUITAS</strong> para clientes Sonatta:</p><p><br></p><ul><li>1ª Revisão — 3 meses após a compra</li><li>2ª Revisão — 9 meses após a compra</li><li>Revisões Subsequentes — A cada 12 meses (anualmente)</li></ul><p><br></p><p>Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.</p>',
   signer_name: 'Fabio Malveira',
   signer_role: 'Comercial Sonatta',
   section_content_gap: 3,
   line_height_content: 4.5,
 };
-
-const QUILL_MODULES = {
-  toolbar: [
-    ['bold', 'italic', 'underline'],
-    [{ header: [1, 2, 3, false] }],
-    [{ list: 'ordered' }, { list: 'bullet' }],
-    ['clean'],
-  ],
-};
-const QUILL_FORMATS = ['bold', 'italic', 'underline', 'header', 'list', 'bullet'];
 
 function Section({ title, subtitle, defaultOpen = true, children }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -73,24 +59,6 @@ function Field({ label, hint, id, children }) {
       <Label htmlFor={id} className="text-sm font-medium text-slate-700">{label}</Label>
       {hint && <p className="text-xs text-slate-400">{hint}</p>}
       {children}
-    </div>
-  );
-}
-
-function RichField({ label, hint, value, onChange }) {
-  return (
-    <div className="space-y-1.5">
-      {label && <Label className="text-sm font-medium text-slate-700">{label}</Label>}
-      {hint && <p className="text-xs text-slate-400">{hint}</p>}
-      <div className="border border-slate-200 rounded-md overflow-hidden quill-compact">
-        <ReactQuill
-          theme="snow"
-          value={value || ''}
-          onChange={onChange}
-          modules={QUILL_MODULES}
-          formats={QUILL_FORMATS}
-        />
-      </div>
     </div>
   );
 }
@@ -154,24 +122,6 @@ export default function QuotePDFSettings() {
 
   return (
     <>
-      <style>{`
-        .quill-compact .ql-toolbar {
-          border: none;
-          border-bottom: 1px solid #e2e8f0;
-          padding: 6px 8px;
-          background: #f8fafc;
-        }
-        .quill-compact .ql-container {
-          border: none;
-          font-size: 14px;
-          min-height: 80px;
-        }
-        .quill-compact .ql-editor {
-          min-height: 80px;
-          padding: 8px 12px;
-        }
-      `}</style>
-
       <div className="space-y-5 max-w-3xl">
 
         {/* ── CABEÇALHO ── */}
@@ -290,28 +240,6 @@ export default function QuotePDFSettings() {
                 className="w-32"
               />
             </Field>
-          </div>
-        </Section>
-
-        {/* ── GARANTIA ── */}
-        <Section title="Prazos de Garantia" subtitle="Use o editor para formatar títulos, negrito, tamanho e espaçamento">
-          <div className="pt-4">
-            <RichField
-              hint='Inclua os subtítulos "Garantia de Fábrica" e "Garantia de Adaptação" diretamente no texto'
-              value={config.warranty_text}
-              onChange={(v) => set('warranty_text', v)}
-            />
-          </div>
-        </Section>
-
-        {/* ── VIP ── */}
-        <Section title="Acompanhamento VIP Vitalício" subtitle="Use o editor para formatar títulos, listas e espaçamento">
-          <div className="pt-4">
-            <RichField
-              hint='Inclua itens de revisão como lista e textos complementares diretamente no editor'
-              value={config.vip_text}
-              onChange={(v) => set('vip_text', v)}
-            />
           </div>
         </Section>
 
