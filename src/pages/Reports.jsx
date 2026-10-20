@@ -32,6 +32,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 import { resolveSaleProfessionals } from '@/lib/saleProfessionals';
+import { saleFinancials } from '@/lib/saleFinancials';
 
 const REPAIR_STATUS_CONFIG = {
   aberto: { label: 'Aberto', color: 'bg-blue-100 text-blue-700' },
@@ -341,24 +342,6 @@ export default function Reports() {
       transferencia: 'Transferência'
     };
 
-    // Valor líquido da venda (soma das formas de pagamento já descontadas as taxas)
-    const saleNetTotal = (s) => {
-      if (s.payment_details && s.payment_details.length > 0) {
-        return s.payment_details.reduce((sum, pd) => {
-          const feeRate = pd.fee_rate || 0;
-          const isCard = ['cartao_credito', 'cartao_debito'].includes(pd.method);
-          return sum + (isCard && feeRate > 0 ? (pd.amount || 0) * (1 - feeRate / 100) : (pd.amount || 0));
-        }, 0);
-      }
-      return s.total_net_amount || s.total || 0;
-    };
-
-    // Custo do produto: custo calculado cadastrado no produto de cada item vendido
-    const saleProductCost = (s) => (s.items || []).reduce((sum, item) => {
-      const product = products.find(p => p.id === item.product_id);
-      return sum + (product?.cost_price || 0) * (item.quantity || 1);
-    }, 0);
-
     // Repasse de indicação: mesma regra da aba Repasse Indicação (10% para venda com aparelho serializado e profissional indicante)
     const saleReferralRepasse = (s) => {
       if (!hasSerializedItem(s) || !getReferralProfForSale(s)) return 0;
@@ -374,9 +357,10 @@ export default function Reports() {
         client
       });
 
-      const saleNet = saleNetTotal(s);
-      const saleCost = saleProductCost(s);
-      const saleRepasse = saleReferralRepasse(s);
+      const finan = saleFinancials(s, products, saleReferralRepasse(s));
+      const saleNet = finan.net;
+      const saleCost = finan.cost;
+      const saleRepasse = finan.repasse;
       
       // Se tem payment_details (novo formato), criar linha para cada método
       if (s.payment_details && s.payment_details.length > 0) {
