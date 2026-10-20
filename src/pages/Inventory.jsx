@@ -50,7 +50,6 @@ import ServicesTab from '@/components/inventory/ServicesTab';
 import DiscardsTab from '@/components/inventory/DiscardsTab';
 import DiscardProductDialog from '@/components/inventory/DiscardProductDialog';
 import AssociateProductDialog from '@/components/inventory/AssociateProductDialog';
-import ProductActionsSheet from '@/components/inventory/ProductActionsSheet';
 import SubstituteProductDialog from '@/components/inventory/SubstituteProductDialog';
 import { 
   Search, 
@@ -114,7 +113,6 @@ export default function Inventory() {
   const [discardOpen, setDiscardOpen] = useState(false);
   const [substituteOpen, setSubstituteOpen] = useState(false);
   const [associateOpen, setAssociateOpen] = useState(false);
-  const [actionsOpen, setActionsOpen] = useState(false);
 
   // Toque no menu de ações (mobile): no toque, o clique pode "atravessar" o botão e chegar no
   // card, abrindo o detalhe do produto. Guardamos o instante do toque no menu e ignoramos
@@ -377,72 +375,6 @@ export default function Inventory() {
     setSearchTerm('');
     setCategoryFilter('all');
     setStatusFilter('all');
-  };
-
-  const openActions = (product) => {
-    setSelectedProduct(product);
-    setActionsOpen(true);
-  };
-
-  // Ações do produto no celular: folha inferior acessível por toque
-  const buildProductActions = (product) => {
-    if (!product) return [];
-    const isAdmin = currentUser?.role === 'admin';
-    const actions = [];
-
-    if (allTrialIds.has(product.id)) {
-      actions.push({
-        label: 'Editar',
-        icon: Edit,
-        onClick: () => { setSelectedProduct(product); setTrialFormOpen(true); }
-      });
-    } else if (product.stock_type === 'nao_serializado') {
-      actions.push({ label: 'Editar', icon: Edit, onClick: () => handleEdit(product) });
-      actions.push({
-        label: 'Ajustar Quantidade',
-        icon: Edit3,
-        onClick: () => {
-          setSelectedProduct(product);
-          setAdjustmentData({ type: 'entrada', quantity: '', reason: '', notes: '' });
-          setAdjustOpen(true);
-        }
-      });
-    } else {
-      actions.push({ label: 'Editar', icon: Edit, onClick: () => handleEdit(product) });
-      if (product.status === 'vendido' && !product.client_id) {
-        actions.push({
-          label: 'Associar Cliente',
-          icon: UserPlus,
-          onClick: () => { setSelectedProduct(product); setAssociateOpen(true); }
-        });
-      }
-      if (product.status === 'vendido' && product.client_id) {
-        actions.push({
-          label: 'Substituir Aparelho',
-          icon: ArrowLeftRight,
-          onClick: () => { setSelectedProduct(product); setSubstituteOpen(true); }
-        });
-      }
-      if (isAdmin) {
-        actions.push({
-          label: 'Dar Baixa',
-          icon: PackageX,
-          className: 'text-orange-600',
-          onClick: () => { setSelectedProduct(product); setDiscardOpen(true); }
-        });
-      }
-    }
-
-    if (isAdmin) {
-      actions.push({
-        label: 'Excluir',
-        icon: Trash2,
-        className: 'text-red-600',
-        onClick: () => { setSelectedProduct(product); setDeleteOpen(true); }
-      });
-    }
-
-    return actions;
   };
 
   const FiltersContent = ({ activeTab }) => (
@@ -907,31 +839,47 @@ export default function Inventory() {
                           NS: {product.serial_number} • {categoryLabels[product.category]}
                         </div>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} onPointerDown={markActionTap}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(product)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          {product.status === 'vendido' && !product.client_id && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setAssociateOpen(true); }}>
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Associar Cliente
+                            </DropdownMenuItem>
+                          )}
+                          {product.status === 'vendido' && product.client_id && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setSubstituteOpen(true); }}>
+                              <ArrowLeftRight className="h-4 w-4 mr-2" />
+                              Substituir Aparelho
+                            </DropdownMenuItem>
+                          )}
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
+                              <PackageX className="h-4 w-4 mr-2" />
+                              Dar Baixa
+                            </DropdownMenuItem>
+                          )}
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <div className="flex gap-4 text-sm">
                       <span className="text-slate-500">Custo: <span className="font-semibold text-slate-800">{formatCurrency(product.cost_price)}</span></span>
                       <span className="text-slate-500">Venda: <span className="font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</span></span>
-                    </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-                      {product.status === 'vendido' && !product.client_id && (
-                        <Button
-                          size="sm"
-                          className="h-9 bg-[#6B3FA0] hover:bg-[#834CB8] text-white"
-                          onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setAssociateOpen(true); }}
-                        >
-                          <UserPlus className="h-4 w-4 mr-1.5" />
-                          Associar
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 ml-auto"
-                        onClick={(e) => { e.stopPropagation(); openActions(product); }}
-                      >
-                        <MoreVertical className="h-4 w-4 mr-1.5" />
-                        Ações
-                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -1077,18 +1025,34 @@ export default function Inventory() {
                               {test ? `${formatLocalDate(test.start_date)} → ${formatLocalDate(test.end_date)}` : ''}
                             </div>
                           </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} onPointerDown={markActionTap}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setSelectedProduct(product); setTrialFormOpen(true); }}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                              {currentUser?.role === 'admin' && (
+                                <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDiscardOpen(true); }} className="text-orange-600">
+                                  <PackageX className="h-4 w-4 mr-2" />
+                                  Dar Baixa
+                                </DropdownMenuItem>
+                              )}
+                              {currentUser?.role === 'admin' && (
+                                <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
-                          <span className="text-sm text-slate-500">Custo: <span className="font-semibold text-slate-700">{formatCurrency(product.cost_price)}</span></span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9"
-                            onClick={(e) => { e.stopPropagation(); openActions(product); }}
-                          >
-                            <MoreVertical className="h-4 w-4 mr-1.5" />
-                            Ações
-                          </Button>
+                        <div className="text-sm">
+                          <span className="text-slate-500">Custo: <span className="font-semibold text-slate-700">{formatCurrency(product.cost_price)}</span></span>
                         </div>
                       </div>
                     </Card>
@@ -1265,21 +1229,33 @@ export default function Inventory() {
                           {categoryLabels[product.category]} • Qtd: {product.quantity || 0}
                         </div>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(product)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSelectedProduct(product); setAdjustmentData({ type: 'entrada', quantity: '', reason: '', notes: '' }); setAdjustOpen(true); }}>
+                            <Edit3 className="h-4 w-4 mr-2" />
+                            Ajustar
+                          </DropdownMenuItem>
+                          {currentUser?.role === 'admin' && (
+                            <DropdownMenuItem onClick={() => { setSelectedProduct(product); setDeleteOpen(true); }} className="text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <div className="flex gap-4 text-sm">
                       <span className="text-slate-500">Custo: <span className="font-semibold text-slate-800">{formatCurrency(product.cost_price)}</span></span>
                       <span className="text-slate-500">Venda: <span className="font-semibold text-emerald-700">{formatCurrency(product.sale_price)}</span></span>
-                    </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 ml-auto"
-                        onClick={(e) => { e.stopPropagation(); openActions(product); }}
-                      >
-                        <MoreVertical className="h-4 w-4 mr-1.5" />
-                        Ações
-                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -1517,15 +1493,6 @@ export default function Inventory() {
         onOpenChange={setSubstituteOpen}
         product={selectedProduct}
         onSubstituted={loadData}
-      />
-
-      {/* Ações do produto (celular) */}
-      <ProductActionsSheet
-        open={actionsOpen}
-        onOpenChange={setActionsOpen}
-        title={selectedProduct?.name || 'Ações'}
-        subtitle={selectedProduct ? (selectedProduct.serial_number ? `NS: ${selectedProduct.serial_number}` : categoryLabels[selectedProduct.category] || '') : ''}
-        actions={buildProductActions(selectedProduct)}
       />
     </div>
   );
