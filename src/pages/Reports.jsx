@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -152,6 +152,19 @@ export default function Reports() {
   const getTotalPayments = (sale) => {
     return sale.payment_details?.reduce((sum, p) => sum + (p.amount || 0), 0) || sale.total || 0;
   };
+
+  const salesById = useMemo(() => new Map(sales.map(s => [s.id, s])), [sales]);
+
+  // Pagamento complementar: herda da venda original o aparelho serializado,
+  // o profissional de indicação e o custo dos produtos.
+  const baseSaleFor = (sale) => {
+    if (sale?.is_complementary && sale.complementary_to_sale_id) {
+      return salesById.get(sale.complementary_to_sale_id) || sale;
+    }
+    return sale;
+  };
+
+  const isComplementarySale = (sale) => sale?.is_complementary === true;
 
   const exportToExcel = async (data, filename) => {
     if (data.length === 0) return;
@@ -342,15 +355,16 @@ export default function Reports() {
       transferencia: 'Transferência'
     };
 
-    // Repasse de indicação: mesma regra da aba Repasse Indicação (10% para venda com aparelho serializado e profissional indicante)
+    // Repasse de indicação: mesma regra da aba Repasse Indicação (10% para venda com aparelho serializado e profissional indicante).
+    // Pagamentos complementares também geram repasse, herdando a regra da venda original.
     const saleReferralRepasse = (s) => {
-      if (!hasSerializedItem(s) || !getReferralProfForSale(s)) return 0;
+      if (!canPayReferral(s)) return 0;
       return getTotalPayments(s) * 0.10;
     };
 
     filteredSales.forEach(s => {
       const client = clients.find(c => c.id === s.client_id);
-      const { referralName, responsibleName } = resolveSaleProfessionals(s, {
+      const { referralName, responsibleName } = resolveSaleProfessionals(baseSaleFor(s), {
         tests,
         appointments,
         professionals,
@@ -387,6 +401,7 @@ export default function Reports() {
           const costShare = saleCost * share;
           data.push({
             'Número': s.sale_number,
+            'Venda Original': s.complementary_to_sale_number || '',
             'Cliente': s.client_name,
             'Responsável Pagamento': client?.payer_name || '',
             'CPF/CNPJ Responsável': client?.payer_document || '',
@@ -484,17 +499,25 @@ export default function Reports() {
     return sale.items?.some(item => item.serial_number);
   };
 
+  // Venda elegível ao repasse de indicação (considera o pagamento complementar como parte da venda original)
+  const canPayReferral = (sale) => {
+    const base = baseSaleFor(sale);
+    return !!hasSerializedItem(base) && !!getReferralProfForSale(base);
+  };
+
   const exportReferralReport = () => {
     const referralData = [];
     filteredReferralSales.forEach(sale => {
-      if (!hasSerializedItem(sale)) return;
-      const prof = getReferralProfForSale(sale);
+      if (!canPayReferral(sale)) return;
+      const prof = getReferralProfForSale(baseSaleFor(sale));
       if (!prof) return;
       if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return;
       referralData.push({
         'Profissional': prof.full_name,
         'Especialidade': prof.specialty || '-',
         'Paciente': sale.client_name,
+        'Venda': sale.sale_number,
+        'Venda Original': sale.complementary_to_sale_number || '',
         'Data Venda': toExcelDate(sale.sale_date || sale.created_date),
         'Valor Total': toExcelNum(getTotalPayments(sale)),
         'Repasse 10%': toExcelNum(getTotalPayments(sale) * 0.10)
@@ -1187,7 +1210,7 @@ export default function Reports() {
                       .map(sale => {
                         const client = clients.find(c => c.id === sale.client_id);
                         // Profissionais do atendimento (indicação e responsável)
-                        const { referralName, responsibleName } = resolveSaleProfessionals(sale, {
+                        const { referralName, responsibleName } = resolveSaleProfessionals(baseSaleFor(sale), {
                           tests,
                           appointments,
                           professionals,
@@ -1196,7 +1219,14 @@ export default function Reports() {
                         
                         return (
                           <TableRow key={sale.id}>
-                            <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                            <TableCell className="font-medium">
+                              {sale.sale_number}
+                              {isComplementarySale(sale) && (
+                                <span className="block text-xs font-normal text-[#6B3FA0]">
+                                  Complementar de {sale.complementary_to_sale_number}
+                                </span>
+                              )}
+                            </TableCell>
                             <TableCell>{sale.client_name}</TableCell>
                             <TableCell className="text-sm">{referralName || '-'}</TableCell>
                             <TableCell className="text-sm">{responsibleName || '-'}</TableCell>
@@ -1714,8 +1744,8 @@ export default function Reports() {
                 </Button>
                 <ReferralReportPDFButton
                   rows={filteredReferralSales.map(sale => {
-                    if (!hasSerializedItem(sale)) return null;
-                    const prof = getReferralProfForSale(sale);
+                    if (!canPayReferral(sale)) return null;
+                    const prof = getReferralProfForSale(baseSaleFor(sale));
                     if (!prof) return null;
                     if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return null;
                     const total = getTotalPayments(sale);
@@ -1753,8 +1783,8 @@ export default function Reports() {
                   </TableHeader>
                   <TableBody>
                     {filteredReferralSales.map(sale => {
-                      if (!hasSerializedItem(sale)) return null;
-                      const prof = getReferralProfForSale(sale);
+                      if (!canPayReferral(sale)) return null;
+                      const prof = getReferralProfForSale(baseSaleFor(sale));
                       if (!prof) return null;
                       if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return null;
 
@@ -1762,7 +1792,12 @@ export default function Reports() {
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{prof.full_name}</TableCell>
                           <TableCell className="capitalize">{prof.specialty}</TableCell>
-                          <TableCell>{sale.client_name}</TableCell>
+                          <TableCell>
+                            {sale.client_name}
+                            {isComplementarySale(sale) && (
+                              <span className="block text-xs text-slate-500">Complementar de {sale.complementary_to_sale_number}</span>
+                            )}
+                          </TableCell>
                           <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
                           <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
                           <TableCell className="text-right font-bold text-[#A4D233]">
