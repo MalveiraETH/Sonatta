@@ -32,6 +32,12 @@ const DEFAULT_WARRANTY =
 const DEFAULT_FOLLOWUP =
   '<p>Todas as revisões abaixo são <strong>TOTALMENTE GRATUITAS</strong> para clientes Sonatta:</p><ul><li>1ª Revisão — 3 meses após a compra</li><li>2ª Revisão — 9 meses após a compra</li><li>Revisões Subsequentes — A cada 12 meses (anualmente)</li></ul><p>Caso detecte qualquer dificuldade fora dos períodos programados, o cliente pode agendar consulta extra — também coberta pelo atendimento Sonatta.</p>';
 
+const hasText = (html) =>
+  String(html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;|&#xa0;/gi, ' ')
+    .trim().length > 0;
+
 export const DEFAULT_BLOCKS = {
   [DEFAULT_CATEGORY]: { warranty_text: DEFAULT_WARRANTY, followup_text: DEFAULT_FOLLOWUP },
 };
@@ -141,10 +147,31 @@ export async function saveQuoteBlocks(blocks) {
 // Categorias de markup dos produtos incluídos no orçamento (as mesmas de
 // Configurações > Produtos de Referência: 90, 70, 50, 30, 10, 5)
 export async function quoteBlockCategories(quote) {
-  const ids = [...new Set((quote.items || []).map((item) => item.product_id).filter(Boolean))];
+  const items = quote.items || [];
+  const ids = [...new Set(items.map((item) => item.product_id).filter(Boolean))];
   const products = (
     await Promise.all(ids.map((id) => base44.entities.Product.get(id).catch(() => null)))
   ).filter(Boolean);
+
+  // Aparelhos cujo vínculo antigo não existe mais são localizados pelo nome do item
+  const missingNames = [
+    ...new Set(
+      items
+        .filter((item) => !products.some((p) => p.id === item.product_id))
+        .map((item) => clean(item.product_name))
+        .filter(Boolean)
+    ),
+  ];
+  if (missingNames.length) {
+    const byName = await Promise.all(
+      missingNames.map((name) =>
+        base44.entities.Product.filter({ name }, { limit: 5 })
+          .then((res) => (res.items || res).find((p) => p.markup_category || p.reference) || null)
+          .catch(() => null)
+      )
+    );
+    products.push(...byName.filter(Boolean));
+  }
   if (!products.length) return [];
 
   const missingRefs = [
@@ -181,7 +208,9 @@ export function resolveCategoryBlocks(blocks, categories) {
       return {
         category,
         label: BLOCK_CATEGORY_LABELS[category] || '',
-        warranty_text: config.warranty_text || '',
+        // Categoria sem texto próprio usa a garantia padrão Sonatta, para o
+        // bloco nunca sair vazio no PDF
+        warranty_text: hasText(config.warranty_text) ? config.warranty_text : DEFAULT_WARRANTY,
         followup_text: config.followup_text || '',
       };
     })

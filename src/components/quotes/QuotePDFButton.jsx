@@ -90,7 +90,8 @@ function parseHtmlToSegments(html) {
 }
 
 // Renderiza segmentos no PDF. Retorna Y final.
-function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
+function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH, options = {}) {
+  const { maxY = Infinity, onNewPage } = options;
   const segments = parseHtmlToSegments(html);
   let curX = x;
   let curY = startY;
@@ -100,10 +101,16 @@ function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
     doc.setFont('helvetica', w);
   };
 
+  // Quebra a linha; se passar do limite da página, abre uma nova página
+  const nextLine = () => {
+    if (onNewPage && curY + lineH * 2 > maxY) return onNewPage();
+    return curY + lineH;
+  };
+
   segments.forEach((seg) => {
     if (seg.newline) {
       curX = x;
-      curY += lineH;
+      curY = nextLine();
       return;
     }
     const sz = seg.size || baseSz;
@@ -118,7 +125,7 @@ function drawHtmlText(doc, html, x, startY, maxW, baseSz, baseColor, lineH) {
       const ww = doc.getTextWidth(word);
       if (curX + ww > x + maxW && curX > x) {
         curX = x;
-        curY += lineH;
+        curY = nextLine();
       }
       doc.text(word, curX, curY);
       curX += ww;
@@ -202,13 +209,23 @@ async function buildPDF(quote, cfg) {
 
   const secGap = cfg.section_content_gap ?? 3;
 
+  // ── Quebra de página: conteúdo longo (garantias/benefícios) continua na página seguinte ──
+  const pageBottom = PAGE_H - FOOTER_H - 2;
+  const newPage = () => {
+    doc.addPage();
+    setFill(P.pageBg); doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
+    return 22;
+  };
+  const textOpts = { maxY: pageBottom, onNewPage: newPage };
+
   // ── Helper: cabeçalho de seção ──
   const sectionHead = (label, y) => {
-    setFill([246, 241, 251]); doc.rect(ML, y, CW, SH, 'F');
-    setFill(P.purple); doc.rect(ML, y, 2.5, SH, 'F');
+    const top = y + SH + 10 > pageBottom ? newPage() : y;
+    setFill([246, 241, 251]); doc.rect(ML, top, CW, SH, 'F');
+    setFill(P.purple); doc.rect(ML, top, 2.5, SH, 'F');
     setFont('bold', 8.5); setTxt(P.purple);
-    doc.text(label, ML + 5, y + 3.6);
-    return y + SH + secGap;
+    doc.text(label, ML + 5, top + 3.6);
+    return top + SH + secGap;
   };
 
   // ── BLOCO: dados do cliente ──
@@ -345,7 +362,7 @@ async function buildPDF(quote, cfg) {
         doc.text(entry.label, ML + 2, yy);
         yy += LH;
       }
-      yy = drawHtmlText(doc, entry.html, ML + 2, yy, CW - 4, 8, P.textMain, LH) + PARA_GAP;
+      yy = drawHtmlText(doc, entry.html, ML + 2, yy, CW - 4, 8, P.textMain, LH, textOpts) + PARA_GAP;
     });
     return yy + SEC_GAP;
   };
@@ -370,10 +387,11 @@ async function buildPDF(quote, cfg) {
     }
     const html = stripUnresolvedVariables(part.html);
     if (!hasVisibleText(html)) return;
-    Y = drawHtmlText(doc, html, ML + 2, Y, CW - 4, 8, P.textMain, LH) + SEC_GAP;
+    Y = drawHtmlText(doc, html, ML + 2, Y, CW - 4, 8, P.textMain, LH, textOpts) + SEC_GAP;
   });
 
-  // ── ASSINATURA — fixada logo acima do rodapé ──
+  // ── ASSINATURA — fixada logo acima do rodapé (na última página) ──
+  if (Y > PAGE_H - FOOTER_H - 26) newPage();
   const SIG_W = 55, SIG_X = PAGE_W - MR - SIG_W;
   const SIG_Y = PAGE_H - FOOTER_H - 14;
   setFill(P.textSub); doc.rect(SIG_X, SIG_Y, SIG_W, 0.3, 'F');
@@ -383,7 +401,11 @@ async function buildPDF(quote, cfg) {
   doc.text(cfg.signer_role || 'Comercial Sonatta', SIG_X + SIG_W / 2, SIG_Y + LH * 2, { align: 'center' });
 
   // ── FOOTER — contagem de páginas | texto + barra verde ──
-  drawDocFooter(doc, layout, { x: ML, y: PAGE_H - 13, width: CW, page: 1, total: 1 });
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page += 1) {
+    doc.setPage(page);
+    drawDocFooter(doc, layout, { x: ML, y: PAGE_H - 13, width: CW, page, total: totalPages });
+  }
 
   return doc;
 }
