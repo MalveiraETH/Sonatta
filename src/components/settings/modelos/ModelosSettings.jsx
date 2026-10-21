@@ -8,6 +8,7 @@ import DocumentTemplateList from './DocumentTemplateList';
 import DocumentTemplateEditor from './DocumentTemplateEditor';
 import DocumentHeaderFooter from './DocumentHeaderFooter';
 import QuoteBlocksSettings from './QuoteBlocksSettings';
+import QuotePDFSettings from '@/components/settings/QuotePDFSettings';
 
 const CATEGORIES = [
   { key: 'documento', label: 'Documentos' },
@@ -15,9 +16,12 @@ const CATEGORIES = [
   { key: 'orcamento', label: 'Orçamentos' },
 ];
 
-// Aba extra: formatação do cabeçalho e do rodapé dos documentos
+// Abas extras: apresentação do PDF do orçamento e formatação de cabeçalho/rodapé
+const QUOTE_PDF_TAB = { key: 'quote_pdf', label: 'PDF do Orçamento' };
 const LAYOUT_TAB = { key: 'layout', label: 'Cabeçalho e Rodapé' };
-const TABS = [...CATEGORIES, LAYOUT_TAB];
+const TABS = [...CATEGORIES, QUOTE_PDF_TAB, LAYOUT_TAB];
+
+const isTemplateTab = (key) => CATEGORIES.some((c) => c.key === key);
 
 export default function ModelosSettings() {
   const [user, setUser] = useState(null);
@@ -41,7 +45,7 @@ export default function ModelosSettings() {
   const canDelete = isAdmin || can('Modelos', 'Excluir modelos');
 
   useEffect(() => {
-    if (!permsReady || editorOpen || category === 'layout') return;
+    if (!permsReady || editorOpen || !isTemplateTab(category)) return;
     let active = true;
     setLoading(true);
     base44.entities.DocumentTemplate.filter(
@@ -128,11 +132,11 @@ export default function ModelosSettings() {
             Modelos
           </h2>
           <p className="text-sm text-slate-500 mt-1">
-            Crie modelos de Documentos e Prontuários com variáveis dinâmicas preenchidas depois
-            com os dados do cliente.
+            Crie modelos de Documentos, Prontuários e Orçamentos com variáveis dinâmicas preenchidas
+            depois com os dados do cliente, e ajuste a apresentação do PDF do orçamento.
           </p>
         </div>
-        {canEdit && category !== 'layout' && (
+        {canEdit && isTemplateTab(category) && (
           <Button
             onClick={() => openEditor(null)}
             className="bg-[#A4D233] hover:bg-[#B8E047] text-slate-900 font-semibold flex-shrink-0"
@@ -144,7 +148,7 @@ export default function ModelosSettings() {
       </div>
 
       <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-        {TABS.map((c) => (
+        {TABS.filter((c) => c.key !== QUOTE_PDF_TAB.key || isAdmin).map((c) => (
           <button
             key={c.key}
             type="button"
@@ -162,6 +166,8 @@ export default function ModelosSettings() {
 
       {category === 'layout' ? (
         <DocumentHeaderFooter canEdit={isAdmin} />
+      ) : category === 'quote_pdf' ? (
+        <QuotePDFSettings />
       ) : (
         <div className="space-y-6">
           <DocumentTemplateList

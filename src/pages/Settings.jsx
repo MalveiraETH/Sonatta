@@ -12,7 +12,6 @@ import WhatsAppTestTemplate from '@/components/settings/WhatsAppTestTemplate';
 import WhatsAppAppointmentTemplate from '@/components/settings/WhatsAppAppointmentTemplate';
 import ReferenceProducts from '@/components/settings/ReferenceProducts';
 import ClientStatusSync from '@/components/settings/ClientStatusSync';
-import QuotePDFSettings from '@/components/settings/QuotePDFSettings';
 import { Settings as SettingsIcon } from 'lucide-react';
 import UsersManagement from '@/components/settings/UsersManagement';
 import AccessPermissions from '@/components/settings/AccessPermissions';
@@ -53,7 +52,6 @@ export default function Settings() {
           <TabsTrigger value="billing" className="text-xs sm:text-sm">Custos e Tarifas</TabsTrigger>
           <TabsTrigger value="reference_products" className="text-xs sm:text-sm">Produtos Referência</TabsTrigger>
           <TabsTrigger value="status_sync" className="text-xs sm:text-sm">Status Clientes</TabsTrigger>
-          <TabsTrigger value="quote_pdf" className="text-xs sm:text-sm">PDF Orçamento</TabsTrigger>
           <TabsTrigger value="audit" className="text-xs sm:text-sm">Auditoria</TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">Usuários</TabsTrigger>
           <TabsTrigger value="permissions" className="text-xs sm:text-sm">Permissões</TabsTrigger>
@@ -99,10 +97,6 @@ export default function Settings() {
 
         <TabsContent value="status_sync">
           <ClientStatusSync />
-        </TabsContent>
-
-        <TabsContent value="quote_pdf">
-          <QuotePDFSettings />
         </TabsContent>
 
         <TabsContent value="audit">
