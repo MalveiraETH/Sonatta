@@ -97,8 +97,9 @@ export default function QuoteBlocksSettings({ canEdit }) {
         <div className="min-w-0">
           <h3 className="font-semibold text-slate-800">Garantia e acompanhamento por categoria</h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Esses textos entram no orçamento conforme a categoria dos produtos escolhidos. Se a
-            categoria não tiver texto próprio, o bloco Padrão é usado.
+            Esses textos entram no orçamento conforme a categoria de markup dos produtos escolhidos
+            (as mesmas de Produtos de Referência: 90, 70, 50, 30, 10, 5). Se a categoria não tiver
+            texto próprio, o bloco Padrão é usado.
           </p>
         </div>
       </div>

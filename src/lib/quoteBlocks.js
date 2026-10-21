@@ -2,7 +2,6 @@
 // de garantia / acompanhamento vitalício personalizados por categoria de produto.
 import { base44 } from '@/api/base44Client';
 import {
-  PRODUCT_CATEGORY_LABELS,
   QUOTE_STATUS_LABELS,
   clean,
   formatDate,
@@ -14,11 +13,18 @@ export const BLOCKS_SETTING_KEY = 'quote_category_blocks';
 export const DEFAULT_CATEGORY = 'padrao';
 export const QUOTE_TEMPLATE_CATEGORY = 'orcamento';
 
-// Categorias de produto disponíveis para personalizar os blocos
-export const CATEGORY_OPTIONS = [
-  { key: DEFAULT_CATEGORY, label: 'Padrão (demais categorias)' },
-  ...Object.entries(PRODUCT_CATEGORY_LABELS).map(([key, label]) => ({ key, label })),
-];
+// Categorias de markup (Produtos de Referência) disponíveis para personalizar os blocos
+export const MARKUP_CATEGORIES = ['90', '70', '50', '30', '10', '5'];
+
+export const BLOCK_CATEGORY_LABELS = {
+  [DEFAULT_CATEGORY]: 'Padrão (demais categorias)',
+  ...MARKUP_CATEGORIES.reduce((acc, key) => ({ ...acc, [key]: `Categoria ${key}` }), {}),
+};
+
+export const CATEGORY_OPTIONS = [DEFAULT_CATEGORY, ...MARKUP_CATEGORIES].map((key) => ({
+  key,
+  label: BLOCK_CATEGORY_LABELS[key],
+}));
 
 const DEFAULT_WARRANTY =
   '<h3><strong>Garantia de Fábrica</strong></h3><p>Cobre defeitos de fabricação conforme padrão do fabricante (reparos ou substituição de componentes com falhas de origem fabril, mediante uso conforme normas técnicas).</p><h3><strong>Garantia de Adaptação</strong></h3><p>Acompanhamento técnico inicial para ajustes finos e suporte à adaptação, assegurando o ganho auditivo conforme as necessidades clínicas do paciente.</p>';
@@ -134,13 +140,33 @@ export async function saveQuoteBlocks(blocks) {
   return created.id;
 }
 
-// Categorias dos produtos incluídos no orçamento
-export async function quoteCategories(quote) {
+// Categorias de markup dos produtos incluídos no orçamento (as mesmas de
+// Configurações > Produtos de Referência: 90, 70, 50, 30, 10, 5)
+export async function quoteBlockCategories(quote) {
   const ids = [...new Set((quote.items || []).map((item) => item.product_id).filter(Boolean))];
-  const products = await Promise.all(
-    ids.map((id) => base44.entities.Product.get(id).catch(() => null))
-  );
-  return [...new Set(products.map((p) => p?.category).filter(Boolean))];
+  const products = (
+    await Promise.all(ids.map((id) => base44.entities.Product.get(id).catch(() => null)))
+  ).filter(Boolean);
+  if (!products.length) return [];
+
+  const missingRefs = [
+    ...new Set(products.filter((p) => !p.markup_category && p.reference).map((p) => p.reference)),
+  ];
+  const refCategories = {};
+  if (missingRefs.length) {
+    const res = await base44.entities.ReferenceProduct
+      .filter({ reference: { $in: missingRefs } })
+      .catch(() => null);
+    (res?.items || []).forEach((ref) => {
+      refCategories[ref.reference] = ref.category;
+    });
+  }
+
+  return [
+    ...new Set(
+      products.map((p) => p.markup_category || refCategories[p.reference]).filter(Boolean)
+    ),
+  ];
 }
 
 // Blocos aplicáveis ao orçamento: usa a categoria do produto e, quando ela não
@@ -156,7 +182,7 @@ export function resolveCategoryBlocks(blocks, categories) {
       if (!config) return null;
       return {
         category,
-        label: PRODUCT_CATEGORY_LABELS[category] || '',
+        label: BLOCK_CATEGORY_LABELS[category] || '',
         warranty_text: config.warranty_text || '',
         followup_text: config.followup_text || '',
       };

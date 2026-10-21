@@ -16,7 +16,7 @@ import {
   buildQuoteVariables,
   loadQuoteBlocks,
   loadQuoteTemplate,
-  quoteCategories,
+  quoteBlockCategories,
   resolveCategoryBlocks,
   splitQuoteContent,
 } from '@/lib/quoteBlocks';
@@ -181,7 +181,7 @@ async function buildPDF(quote, cfg) {
       : Promise.resolve(null),
     loadQuoteTemplate(),
     loadQuoteBlocks(),
-    quoteCategories(quote),
+    quoteBlockCategories(quote),
   ]);
 
   const ctx = {
