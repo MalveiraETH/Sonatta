@@ -192,8 +192,7 @@ export const VARIABLE_GROUPS = [
       { token: '{{ dados_cliente }}', label: 'Dados do cliente' },
       { token: '{{ tabela_itens }}', label: 'Tabela de produtos' },
       { token: '{{ resumo_financeiro }}', label: 'Resumo financeiro / pagamento' },
-      { token: '{{ garantias }}', label: 'Garantias (por categoria)' },
-      { token: '{{ acompanhamento }}', label: 'Bloco de cuidado (por nível)' },
+      { token: '{{ garantias }}', label: 'Sonatta Garantias e Benefícios (por categoria)' },
     ],
   },
   {

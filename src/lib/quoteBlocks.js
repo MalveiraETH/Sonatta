@@ -16,23 +16,9 @@ export const QUOTE_TEMPLATE_CATEGORY = 'orcamento';
 // Categorias de markup (Produtos de Referência) disponíveis para personalizar os blocos
 export const MARKUP_CATEGORIES = ['90', '70', '50', '30', '10', '5'];
 
-// Identidade de cada nível de cuidado (bloco exibido no orçamento)
-export const CARE_LEVEL_NAMES = {
-  90: 'Premium',
-  70: 'Avançado',
-  50: 'Plus',
-  30: 'Essencial',
-};
-
 export const BLOCK_CATEGORY_LABELS = {
   [DEFAULT_CATEGORY]: 'Padrão (demais categorias)',
-  ...MARKUP_CATEGORIES.reduce(
-    (acc, key) => ({
-      ...acc,
-      [key]: CARE_LEVEL_NAMES[key] ? `${CARE_LEVEL_NAMES[key]} (${key})` : `Categoria ${key}`,
-    }),
-    {}
-  ),
+  ...MARKUP_CATEGORIES.reduce((acc, key) => ({ ...acc, [key]: `Categoria ${key}` }), {}),
 };
 
 export const CATEGORY_OPTIONS = [DEFAULT_CATEGORY, ...MARKUP_CATEGORIES].map((key) => ({
@@ -57,7 +43,6 @@ export const DEFAULT_CONTENT_HTML = `<h2>Apresentação</h2>
 {{ tabela_itens }}
 {{ resumo_financeiro }}
 {{ garantias }}
-{{ acompanhamento }}
 <h3>Validade e observações</h3>
 <p>Esta proposta é válida até {{ quote_valid_until }}.</p>
 <p>{{ quote_notes }}</p>`;
@@ -68,7 +53,6 @@ export const QUOTE_BLOCK_TOKENS = [
   'tabela_itens',
   'resumo_financeiro',
   'garantias',
-  'acompanhamento',
 ];
 
 const BLOCK_RE =
@@ -197,7 +181,6 @@ export function resolveCategoryBlocks(blocks, categories) {
       return {
         category,
         label: BLOCK_CATEGORY_LABELS[category] || '',
-        care_name: CARE_LEVEL_NAMES[category] || '',
         warranty_text: config.warranty_text || '',
         followup_text: config.followup_text || '',
       };

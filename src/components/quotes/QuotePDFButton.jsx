@@ -329,9 +329,9 @@ async function buildPDF(quote, cfg) {
 
   // ── BLOCO: garantias / acompanhamento por categoria de produto ──
   const resolvedBlocks = resolveCategoryBlocks(blocksCfg, categories);
-  const drawCategoryBlock = (y, title, key, opts = {}) => {
+  const drawCategoryBlock = (y, title, key) => {
     const entries = resolvedBlocks
-      .map((block) => ({ label: block.label, careName: block.care_name, html: block[key] }))
+      .map((block) => ({ label: block.label, html: block[key] }))
       .filter((entry) => hasVisibleText(entry.html));
     if (!entries.length) return y;
 
@@ -340,12 +340,7 @@ async function buildPDF(quote, cfg) {
     entries.forEach((entry) => {
       if (seen.has(entry.html)) return;
       seen.add(entry.html);
-      if (opts.careLevel) {
-        // Nível de cuidado com identidade própria (Essencial, Plus, Avançado, Premium)
-        setFont('bold', 10); setTxt(P.purple);
-        doc.text(entry.careName || 'Sonatta', ML + 2, yy);
-        yy += LH + 1;
-      } else if (resolvedBlocks.length > 1 && entry.label) {
+      if (resolvedBlocks.length > 1 && entry.label) {
         setFont('bold', 8); setTxt(P.purple);
         doc.text(entry.label, ML + 2, yy);
         yy += LH;
@@ -359,9 +354,8 @@ async function buildPDF(quote, cfg) {
     dados_cliente: (y) => drawClientBlock(y),
     tabela_itens: (y) => drawItemsBlock(y),
     resumo_financeiro: (y) => drawFinanceBlock(y),
-    garantias: (y) => drawCategoryBlock(y, 'PRAZOS DE GARANTIA', 'warranty_text'),
-    acompanhamento: (y) =>
-      drawCategoryBlock(y, 'BLOCO DE CUIDADO', 'followup_text', { careLevel: true }),
+    garantias: (y) =>
+      drawCategoryBlock(y, 'SONATTA GARANTIAS E BENEFÍCIOS', 'warranty_text'),
   };
 
   // ── Corpo do documento: modelo de orçamento (Configurações > Modelos) ──

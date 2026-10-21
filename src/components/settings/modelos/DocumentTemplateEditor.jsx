@@ -189,7 +189,7 @@ export default function DocumentTemplateEditor({ template, category, canEdit, on
           </h2>
           <p className="text-sm text-slate-500 mt-1">
             {category === 'orcamento'
-              ? 'Monte o orçamento e insira as variáveis e os blocos (dados do cliente, produtos, pagamento, garantias e acompanhamento).'
+              ? 'Monte o orçamento e insira as variáveis e os blocos (dados do cliente, produtos, pagamento e garantias).'
               : 'Monte o conteúdo e insira as variáveis que serão preenchidas com os dados do cliente.'}
           </p>
         </div>
