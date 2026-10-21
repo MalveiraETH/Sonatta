@@ -398,9 +398,12 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                     <Label className="text-xs">Qtd</Label>
                     <Input
                       type="number"
+                      inputMode="numeric"
                       min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                      value={item.quantity ? item.quantity : ''}
+                      placeholder="1"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => updateItem(index, 'quantity', Number(e.target.value) || 0)}
                     />
                   </div>
                   <div className="col-span-2">
