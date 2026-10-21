@@ -31,7 +31,8 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState([]);
   const [referenceProducts, setReferenceProducts] = useState([]);
-  const [discountPercent, setDiscountPercent] = useState(0);
+  // Mantido como texto para o campo poder ficar vazio (sem "0" fixo)
+  const [discountPercent, setDiscountPercent] = useState('');
   const [quoteDate, setQuoteDate] = useState(new Date());
   const [formData, setFormData] = useState({
     client_id: '',
@@ -81,11 +82,11 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         ...quote,
         items: quote.items || []
       });
-      // Calcular percentual inicial se houver desconto
-      if (quote.subtotal > 0 && quote.discount > 0) {
+      // Calcular percentual inicial se houver desconto ou acréscimo
+      if (quote.subtotal > 0 && quote.discount) {
         setDiscountPercent(((quote.discount / quote.subtotal) * 100).toFixed(2));
       } else {
-        setDiscountPercent(0);
+        setDiscountPercent('');
       }
     } else if (preselectedClient) {
       setFormData(prev => ({
@@ -100,7 +101,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         discount: 0,
         total: 0
       }));
-      setDiscountPercent(0);
+      setDiscountPercent('');
     } else {
       setFormData({
         client_id: '',
@@ -116,7 +117,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
         status: 'rascunho',
         notes: ''
       });
-      setDiscountPercent(0);
+      setDiscountPercent('');
     }
   }, [quote, preselectedClient, open]);
 
@@ -200,7 +201,7 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
 
   const recalculateTotals = (items) => {
     const subtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    const discountValue = (subtotal * discountPercent) / 100;
+    const discountValue = (subtotal * (Number(discountPercent) || 0)) / 100;
     const total = subtotal - discountValue;
 
     setFormData(prev => ({
@@ -212,8 +213,9 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
     }));
   };
 
-  const updateDiscount = (percent) => {
-    setDiscountPercent(percent);
+  const updateDiscount = (value) => {
+    setDiscountPercent(value);
+    const percent = Number(value) || 0;
     const discountValue = (formData.subtotal * percent) / 100;
     const total = formData.subtotal - discountValue;
     setFormData(prev => ({
@@ -222,6 +224,8 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
       total
     }));
   };
+
+  const discountPercentValue = Number(discountPercent) || 0;
 
   const generateQuoteNumber = async () => {
     const allQuotes = await base44.entities.Quote.list('-created_date', 500);
@@ -438,23 +442,25 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
                 <div className="relative">
                   <Input
                     type="number"
-                    step="0.0000001"
+                    inputMode="decimal"
+                    step="0.01"
                     min="-100"
                     max="100"
                     value={discountPercent}
-                    onChange={(e) => updateDiscount(Number(e.target.value))}
+                    onChange={(e) => updateDiscount(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     placeholder="0"
                     className="pr-6"
                   />
-                  {discountPercent !== 0 && (
+                  {discountPercentValue !== 0 && (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium pointer-events-none">
-                      {discountPercent > 0 ? '↓' : '↑'}
+                      {discountPercentValue > 0 ? '↓' : '↑'}
                     </span>
                   )}
                 </div>
-                {discountPercent !== 0 && (
-                  <p className={`text-xs ${discountPercent > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {discountPercent > 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(discountPercent).toFixed(2)}%
+                {discountPercentValue !== 0 && (
+                  <p className={`text-xs ${discountPercentValue > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {discountPercentValue > 0 ? 'Desconto' : 'Acréscimo'}: {Math.abs(discountPercentValue).toFixed(2)}%
                   </p>
                 )}
               </div>
