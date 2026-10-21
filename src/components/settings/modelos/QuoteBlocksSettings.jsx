@@ -157,17 +157,18 @@ export default function QuoteBlocksSettings({ canEdit }) {
       <div className="flex items-start gap-2">
         <ShieldCheck className="h-5 w-5 text-[#6B3FA0] mt-0.5 flex-shrink-0" />
         <div className="min-w-0">
-          <h3 className="font-semibold text-slate-800">Garantia e acompanhamento por categoria</h3>
+          <h3 className="font-semibold text-slate-800">Garantia e bloco de cuidado por nível</h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Esses textos entram no orçamento conforme a categoria de markup dos produtos escolhidos
-            (as mesmas de Produtos de Referência: 90, 70, 50, 30, 10, 5). Se a categoria não tiver
-            texto próprio, o bloco Padrão é usado.
+            Esses textos entram no orçamento conforme a categoria de markup dos produtos escolhidos.
+            Cada nível tem identidade própria — 30 Essencial, 50 Plus, 70 Avançado, 90 Premium — e é
+            exibido como o bloco de cuidado do orçamento, com o que ele inclui. Se a categoria não
+            tiver texto próprio, o bloco Padrão é usado.
           </p>
         </div>
       </div>
 
       <div className="space-y-1.5 max-w-xs">
-        <Label className="text-sm font-medium text-slate-700">Categoria</Label>
+        <Label className="text-sm font-medium text-slate-700">Nível de cuidado (categoria)</Label>
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="bg-white">
             <SelectValue />
@@ -195,8 +196,8 @@ export default function QuoteBlocksSettings({ canEdit }) {
         <RichField
           key={`followup-${category}`}
           fieldId="quote-block-followup"
-          label="Acompanhamento vitalício"
-          hint="Revisões e benefícios inclusos no acompanhamento"
+          label="Bloco de cuidado — o que o nível inclui"
+          hint="Liste os itens inclusos neste nível (revisões, acompanhamento, benefícios). O título do bloco no orçamento é o nome do nível."
           value={current.followup_text}
           onChange={(v) => setField('followup_text', v)}
           disabled={!canEdit}

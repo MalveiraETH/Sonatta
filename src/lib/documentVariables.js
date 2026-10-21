@@ -193,7 +193,7 @@ export const VARIABLE_GROUPS = [
       { token: '{{ tabela_itens }}', label: 'Tabela de produtos' },
       { token: '{{ resumo_financeiro }}', label: 'Resumo financeiro / pagamento' },
       { token: '{{ garantias }}', label: 'Garantias (por categoria)' },
-      { token: '{{ acompanhamento }}', label: 'Acompanhamento vitalício (por categoria)' },
+      { token: '{{ acompanhamento }}', label: 'Bloco de cuidado (por nível)' },
     ],
   },
   {
