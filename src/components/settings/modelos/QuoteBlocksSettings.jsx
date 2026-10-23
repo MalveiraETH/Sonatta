@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import {
   CATEGORY_OPTIONS,
   DEFAULT_CATEGORY,
+  hasCustomBlockText,
   loadQuoteBlocks,
   saveQuoteBlocks,
 } from '@/lib/quoteBlocks';
@@ -175,11 +176,23 @@ export default function QuoteBlocksSettings({ canEdit }) {
           <SelectContent>
             {CATEGORY_OPTIONS.map((option) => (
               <SelectItem key={option.key} value={option.key}>
-                {option.label}
+                <span className="flex items-center gap-2">
+                  {option.label}
+                  {hasCustomBlockText(blocks, option.key) && (
+                    <span className="text-[10px] font-semibold text-[#6B3FA0] bg-[#6B3FA0]/10 px-1.5 py-0.5 rounded">
+                      personalizado
+                    </span>
+                  )}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {category !== DEFAULT_CATEGORY && !hasCustomBlockText(blocks, category) && (
+          <p className="text-xs text-amber-600">
+            Esta categoria ainda não tem texto próprio: o orçamento usará o bloco Padrão.
+          </p>
+        )}
       </div>
 
       <div className="quote-blocks-editor space-y-4">
