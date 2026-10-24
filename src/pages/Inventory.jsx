@@ -780,7 +780,7 @@ export default function Inventory() {
                               <Edit className="h-4 w-4 mr-2" />
                               Editar
                             </DropdownMenuItem>
-                            {!product.client_id && (
+                            {product.status === 'vendido' && !product.client_id && (
                               <DropdownMenuItem onClick={() => { setSelectedProduct(product); setAssociateOpen(true); }}>
                                 <UserPlus className="h-4 w-4 mr-2" />
                                 Associar Cliente
@@ -855,7 +855,7 @@ export default function Inventory() {
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
-                          {!product.client_id && (
+                          {product.status === 'vendido' && !product.client_id && (
                             <DropdownMenuItem onClick={() => { setSelectedProduct(product); setAssociateOpen(true); }}>
                               <UserPlus className="h-4 w-4 mr-2" />
                               Associar Cliente
