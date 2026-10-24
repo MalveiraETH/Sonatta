@@ -13,12 +13,12 @@ export const BLOCKS_SETTING_KEY = 'quote_category_blocks';
 export const DEFAULT_CATEGORY = 'padrao';
 export const QUOTE_TEMPLATE_CATEGORY = 'orcamento';
 
-// Categorias de markup (Produtos de Referência) disponíveis para personalizar os blocos
+// Níveis de tecnologia (Produtos de Referência) disponíveis para personalizar os blocos
 export const MARKUP_CATEGORIES = ['90', '70', '50', '30', '10', '5'];
 
 export const BLOCK_CATEGORY_LABELS = {
-  [DEFAULT_CATEGORY]: 'Padrão (demais categorias)',
-  ...MARKUP_CATEGORIES.reduce((acc, key) => ({ ...acc, [key]: `Categoria ${key}` }), {}),
+  [DEFAULT_CATEGORY]: 'Padrão (demais níveis)',
+  ...MARKUP_CATEGORIES.reduce((acc, key) => ({ ...acc, [key]: `Nível ${key}` }), {}),
 };
 
 export const CATEGORY_OPTIONS = [DEFAULT_CATEGORY, ...MARKUP_CATEGORIES].map((key) => ({

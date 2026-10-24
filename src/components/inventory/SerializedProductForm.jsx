@@ -22,12 +22,12 @@ import { toast } from 'sonner';
 import CurrencyInput from '@/components/ui/CurrencyInput';
 
 const MARKUP_CATEGORIES = [
-  { value: '90', label: 'Categoria 90' },
-  { value: '70', label: 'Categoria 70' },
-  { value: '50', label: 'Categoria 50' },
-  { value: '30', label: 'Categoria 30' },
-  { value: '10', label: 'Categoria 10' },
-  { value: '5', label: 'Categoria 5' },
+  { value: '90', label: 'Nível 90' },
+  { value: '70', label: 'Nível 70' },
+  { value: '50', label: 'Nível 50' },
+  { value: '30', label: 'Nível 30' },
+  { value: '10', label: 'Nível 10' },
+  { value: '5', label: 'Nível 5' },
 ];
 
 const emptyForm = () => ({
@@ -398,7 +398,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
             <p className="text-sm font-semibold text-purple-800 mb-3">Markup e Precificação</p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Categoria de Markup</Label>
+                <Label>Nível de Tecnologia</Label>
                 <Select value={formData.markup_category} onValueChange={handleMarkupCategoryChange}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -411,7 +411,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Taxa da Categoria (%)</Label>
+                <Label>Taxa do Nível (%)</Label>
                 <Input
                   value={markupPct !== null ? `${markupPct}%` : '—'}
                   readOnly

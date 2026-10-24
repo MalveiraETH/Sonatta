@@ -192,16 +192,16 @@ export default function Billing() {
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-[#6B3FA0]" />
-              <CardTitle className="text-lg">Margens de Lucro (Markups por Categoria)</CardTitle>
+              <CardTitle className="text-lg">Margens de Lucro (por Nível de Tecnologia)</CardTitle>
             </div>
-            <p className="text-sm text-slate-500 mt-1">Defina o markup padrão aplicado sobre o custo em cada categoria</p>
+            <p className="text-sm text-slate-500 mt-1">Defina o markup padrão aplicado sobre o custo em cada nível de tecnologia</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-6 gap-4">
               {['90', '70', '50', '30', '10', '5'].map((cat) => (
                 <div key={cat} className="space-y-2">
                   <Label htmlFor={`markup_${cat}`} className="text-sm font-semibold text-slate-700">
-                    Categoria {cat}
+                    Nível {cat}
                   </Label>
                   <div className="relative">
                     <Input
@@ -338,18 +338,18 @@ export default function Billing() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Categoria do Exemplo</Label>
+                <Label className="text-sm font-medium">Nível de Tecnologia do Exemplo</Label>
                 <Select value={simulatorCategory} onValueChange={setSimulatorCategory}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="90">Categoria 90</SelectItem>
-                    <SelectItem value="70">Categoria 70</SelectItem>
-                    <SelectItem value="50">Categoria 50</SelectItem>
-                    <SelectItem value="30">Categoria 30</SelectItem>
-                    <SelectItem value="10">Categoria 10</SelectItem>
-                    <SelectItem value="5">Categoria 5</SelectItem>
+                    <SelectItem value="90">Nível 90</SelectItem>
+                    <SelectItem value="70">Nível 70</SelectItem>
+                    <SelectItem value="50">Nível 50</SelectItem>
+                    <SelectItem value="30">Nível 30</SelectItem>
+                    <SelectItem value="10">Nível 10</SelectItem>
+                    <SelectItem value="5">Nível 5</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -412,7 +412,7 @@ export default function Billing() {
                 {['90', '70', '50', '30', '10', '5'].map((cat) => (
                   <Card key={cat} className="border border-slate-200">
                     <CardContent className="p-3">
-                      <Label className="text-sm font-medium mb-2 block">Categoria {cat}</Label>
+                      <Label className="text-sm font-medium mb-2 block">Nível {cat}</Label>
                       <div className="relative">
                         <Input
                           type="number"
@@ -520,18 +520,18 @@ export default function Billing() {
             <AccordionContent className="px-4 pb-4">
               <div className="space-y-3 mb-4">
                 <div className="space-y-2">
-                  <Label className="text-sm">Categoria</Label>
+                  <Label className="text-sm">Nível de Tecnologia</Label>
                   <Select value={simulatorCategory} onValueChange={setSimulatorCategory}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="90">Categoria 90</SelectItem>
-                      <SelectItem value="70">Categoria 70</SelectItem>
-                      <SelectItem value="50">Categoria 50</SelectItem>
-                      <SelectItem value="30">Categoria 30</SelectItem>
-                      <SelectItem value="10">Categoria 10</SelectItem>
-                      <SelectItem value="5">Categoria 5</SelectItem>
+                      <SelectItem value="90">Nível 90</SelectItem>
+                      <SelectItem value="70">Nível 70</SelectItem>
+                      <SelectItem value="50">Nível 50</SelectItem>
+                      <SelectItem value="30">Nível 30</SelectItem>
+                      <SelectItem value="10">Nível 10</SelectItem>
+                      <SelectItem value="5">Nível 5</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

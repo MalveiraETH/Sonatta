@@ -164,11 +164,11 @@ export default function ProductDetail() {
   };
 
   const markupLabels = {
-    '90': 'Categoria 90%',
-    '70': 'Categoria 70%',
-    '50': 'Categoria 50%',
-    '30': 'Categoria 30%',
-    '10': 'Categoria 10%',
+    '90': 'Nível 90',
+    '70': 'Nível 70',
+    '50': 'Nível 50',
+    '30': 'Nível 30',
+    '10': 'Nível 10',
   };
 
   if (loading) {
@@ -360,7 +360,7 @@ export default function ProductDetail() {
             </div>
             {product.markup_category && (
               <div>
-                <p className="text-sm text-slate-500">Categoria de Markup</p>
+                <p className="text-sm text-slate-500">Nível de Tecnologia</p>
                 <p className="font-medium">{markupLabels[product.markup_category] || product.markup_category}</p>
               </div>
             )}

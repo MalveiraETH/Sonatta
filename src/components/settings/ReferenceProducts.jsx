@@ -188,12 +188,12 @@ export default function ReferenceProducts() {
 
   const getCategoryLabel = (category) => {
     const labels = {
-      '90': 'Categoria 90',
-      '70': 'Categoria 70',
-      '50': 'Categoria 50',
-      '30': 'Categoria 30',
-      '10': 'Categoria 10',
-      '5': 'Categoria 5'
+      '90': 'Nível 90',
+      '70': 'Nível 70',
+      '50': 'Nível 50',
+      '30': 'Nível 30',
+      '10': 'Nível 10',
+      '5': 'Nível 5'
     };
     return labels[category] || category;
   };
@@ -229,7 +229,7 @@ export default function ReferenceProducts() {
         'Referência': product.reference,
         'Nome do Aparelho': product.name,
         'Marca': product.brand || '',
-        'Categoria': getCategoryLabel(product.category),
+        'Nível de Tecnologia': getCategoryLabel(product.category),
         'Custo Aparelho': product.cost,
         'Incluir Custo Fixo': product.include_fixed_cost !== false ? 'Sim' : 'Não',
         'Garantia': `${product.warranty_years || 2} anos`,
@@ -274,10 +274,10 @@ export default function ReferenceProducts() {
             <div className="flex items-center gap-2 flex-wrap">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-full sm:w-[190px]">
-                  <SelectValue placeholder="Categoria" />
+                  <SelectValue placeholder="Nível de Tecnologia" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas as categorias</SelectItem>
+                  <SelectItem value="all">Todos os níveis</SelectItem>
                   {CATEGORY_OPTIONS.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {getCategoryLabel(cat)}
@@ -355,22 +355,22 @@ export default function ReferenceProducts() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="category">Categoria *</Label>
+                      <Label htmlFor="category">Nível de Tecnologia *</Label>
                       <Select
                         value={formData.category}
                         onValueChange={(value) => setFormData({ ...formData, category: value })}
                         required
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione a categoria" />
+                          <SelectValue placeholder="Selecione o nível" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="90">Categoria 90</SelectItem>
-                          <SelectItem value="70">Categoria 70</SelectItem>
-                          <SelectItem value="50">Categoria 50</SelectItem>
-                          <SelectItem value="30">Categoria 30</SelectItem>
-                          <SelectItem value="10">Categoria 10</SelectItem>
-                          <SelectItem value="5">Categoria 5</SelectItem>
+                          <SelectItem value="90">Nível 90</SelectItem>
+                          <SelectItem value="70">Nível 70</SelectItem>
+                          <SelectItem value="50">Nível 50</SelectItem>
+                          <SelectItem value="30">Nível 30</SelectItem>
+                          <SelectItem value="10">Nível 10</SelectItem>
+                          <SelectItem value="5">Nível 5</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -468,7 +468,7 @@ export default function ReferenceProducts() {
                   <TableHead>Referência</TableHead>
                   <TableHead>Nome do Aparelho</TableHead>
                   <TableHead>Marca</TableHead>
-                  <TableHead>Categoria</TableHead>
+                  <TableHead>Nível de Tecnologia</TableHead>
                   <TableHead className="text-center">Custo Fixo?</TableHead>
                   <TableHead className="text-right">Custo Aparelho</TableHead>
                   <TableHead className="text-right">Custo Total</TableHead>
@@ -484,7 +484,7 @@ export default function ReferenceProducts() {
                     <TableCell colSpan={11} className="text-center text-slate-500 py-8">
                       {products.length === 0
                         ? 'Nenhum produto cadastrado'
-                        : 'Nenhum produto nesta categoria'}
+                        : 'Nenhum produto neste nível'}
                     </TableCell>
                   </TableRow>
                 ) : (

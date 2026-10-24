@@ -158,17 +158,17 @@ export default function QuoteBlocksSettings({ canEdit }) {
       <div className="flex items-start gap-2">
         <ShieldCheck className="h-5 w-5 text-[#6B3FA0] mt-0.5 flex-shrink-0" />
         <div className="min-w-0">
-          <h3 className="font-semibold text-slate-800">Sonatta Garantias e Benefícios por categoria</h3>
+          <h3 className="font-semibold text-slate-800">Sonatta Garantias e Benefícios por nível de tecnologia</h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Esses textos entram no orçamento conforme a categoria de markup dos produtos escolhidos
-            (as mesmas de Produtos de Referência: 90, 70, 50, 30, 10, 5). Se a categoria não tiver
+            Esses textos entram no orçamento conforme o nível de tecnologia dos produtos escolhidos
+            (os mesmos de Produtos de Referência: 90, 70, 50, 30, 10, 5). Se o nível não tiver
             texto próprio, o bloco Padrão é usado.
           </p>
         </div>
       </div>
 
       <div className="space-y-1.5 max-w-xs">
-        <Label className="text-sm font-medium text-slate-700">Nível de cuidado (categoria)</Label>
+        <Label className="text-sm font-medium text-slate-700">Nível de Tecnologia</Label>
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="bg-white">
             <SelectValue />
