@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
     if (product.stock_type !== 'serializado') {
       return Response.json({ error: 'Apenas produtos serializados podem ser associados' }, { status: 400 });
     }
-    if (product.status !== 'vendido') {
-      return Response.json({ error: 'O produto precisa estar com status "vendido"' }, { status: 400 });
+    if (product.status === 'descartado') {
+      return Response.json({ error: 'Aparelhos baixados não podem ser associados' }, { status: 400 });
     }
     if (product.client_id) {
       return Response.json({ error: 'Este produto já está associado a um cliente' }, { status: 400 });
@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.Product.update(product_id, {
       client_id: finalClientId,
       client_name: finalClientName,
-      association_date: today
+      association_date: today,
+      ...(product.status !== 'vendido' ? { status: 'vendido' } : {})
     });
 
     // Registra no AuditLog

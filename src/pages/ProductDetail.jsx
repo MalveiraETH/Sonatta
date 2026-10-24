@@ -221,7 +221,7 @@ export default function ProductDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {product.stock_type === 'serializado' && product.status === 'vendido' && !product.client_id && (
+          {product.stock_type === 'serializado' && product.status !== 'descartado' && !product.client_id && (
             <Button
               onClick={() => setAssociateDialogOpen(true)}
               className="bg-[#6B3FA0] hover:bg-[#5a2f8a] text-white"
