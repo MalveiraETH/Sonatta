@@ -78,6 +78,15 @@ const loadProducts = async (clientId, productIds) => {
 const loadLatest = (entity, query, sort) =>
   entity.filter(query, { sort, limit: 1 }).then(firstOf);
 
+const loadCertificate = async (saleId) => {
+  if (!saleId) return null;
+  const res = await base44.entities.WarrantyCertificate.filter(
+    { sale_id: saleId },
+    { limit: 1 }
+  );
+  return firstOf(res);
+};
+
 // ── Venda ──
 function saleContext(sale) {
   const subtotal = Number(sale.subtotal) || 0;
@@ -362,6 +371,37 @@ const rentalContext = (rental, nextCharge) => ({
   rental_next_due_date: formatDate(nextCharge?.due_date),
 });
 
+// ── Certificado de garantia da venda ──
+function certificateContext(certificate) {
+  const items = Array.isArray(certificate.items) ? certificate.items : [];
+  const ctx = {
+    certificate_number: clean(certificate.certificate_number),
+    certificate_warranty_start: formatDate(certificate.warranty_start),
+    certificate_warranty_end: formatDate(certificate.warranty_end),
+    certificate_review_1: formatDate(certificate.review_1_date),
+    certificate_review_2: formatDate(certificate.review_2_date),
+    certificate_devices_count: countText(items.length),
+    certificate_devices_list: joinList(
+      items.map((item) => {
+        const name = clean(item.product_name);
+        const serial = clean(item.serial_number);
+        const until = formatDate(item.warranty_end);
+        return `${name}${serial ? ` (SN ${serial})` : ''}${until ? ` - garantia até ${until}` : ''}`;
+      })
+    ),
+  };
+
+  items.slice(0, MAX_PRODUCT_SLOTS).forEach((item, index) => {
+    const slot = index + 1;
+    ctx[`certificate_device_${slot}_name`] = clean(item.product_name);
+    ctx[`certificate_device_${slot}_serial`] = clean(item.serial_number);
+    ctx[`certificate_device_${slot}_warranty`] = warrantyLabel(item.warranty_years);
+    ctx[`certificate_device_${slot}_warranty_end`] = formatDate(item.warranty_end);
+  });
+
+  return ctx;
+}
+
 // Reúne todas as variáveis comerciais do paciente.
 export async function buildBusinessContext(client, saleOverride = null) {
   const clientId = clean(client?.id);
@@ -371,7 +411,7 @@ export async function buildBusinessContext(client, saleOverride = null) {
   // sem ela, usa a venda mais recente do paciente.
   const sale = clean(saleOverride?.id) ? saleOverride : await best(() => loadSale(clientId), null);
 
-  const [quote, contract, record, test, rental] = await Promise.all([
+  const [quote, contract, record, test, rental, certificate] = await Promise.all([
     best(() => loadLatest(base44.entities.Quote, { client_id: clientId }, '-created_date'), null),
     best(() => loadLatest(base44.entities.Contract, { client_id: clientId }, '-created_date'), null),
     best(() => loadLatest(base44.entities.MedicalRecord, { client_id: clientId }, '-date'), null),
@@ -380,6 +420,7 @@ export async function buildBusinessContext(client, saleOverride = null) {
       () => loadLatest(base44.entities.Rental, { client_id: clientId, status: 'ativa' }, '-start_date'),
       null
     ),
+    sale ? best(() => loadCertificate(sale.id), null) : null,
   ]);
 
   const items = Array.isArray(sale?.items) ? sale.items : [];
@@ -415,5 +456,6 @@ export async function buildBusinessContext(client, saleOverride = null) {
     ...(record ? recordContext(record) : {}),
     ...(test ? testContext(test) : {}),
     ...(rental ? rentalContext(rental, nextCharge) : {}),
+    ...(certificate ? certificateContext(certificate) : {}),
   };
 }

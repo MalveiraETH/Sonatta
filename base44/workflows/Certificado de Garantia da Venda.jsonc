@@ -1,0 +1,40 @@
+{
+  "name": "Certificado de Garantia da Venda",
+  "description": "Gera o certificado de garantia com as datas de revis\u00e3o sempre que uma venda \u00e9 registrada",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "Sale"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "certificado_garantia_venda",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "gerar_certificado": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "gerarCertificadoVenda",
+            "args": {
+              "sale_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Gerar certificado de garantia",
+            "description": "Ao registrar uma venda"
+          }
+        }
+      }
+    ]
+  }
+}
