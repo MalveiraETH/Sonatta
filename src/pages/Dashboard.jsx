@@ -252,9 +252,17 @@ export default function Dashboard() {
         overdueCardAmount: overdueCardInstallments.reduce((sum, inst) => sum + (inst.remaining_amount || 0), 0)
       });
 
-      // DADOS ANUAIS PARA GRÁFICO (receitas x despesas por mês)
+      // DADOS ANUAIS PARA GRÁFICO (faturado x receitas x despesas por mês)
+      const monthlyBilled = Array.from({ length: 12 }, () => 0);
       const monthlyRevenue = Array.from({ length: 12 }, () => 0);
       const monthlyExpensesArr = Array.from({ length: 12 }, () => 0);
+
+      // Faturado: total bruto das vendas na data da venda
+      validSales.forEach(s => {
+        const saleDate = parseLocalDate(s.sale_date) || new Date(s.created_date);
+        if (saleDate.getFullYear() !== chartYear) return;
+        monthlyBilled[saleDate.getMonth()] += (s.total || 0);
+      });
 
       // Receitas: vendas à vista (data venda) + parcelas pagas (data pagamento)
       validSales.forEach(s => {
@@ -282,6 +290,7 @@ export default function Dashboard() {
 
       const chartData = months.map((m, idx) => ({
         month: m.label.slice(0, 3),
+        faturado: Math.round(monthlyBilled[idx] * 100) / 100,
         receitas: Math.round(monthlyRevenue[idx] * 100) / 100,
         despesas: Math.round(monthlyExpensesArr[idx] * 100) / 100,
       }));
@@ -470,7 +479,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle className="text-lg font-semibold">Receitas x Despesas (Anual)</CardTitle>
-              <p className="text-xs text-slate-400 mt-1">Base caixa: recebido x pago</p>
+              <p className="text-xs text-slate-400 mt-1">Faturado bruto x recebido x pago</p>
             </div>
             <Select value={chartYear.toString()} onValueChange={(v) => setChartYear(parseInt(v))}>
               <SelectTrigger className="w-full sm:w-32">
@@ -496,6 +505,7 @@ export default function Dashboard() {
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
                 />
                 <Legend />
+                <Line type="monotone" dataKey="faturado" name="Faturado" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 <Line type="monotone" dataKey="receitas" name="Receitas" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 <Line type="monotone" dataKey="despesas" name="Despesas" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               </LineChart>
