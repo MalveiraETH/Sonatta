@@ -25,6 +25,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import SaleFiscalSummary from '@/components/sales/SaleFiscalSummary';
 
 export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchComplementary }) {
   const [professionalInfo, setProfessionalInfo] = useState(null);
@@ -392,6 +393,9 @@ export default function SaleDetailsDialog({ open, onOpenChange, sale, onLaunchCo
               </Card>
             </div>
           )}
+
+          {/* Resumo para o emissor de nota fiscal */}
+          <SaleFiscalSummary sale={sale} paymentMethodLabels={paymentMethodLabels} />
         </div>
       </DialogContent>
     </Dialog>
