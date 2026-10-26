@@ -9,8 +9,8 @@ import {
 import { loadDocLayout, drawDocHeader, drawDocFooter } from '@/lib/pdfLetterhead';
 
 // Gera o PDF do relatório de repasse.
-// rows: array de { professional, specialty, patient, saleDate, totalValue, referralValue }
-// filters: { dateStart, dateEnd, professionalName }
+// rows: array de { professional, specialty, patient, saleDate, totalValue, baseValue, referralValue }
+// filters: { dateStart, dateEnd, professionalName, referralPercent }
 export async function buildReferralPDF(rows, filters) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const PAGE_W = 210;
@@ -60,11 +60,13 @@ export async function buildReferralPDF(rows, filters) {
   };
 
   // A tabela ocupa exatamente a mesma largura do cabeçalho e da linha verde
+  const referralPercent = filters.referralPercent ?? 10;
   const COLS = [
-    { key: 'patient',      label: 'Paciente',     w: 80 },
-    { key: 'saleDate',     label: 'Data Venda',    w: 30, align: 'center' },
-    { key: 'totalValue',   label: 'Valor Total',  w: 35, align: 'right' },
-    { key: 'referralValue',label: 'Repasse 10%',  w: 35, align: 'right' },
+    { key: 'patient',      label: 'Paciente',     w: 65 },
+    { key: 'saleDate',     label: 'Data Venda',    w: 25, align: 'center' },
+    { key: 'totalValue',   label: 'Valor Total',  w: 32, align: 'right' },
+    { key: 'baseValue',    label: 'Base Líquida', w: 33, align: 'right' },
+    { key: 'referralValue',label: `Repasse ${referralPercent}%`, w: 25, align: 'right' },
   ];
   const totalW = COLS.reduce((s, c) => s + c.w, 0);
   const tableX = ML;
@@ -72,8 +74,15 @@ export async function buildReferralPDF(rows, filters) {
   const formatter = {
     specialty: (v) => (v || '-').replace(/_/g, ' '),
     totalValue: (v) => BRL(v),
+    baseValue: (v) => BRL(v),
     referralValue: (v) => BRL(v),
   };
+
+  // Borda direita de cada coluna, para alinhar os totais
+  const rightEdge = COLS.reduce((acc, c) => {
+    acc.push((acc.length ? acc[acc.length - 1] : tableX) + c.w);
+    return acc;
+  }, []);
 
   const drawTotals = (y, totals) => {
     doc.setFillColor(...P.totalBg);
@@ -83,12 +92,13 @@ export async function buildReferralPDF(rows, filters) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...P.purple);
-    const labelW = COLS.slice(0, 2).reduce((s, c) => s + c.w, 0);
+    const labelW = COLS[0].w + COLS[1].w;
     doc.text('TOTAL (' + totals.count + ' venda' + (totals.count !== 1 ? 's' : '') + ')', tableX + labelW / 2, y + 5.3, { align: 'center' });
     doc.setTextColor(...P.textMain);
-    doc.text(BRL(totals.totalValue), tableX + labelW + COLS[2].w - 2, y + 5.3, { align: 'right' });
+    doc.text(BRL(totals.totalValue), rightEdge[2] - 2, y + 5.3, { align: 'right' });
+    doc.text(BRL(totals.baseValue), rightEdge[3] - 2, y + 5.3, { align: 'right' });
     doc.setTextColor(...[80, 140, 0]);
-    doc.text(BRL(totals.referralValue), tableX + labelW + COLS[2].w + COLS[3].w - 2, y + 5.3, { align: 'right' });
+    doc.text(BRL(totals.referralValue), rightEdge[4] - 2, y + 5.3, { align: 'right' });
     return y + 8;
   };
 
@@ -97,11 +107,12 @@ export async function buildReferralPDF(rows, filters) {
   y = drawTableHeader(doc, tableX, y, COLS, totalW);
 
   let zebra = false;
-  const totals = { count: 0, totalValue: 0, referralValue: 0 };
+  const totals = { count: 0, totalValue: 0, baseValue: 0, referralValue: 0 };
 
   for (const row of rows) {
     totals.count++;
     totals.totalValue += row.totalValue || 0;
+    totals.baseValue += row.baseValue || 0;
     totals.referralValue += row.referralValue || 0;
 
     if (y + 6 > MAX_Y - 12) {

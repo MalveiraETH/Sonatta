@@ -33,6 +33,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/components/utils/dateHelpers';
 import { resolveSaleProfessionals } from '@/lib/saleProfessionals';
 import { saleFinancials } from '@/lib/saleFinancials';
+import { calcReferralRepasse, DEFAULT_BILLING_CONFIG, loadBillingConfig, referralRates } from '@/lib/referralRepasse';
 
 const REPAIR_STATUS_CONFIG = {
   aberto: { label: 'Aberto', color: 'bg-blue-100 text-blue-700' },
@@ -73,6 +74,7 @@ export default function Reports() {
   const [stockMovements, setStockMovements] = useState([]);
   const [testStatusFilter, setTestStatusFilter] = useState('todos');
   const [referralProfFilter, setReferralProfFilter] = useState('todos');
+  const [billingConfig, setBillingConfig] = useState(DEFAULT_BILLING_CONFIG);
   const [testDateStart, setTestDateStart] = useState('');
   const [testDateEnd, setTestDateEnd] = useState('');
   const [testProfFilter, setTestProfFilter] = useState('todos');
@@ -118,6 +120,7 @@ export default function Reports() {
       setTests(testsData);
       setStockMovements(movementsData);
       setRepairs(repairsData);
+      setBillingConfig(await loadBillingConfig());
     } catch (error) {
       console.error(error);
     } finally {
@@ -355,11 +358,13 @@ export default function Reports() {
       transferencia: 'Transferência'
     };
 
-    // Repasse de indicação: mesma regra da aba Repasse Indicação (10% para venda com aparelho serializado e profissional indicante).
+    // Repasse de indicação: mesma regra da aba Repasse Indicação
+    // (base líquida = valor total - taxa de cartão - imposto, aplicando o percentual de indicação
+    // para venda com aparelho serializado e profissional indicante).
     // Pagamentos complementares também geram repasse, herdando a regra da venda original.
     const saleReferralRepasse = (s) => {
       if (!canPayReferral(s)) return 0;
-      return getTotalPayments(s) * 0.10;
+      return calcReferralRepasse(getTotalPayments(s), billingConfig).referral;
     };
 
     filteredSales.forEach(s => {
@@ -512,6 +517,7 @@ export default function Reports() {
       const prof = getReferralProfForSale(baseSaleFor(sale));
       if (!prof) return;
       if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return;
+      const repasse = calcReferralRepasse(getTotalPayments(sale), billingConfig);
       referralData.push({
         'Profissional': prof.full_name,
         'Especialidade': prof.specialty || '-',
@@ -519,8 +525,9 @@ export default function Reports() {
         'Venda': sale.sale_number,
         'Venda Original': sale.complementary_to_sale_number || '',
         'Data Venda': toExcelDate(sale.sale_date || sale.created_date),
-        'Valor Total': toExcelNum(getTotalPayments(sale)),
-        'Repasse 10%': toExcelNum(getTotalPayments(sale) * 0.10)
+        'Valor Total': toExcelNum(repasse.gross),
+        'Base Líquida': toExcelNum(repasse.base),
+        [`Repasse ${repasse.referralPercent}%`]: toExcelNum(repasse.referral)
       });
     });
     exportToExcel(referralData, 'relatorio_repasse_indicacao');
@@ -1736,7 +1743,7 @@ export default function Reports() {
 
           <Card className="border-0 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Repasse de Indicação (10%)</CardTitle>
+              <CardTitle>Repasse de Indicação ({referralRates(billingConfig).referralPercent}%)</CardTitle>
               <div className="flex gap-2">
                 <Button onClick={exportReferralReport} variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
@@ -1748,19 +1755,21 @@ export default function Reports() {
                     const prof = getReferralProfForSale(baseSaleFor(sale));
                     if (!prof) return null;
                     if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return null;
-                    const total = getTotalPayments(sale);
+                    const repasse = calcReferralRepasse(getTotalPayments(sale), billingConfig);
                     return {
                       professional: prof.full_name,
                       specialty: prof.specialty,
                       patient: sale.client_name,
                       saleDate: sale.sale_date || sale.created_date,
-                      totalValue: total,
-                      referralValue: total * 0.10,
+                      totalValue: repasse.gross,
+                      baseValue: repasse.base,
+                      referralValue: repasse.referral,
                     };
                   }).filter(Boolean)}
                   filters={{
                     dateStart: referralDateStart,
                     dateEnd: referralDateEnd,
+                    referralPercent: referralRates(billingConfig).referralPercent,
                     professionalName: referralProfFilter !== 'todos'
                       ? professionals.find(p => p.id === referralProfFilter)?.full_name || 'Todos'
                       : 'Todos',
@@ -1778,7 +1787,8 @@ export default function Reports() {
                       <TableHead>Paciente</TableHead>
                       <TableHead>Data Venda</TableHead>
                       <TableHead className="text-right">Valor Total</TableHead>
-                      <TableHead className="text-right">Repasse 10%</TableHead>
+                      <TableHead className="text-right">Base Líquida</TableHead>
+                      <TableHead className="text-right">Repasse {referralRates(billingConfig).referralPercent}%</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1787,6 +1797,7 @@ export default function Reports() {
                       const prof = getReferralProfForSale(baseSaleFor(sale));
                       if (!prof) return null;
                       if (referralProfFilter !== 'todos' && prof.id !== referralProfFilter) return null;
+                      const repasse = calcReferralRepasse(getTotalPayments(sale), billingConfig);
 
                       return (
                         <TableRow key={sale.id}>
@@ -1799,9 +1810,10 @@ export default function Reports() {
                             )}
                           </TableCell>
                           <TableCell>{formatLocalDate(sale.sale_date || sale.created_date)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatCurrency(getTotalPayments(sale))}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(repasse.gross)}</TableCell>
+                          <TableCell className="text-right text-slate-600">{formatCurrency(repasse.base)}</TableCell>
                           <TableCell className="text-right font-bold text-[#A4D233]">
-                            {formatCurrency(getTotalPayments(sale) * 0.10)}
+                            {formatCurrency(repasse.referral)}
                           </TableCell>
                         </TableRow>
                       );
