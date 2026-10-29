@@ -144,84 +144,77 @@ export async function saveQuoteBlocks(blocks) {
   return created.id;
 }
 
-// Categorias de markup dos produtos incluídos no orçamento (as mesmas de
+// Níveis de tecnologia dos itens do orçamento (os mesmos de
 // Configurações > Produtos de Referência: 90, 70, 50, 30, 10, 5).
 // O item do orçamento pode apontar para um Produto de Referência (caso normal)
 // ou para um aparelho do estoque — os dois caminhos são considerados.
-export async function quoteBlockCategories(quote) {
+// Retorna o nível de cada item e a lista de níveis do orçamento (maior primeiro).
+export async function resolveQuoteLevels(quote) {
   const items = quote.items || [];
+  if (!items.length) return { items: [], categories: [] };
+
   const ids = [...new Set(items.map((item) => item.product_id).filter(Boolean))];
   const names = [...new Set(items.map((item) => clean(item.product_name)).filter(Boolean))];
 
-  if (!ids.length && !names.length) return [];
+  const first = (res) => (res?.items || res || [])[0] || null;
 
-  const byRefId = (id) =>
-    base44.entities.ReferenceProduct.get(id).catch(() => null);
-  const byProductId = (id) => base44.entities.Product.get(id).catch(() => null);
-  const refByName = (name) =>
-    base44.entities.ReferenceProduct.filter({ name }, { limit: 5 })
-      .then((res) => (res.items || res || [])[0] || null)
-      .catch(() => null);
-
-  const [refsById, productsById, refsByName] = await Promise.all([
-    Promise.all(ids.map(byRefId)),
-    Promise.all(ids.map(byProductId)),
-    Promise.all(names.map(refByName)),
-  ]);
-
-  const categories = new Set();
-
-  // Produto de Referência encontrado por ID ou pelo nome do item
-  [...refsById, ...refsByName]
-    .filter(Boolean)
-    .forEach((ref) => {
-      if (ref.category) categories.add(String(ref.category));
-    });
-
-  // Aparelho do estoque: categoria de markup própria ou herdada da referência
-  const stock = productsById.filter(Boolean);
-  const refCodes = [
-    ...new Set(stock.filter((p) => !p.markup_category && p.reference).map((p) => p.reference)),
-  ];
-  const refCategoryByCode = {};
-  if (refCodes.length) {
-    const res = await base44.entities.ReferenceProduct
-      .filter({ reference: { $in: refCodes } })
-      .catch(() => null);
-    (res?.items || res || []).forEach((ref) => {
-      refCategoryByCode[ref.reference] = ref.category;
-    });
-  }
-  stock.forEach((product) => {
-    const category = product.markup_category || refCategoryByCode[product.reference];
-    if (category) categories.add(String(category));
-  });
-
-  // Último recurso: localiza o aparelho do estoque pelo nome do item
-  if (!categories.size && names.length) {
-    const stockByName = await Promise.all(
+  const [refsById, productsById, refsByName, productsByName] = await Promise.all([
+    Promise.all(ids.map((id) => base44.entities.ReferenceProduct.get(id).catch(() => null))),
+    Promise.all(ids.map((id) => base44.entities.Product.get(id).catch(() => null))),
+    Promise.all(
+      names.map((name) =>
+        base44.entities.ReferenceProduct.filter({ name }, { limit: 5 }).then(first).catch(() => null)
+      )
+    ),
+    Promise.all(
       names.map((name) =>
         base44.entities.Product.filter({ name }, { limit: 5 })
-          .then((res) => (res.items || res || []).find((p) => p.markup_category || p.reference) || null)
+          .then((res) => (res?.items || res || []).find((p) => p.markup_category || p.reference) || null)
           .catch(() => null)
       )
-    );
-    const found = stockByName.filter(Boolean);
-    found.forEach((p) => {
-      if (p.markup_category) categories.add(String(p.markup_category));
+    ),
+  ]);
+
+  const refById = {};
+  const productById = {};
+  const refByName = {};
+  const productByName = {};
+  ids.forEach((id, i) => { refById[id] = refsById[i]; productById[id] = productsById[i]; });
+  names.forEach((name, i) => { refByName[name] = refsByName[i]; productByName[name] = productsByName[i]; });
+
+  // Aparelho do estoque sem categoria própria herda o nível da referência
+  const codes = new Set();
+  const collectCode = (product) => {
+    if (product && !product.markup_category && product.reference) codes.add(product.reference);
+  };
+  Object.values(productById).forEach(collectCode);
+  Object.values(productByName).forEach(collectCode);
+
+  const refCategoryByCode = {};
+  if (codes.size) {
+    const res = await base44.entities.ReferenceProduct
+      .filter({ reference: { $in: [...codes] } })
+      .catch(() => null);
+    (res?.items || res || []).forEach((ref) => {
+      if (ref.category) refCategoryByCode[ref.reference] = ref.category;
     });
-    const codes = [...new Set(found.filter((p) => !p.markup_category && p.reference).map((p) => p.reference))];
-    if (codes.length) {
-      const res = await base44.entities.ReferenceProduct
-        .filter({ reference: { $in: codes } })
-        .catch(() => null);
-      (res?.items || res || []).forEach((ref) => {
-        if (ref.category) categories.add(String(ref.category));
-      });
-    }
   }
 
-  return [...categories];
+  const itemsWithLevel = items.map((item) => {
+    const name = clean(item.product_name);
+    const ref = (item.product_id && refById[item.product_id]) || refByName[name] || null;
+    const product = (item.product_id && productById[item.product_id]) || productByName[name] || null;
+    const level =
+      String(ref?.category || '') ||
+      String(product?.markup_category || '') ||
+      String((product?.reference && refCategoryByCode[product.reference]) || '');
+    return { item, level };
+  });
+
+  const categories = [...new Set(itemsWithLevel.map((row) => row.level).filter(Boolean))]
+    .sort((a, b) => Number(b) - Number(a));
+
+  return { items: itemsWithLevel, categories };
 }
 
 // Indica se a categoria tem texto próprio cadastrado (senão usa o Padrão)

@@ -20,6 +20,7 @@ const DEFAULT = {
   website: 'sonatta.store',
   instagram: '@sonatta.store',
   table_col_desc: 'Descrição',
+  table_col_level: 'Nível',
   table_col_qty: 'Qtd',
   table_col_unit: 'Valor Unit.',
   table_col_total: 'Total',
@@ -180,6 +181,9 @@ export default function QuotePDFSettings() {
           <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
             <Field label="Descrição" id="table_col_desc">
               <Input id="table_col_desc" value={config.table_col_desc} onChange={(e) => set('table_col_desc', e.target.value)} />
+            </Field>
+            <Field label="Nível" id="table_col_level">
+              <Input id="table_col_level" value={config.table_col_level || 'Nível'} onChange={(e) => set('table_col_level', e.target.value)} />
             </Field>
             <Field label="Qtd" id="table_col_qty">
               <Input id="table_col_qty" value={config.table_col_qty} onChange={(e) => set('table_col_qty', e.target.value)} />

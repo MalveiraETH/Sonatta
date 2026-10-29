@@ -16,8 +16,8 @@ import {
   buildQuoteVariables,
   loadQuoteBlocks,
   loadQuoteTemplate,
-  quoteBlockCategories,
   resolveCategoryBlocks,
+  resolveQuoteLevels,
   splitQuoteContent,
 } from '@/lib/quoteBlocks';
 
@@ -34,6 +34,7 @@ const DEFAULT_CFG = {
   signer_role: 'Comercial Sonatta',
   // tabela
   table_col_desc: 'Descrição',
+  table_col_level: 'Nível',
   table_col_qty: 'Qtd',
   table_col_unit: 'Valor Unit.',
   table_col_total: 'Total',
@@ -182,13 +183,10 @@ async function buildPDF(quote, cfg) {
   setFill(P.green); doc.rect(ML, headerLineY, CW, 0.7, 'F');
 
   // ── Dados do orçamento: cliente, modelo e blocos por categoria ──
-  const [client, template, blocksCfg, categories] = await Promise.all([
-    quote.client_id
-      ? base44.entities.Client.get(quote.client_id).catch(() => null)
-      : Promise.resolve(null),
-    loadQuoteTemplate(),
+  const [client, template, blocksCfg, levels] = await Promise.all([
+...
     loadQuoteBlocks(),
-    quoteBlockCategories(quote),
+    resolveQuoteLevels(quote),
   ]);
 
   const ctx = {
@@ -255,24 +253,36 @@ async function buildPDF(quote, cfg) {
   // ── BLOCO: itens do orçamento ──
   const drawItemsBlock = (y) => {
     let yy = sectionHead('ITENS DO ORÇAMENTO', y);
-    const TC = { desc: { x: ML, w: 100 }, qty: { x: ML + 102, w: 14 }, unit: { x: ML + 118, w: 28 } };
+    const TC = {
+      desc: { x: ML, w: 84 },
+      level: { x: ML + 86, w: 13 },
+      qty: { x: ML + 101, w: 11 },
+      unit: { x: ML + 114, w: 26 },
+    };
     const TR = PAGE_W - MR, TH = 6;
 
     setFill(P.purple); doc.rect(ML, yy, CW, TH, 'F');
     setFont('bold', 8); setTxt(P.white);
     doc.text(cfg.table_col_desc || 'Descrição', TC.desc.x + 3, yy + 4.2);
+    doc.text(cfg.table_col_level || 'Nível', TC.level.x + TC.level.w / 2, yy + 4.2, { align: 'center' });
     doc.text(cfg.table_col_qty || 'Qtd', TC.qty.x + TC.qty.w / 2, yy + 4.2, { align: 'center' });
     doc.text(cfg.table_col_unit || 'Valor Unit.', TC.unit.x + TC.unit.w - 1, yy + 4.2, { align: 'right' });
     doc.text(cfg.table_col_total || 'Total', TR - 2, yy + 4.2, { align: 'right' });
     yy += TH;
 
+    // Nível mais alto primeiro
+    const rows = [...levels.items].sort(
+      (a, b) => (Number(b.level) || 0) - (Number(a.level) || 0)
+    );
+
     let zebra = false;
-    (quote.items || []).forEach((item) => {
+    rows.forEach(({ item, level }) => {
       const nameLines = doc.splitTextToSize(item.product_name || '—', TC.desc.w - 4);
       const rowH = Math.max(6, nameLines.length * LH + 2);
       if (zebra) { setFill([245, 243, 248]); doc.rect(ML, yy, CW, rowH, 'F'); }
       setFont('normal', 8); setTxt(P.textMain);
       doc.text(nameLines, TC.desc.x + 3, yy + 4.2);
+      doc.text(level || '—', TC.level.x + TC.level.w / 2, yy + 4.2, { align: 'center' });
       doc.text(String(item.quantity || 1), TC.qty.x + TC.qty.w / 2, yy + 4.2, { align: 'center' });
       doc.text(BRL(item.unit_price), TC.unit.x + TC.unit.w - 1, yy + 4.2, { align: 'right' });
       doc.text(BRL(item.total), TR - 2, yy + 4.2, { align: 'right' });
@@ -345,22 +355,33 @@ async function buildPDF(quote, cfg) {
   };
 
   // ── BLOCO: garantias / acompanhamento por categoria de produto ──
-  const resolvedBlocks = resolveCategoryBlocks(blocksCfg, categories);
+  // Níveis do orçamento já vêm do maior para o menor
+  const resolvedBlocks = resolveCategoryBlocks(blocksCfg, levels.categories);
   const drawCategoryBlock = (y, title, key) => {
-    const entries = resolvedBlocks
-      .map((block) => ({ label: block.label, html: block[key] }))
-      .filter((entry) => hasVisibleText(entry.html));
+    const seen = new Set();
+    const entries = [];
+    resolvedBlocks.forEach((block) => {
+      const html = block[key];
+      if (!hasVisibleText(html) || seen.has(html)) return;
+      seen.add(html);
+      entries.push({ label: block.label, html });
+    });
     if (!entries.length) return y;
 
     let yy = sectionHead(title, y);
-    const seen = new Set();
-    entries.forEach((entry) => {
-      if (seen.has(entry.html)) return;
-      seen.add(entry.html);
-      if (resolvedBlocks.length > 1 && entry.label) {
+    entries.forEach((entry, index) => {
+      const showLabel = entries.length > 1 && entry.label;
+      // Reserva espaço para o cabeçalho do nível e as primeiras linhas do texto
+      if (yy + LH * (showLabel ? 5 : 3) > pageBottom) yy = newPage();
+      // Separador entre níveis — evita que o texto de um nível suba sobre o anterior
+      if (index > 0) {
+        setFill(P.divider); doc.rect(ML + 2, yy - 1.2, CW - 4, 0.2, 'F');
+        yy += LH;
+      }
+      if (showLabel) {
         setFont('bold', 8); setTxt(P.purple);
         doc.text(entry.label, ML + 2, yy);
-        yy += LH;
+        yy += LH + 0.6;
       }
       yy = drawHtmlText(doc, entry.html, ML + 2, yy, CW - 4, 8, P.textMain, LH, textOpts) + PARA_GAP;
     });
