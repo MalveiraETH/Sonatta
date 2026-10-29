@@ -184,7 +184,10 @@ async function buildPDF(quote, cfg) {
 
   // ── Dados do orçamento: cliente, modelo e blocos por categoria ──
   const [client, template, blocksCfg, levels] = await Promise.all([
-...
+    quote.client_id
+      ? base44.entities.Client.get(quote.client_id).catch(() => null)
+      : Promise.resolve(null),
+    loadQuoteTemplate(),
     loadQuoteBlocks(),
     resolveQuoteLevels(quote),
   ]);
