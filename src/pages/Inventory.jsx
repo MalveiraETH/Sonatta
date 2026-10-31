@@ -844,17 +844,14 @@ export default function Inventory() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-[#6B3FA0] text-[#6B3FA0] hover:bg-[#6B3FA0]/10"
-                          onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                      <DropdownMenu>
+                      {/* O menu é renderizado em portal, mas o clique ainda borbulha pelo React até o
+                          card (abrindo os detalhes). Isolamos o toque aqui para cada ação funcionar direto. */}
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={markActionTap}
+                      >
+                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} onPointerDown={markActionTap}>
                             <MoreVertical className="h-4 w-4" />
