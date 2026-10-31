@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import AssociateProductDialog from '@/components/inventory/AssociateProductDialog';
 import SubstituteProductDialog from '@/components/inventory/SubstituteProductDialog';
+import SerializedProductForm from '@/components/inventory/SerializedProductForm';
+import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
 import SubstitutionStatusCard from '@/components/inventory/SubstitutionStatusCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -60,6 +62,7 @@ export default function ProductDetail() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [associateDialogOpen, setAssociateDialogOpen] = useState(false);
   const [substituteDialogOpen, setSubstituteDialogOpen] = useState(false);
+  const [editFormOpen, setEditFormOpen] = useState(false);
   const [concludingRepair, setConcludingRepair] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -221,6 +224,16 @@ export default function ProductDetail() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {!product.is_trial && (
+            <Button
+              variant="outline"
+              onClick={() => setEditFormOpen(true)}
+              className="border-[#6B3FA0] text-[#6B3FA0] hover:bg-[#6B3FA0]/10"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          )}
           {product.stock_type === 'serializado' && product.status === 'vendido' && !product.client_id && (
             <Button
               onClick={() => setAssociateDialogOpen(true)}
@@ -525,6 +538,20 @@ export default function ProductDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Product Form */}
+      <SerializedProductForm
+        open={editFormOpen && product.stock_type === 'serializado'}
+        onOpenChange={setEditFormOpen}
+        product={product}
+        onSuccess={loadData}
+      />
+      <NonSerializedProductForm
+        open={editFormOpen && product.stock_type !== 'serializado'}
+        onOpenChange={setEditFormOpen}
+        product={product}
+        onSuccess={loadData}
+      />
 
       {/* Associate Product Dialog */}
       <AssociateProductDialog
