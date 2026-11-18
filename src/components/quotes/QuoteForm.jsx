@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
+import QuoteItemRow from '@/components/quotes/QuoteItemRow';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Loader2, Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
@@ -196,7 +197,26 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
       newItems[index].total = newItems[index].quantity * newItems[index].unit_price;
     }
 
+    // Digitar o total do item recalcula o valor unitário
+    if (field === 'total') {
+      const qty = newItems[index].quantity || 0;
+      newItems[index].unit_price = qty > 0 ? value / qty : value;
+    }
+
     recalculateTotals(newItems);
+  };
+
+  const handleProductNameChange = (index, searchValue) => {
+    const newItems = [...formData.items];
+    newItems[index] = { ...newItems[index], product_name: searchValue };
+    setFormData({ ...formData, items: newItems });
+
+    const foundProduct = referenceProducts.find(p =>
+      p.name?.toLowerCase() === searchValue.toLowerCase()
+    );
+    if (foundProduct) {
+      updateItem(index, 'product_id', foundProduct.id);
+    }
   };
 
   const recalculateTotals = (items) => {
@@ -362,74 +382,24 @@ export default function QuoteForm({ open, onOpenChange, quote, onSuccess, presel
               </Button>
             </div>
 
+            {formData.items.length > 0 && (
+              <p className="text-xs text-slate-500">
+                Digite o <span className="font-medium text-slate-700">Valor Unit.</span> ou o{' '}
+                <span className="font-medium text-slate-700">Total do Item</span> — o outro é calculado automaticamente.
+              </p>
+            )}
+
             {formData.items.map((item, index) => (
-              <Card key={index} className="p-4">
-                <div className="grid grid-cols-12 gap-3 items-end">
-                  <div className="col-span-5">
-                    <Label className="text-xs">Nome do Aparelho</Label>
-                    <Input
-                      placeholder="Digite o nome do aparelho..."
-                      value={item.product_name || ''}
-                      onChange={(e) => {
-                        const searchValue = e.target.value;
-                        const newItems = [...formData.items];
-                        newItems[index].product_name = searchValue;
-                        setFormData({ ...formData, items: newItems });
-                        
-                        const searchTerm = searchValue.toLowerCase();
-                        const foundProduct = referenceProducts.find(p => 
-                          p.name?.toLowerCase() === searchTerm
-                        );
-                        if (foundProduct) {
-                          updateItem(index, 'product_id', foundProduct.id);
-                        }
-                      }}
-                      list={`product-list-${index}`}
-                    />
-                    <datalist id={`product-list-${index}`}>
-                      {referenceProducts.map((product) => (
-                        <option key={product.id} value={product.name}>
-                          {product.name} - Cat. {product.category} - {formatCurrency(product.finalPrice)}
-                        </option>
-                      ))}
-                    </datalist>
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Qtd</Label>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      value={item.quantity ? item.quantity : ''}
-                      placeholder="1"
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => updateItem(index, 'quantity', Number(e.target.value) || 0)}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Valor Unit.</Label>
-                    <CurrencyInput
-                      value={item.unit_price}
-                      onChange={(val) => updateItem(index, 'unit_price', val)}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Total</Label>
-                    <Input value={formatCurrency(item.total)} readOnly className="bg-slate-50" />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+              <QuoteItemRow
+                key={index}
+                item={item}
+                index={index}
+                referenceProducts={referenceProducts}
+                onUpdate={updateItem}
+                onRemove={removeItem}
+                onProductNameChange={handleProductNameChange}
+                formatCurrency={formatCurrency}
+              />
             ))}
           </div>
 
