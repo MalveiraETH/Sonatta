@@ -28,14 +28,15 @@ export default function SaleFiscalSummary({ sale, paymentMethodLabels }) {
   const summaryText = useMemo(() => {
     if (!sale) return '';
 
-    const payments = (sale.payment_details || []).map(p => {
+    const paymentLines = (sale.payment_details || []).map(p => {
       const label = paymentMethodLabels[p.method] || p.method;
-      const installments = p.installments > 1 ? ` ${p.installments}x` : '';
-      return `${label}${installments} ${formatCurrency(p.amount)}`;
+      const amount = p.amount || 0;
+      if (p.installments > 1) {
+        const perInstallment = amount / p.installments;
+        return `- ${label}: ${p.installments}x de ${formatCurrency(perInstallment)} (total ${formatCurrency(amount)})`;
+      }
+      return `- ${label}: ${formatCurrency(amount)}`;
     });
-    const paymentsLine = payments.length > 0
-      ? payments.join(' + ')
-      : `${formatCurrency(sale.total)}`;
 
     const productLines = (sale.items || []).map(item => {
       const parts = [`${item.quantity || 1}x ${item.product_name}`];
@@ -45,11 +46,12 @@ export default function SaleFiscalSummary({ sale, paymentMethodLabels }) {
       return `- ${parts.join(' | ')}`;
     });
 
-    return [
-      `Forma de pagamento: ${paymentsLine}`,
-      'Produtos:',
-      ...productLines
-    ].join('\n');
+    const lines = [`Valor total da compra: ${formatCurrency(sale.total)}`];
+    if (paymentLines.length > 0) {
+      lines.push('Formas de pagamento:', ...paymentLines);
+    }
+    lines.push('Produtos:', ...productLines);
+    return lines.join('\n');
   }, [sale, warrantyMap, paymentMethodLabels]);
 
   const handleCopy = async () => {
