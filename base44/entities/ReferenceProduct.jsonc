@@ -38,19 +38,21 @@
     "warranty_years": {
       "type": "number",
       "enum": [
+        0,
         1,
         2,
         3,
         4
       ],
       "default": 2,
-      "description": "Anos de garantia"
+      "description": "Anos de garantia (0 = sem garantia)"
     },
     "power_type": {
       "type": "string",
       "enum": [
         "pilha",
-        "bateria_recarregavel"
+        "bateria_recarregavel",
+        "nao_se_aplica"
       ],
       "default": "pilha",
       "description": "Tipo de funcionamento"

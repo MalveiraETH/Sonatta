@@ -119,18 +119,20 @@
     "warranty_years": {
       "type": "number",
       "enum": [
+        0,
         1,
         2,
         3,
         4
       ],
-      "description": "Anos de garantia (para serializados)"
+      "description": "Anos de garantia (para serializados; 0 = sem garantia)"
     },
     "power_type": {
       "type": "string",
       "enum": [
         "pilha",
-        "bateria_recarregavel"
+        "bateria_recarregavel",
+        "nao_se_aplica"
       ],
       "description": "Tipo de funcionamento (para aparelhos)"
     },

@@ -533,6 +533,7 @@ export default function SerializedProductForm({ open, onOpenChange, product, onS
                 <SelectContent>
                   <SelectItem value="pilha">Pilha</SelectItem>
                   <SelectItem value="bateria_recarregavel">Bateria Recarregável</SelectItem>
+                  <SelectItem value="nao_se_aplica">Não se aplica</SelectItem>
                 </SelectContent>
               </Select>
             </div>

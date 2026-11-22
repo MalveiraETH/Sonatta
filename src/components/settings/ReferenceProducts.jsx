@@ -33,6 +33,12 @@ import CurrencyInput from '@/components/ui/CurrencyInput';
 
 const CATEGORY_OPTIONS = ['90', '70', '50', '30', '10', '5'];
 
+const POWER_TYPE_LABELS = {
+  pilha: 'Pilha',
+  bateria_recarregavel: 'Bateria Recarregável',
+  nao_se_aplica: 'Não se aplica'
+};
+
 export default function ReferenceProducts() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
@@ -121,7 +127,7 @@ export default function ReferenceProducts() {
       category: product.category,
       cost: product.cost.toString(),
       include_fixed_cost: product.include_fixed_cost !== false,
-      warranty_years: product.warranty_years || 2,
+      warranty_years: product.warranty_years ?? 2,
       power_type: product.power_type || 'pilha'
     });
     setIsFormOpen(true);
@@ -232,8 +238,8 @@ export default function ReferenceProducts() {
         'Nível de Tecnologia': getCategoryLabel(product.category),
         'Custo Aparelho': product.cost,
         'Incluir Custo Fixo': product.include_fixed_cost !== false ? 'Sim' : 'Não',
-        'Garantia': `${product.warranty_years || 2} anos`,
-        'Funcionamento': (product.power_type || 'pilha') === 'pilha' ? 'Pilha' : 'Bateria Recarregável',
+        'Garantia': product.warranty_years ? `${product.warranty_years} anos` : 'Sem garantia',
+        'Funcionamento': POWER_TYPE_LABELS[product.power_type || 'pilha'],
         'Custo Total': calculateTotalCost(product.cost, product.include_fixed_cost !== false),
         'Valor Final': calculateFinalPrice(product.cost, product.category, product.include_fixed_cost !== false),
         'Descontos': calculateDiscounts(product.cost, product.category, product.include_fixed_cost !== false),
@@ -418,6 +424,7 @@ export default function ReferenceProducts() {
                             <SelectItem value="2">2 anos</SelectItem>
                             <SelectItem value="3">3 anos</SelectItem>
                             <SelectItem value="4">4 anos</SelectItem>
+                            <SelectItem value="0">Sem Garantia</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -433,6 +440,7 @@ export default function ReferenceProducts() {
                           <SelectContent>
                             <SelectItem value="pilha">Pilha</SelectItem>
                             <SelectItem value="bateria_recarregavel">Bateria Recarregável</SelectItem>
+                            <SelectItem value="nao_se_aplica">Não se aplica</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
