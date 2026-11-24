@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { UserPlus, Mail, Shield, User, Loader2 } from 'lucide-react';
+import { UserPlus, Shield, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const roleLabels = {
@@ -51,6 +51,7 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('user');
   const [inviting, setInviting] = useState(false);
@@ -73,24 +74,48 @@ export default function UsersManagement() {
     setLoading(false);
   };
 
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
+  // Garante que nome e perfil escolhidos no cadastro fiquem gravados no usuário
+  const applyProfile = async (email, role, fullName) => {
+    try {
+      const allUsers = await base44.entities.User.list();
+      const created = allUsers.find((u) => (u.email || '').toLowerCase() === email.toLowerCase());
+      if (!created) return;
+      if (created.role !== role) {
+        await base44.entities.User.update(created.id, { role });
+      }
+      if (fullName && created.full_name !== fullName) {
+        await base44.entities.User.update(created.id, { full_name: fullName });
+      }
+    } catch (e) {
+      // O perfil já foi enviado na criação do acesso
+    }
+  };
+
+  const handleCreateUser = async () => {
+    const email = inviteEmail.trim();
+    const fullName = inviteName.trim();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Informe um e-mail válido');
+      return;
+    }
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
-      // Notifica o admin por e-mail sobre o novo usuário convidado
+      await base44.users.inviteUser(email, inviteRole);
+      await applyProfile(email, inviteRole, fullName);
       await base44.integrations.Core.SendEmail({
         to: currentUser.email,
-        subject: 'Novo usuário convidado - Sonatta',
-        body: `Olá ${currentUser.full_name},\n\nVocê convidou um novo usuário para o sistema Sonatta:\n\nE-mail: ${inviteEmail.trim()}\nPapel: ${roleLabels[inviteRole] || inviteRole}\n\nO usuário receberá um e-mail com as instruções de acesso.\n\nSonatta - Soluções Auditivas`,
+        subject: 'Novo usuário cadastrado - Sonatta',
+        body: `Olá ${currentUser.full_name},\n\nUm novo usuário foi cadastrado no sistema Sonatta:\n\nNome: ${fullName || '(não informado)'}\nE-mail: ${email}\nPerfil de acesso: ${roleLabels[inviteRole] || inviteRole}\n\nO usuário receberá um e-mail com o link para definir a senha e acessar o sistema.\n\nSonatta - Soluções Auditivas`,
       });
-      toast.success(`Convite enviado para ${inviteEmail}`);
+      toast.success(`Usuário ${fullName || email} cadastrado como ${roleLabels[inviteRole] || inviteRole}`);
+      setInviteName('');
       setInviteEmail('');
       setInviteRole('user');
       setInviteOpen(false);
       loadData();
     } catch (e) {
-      toast.error(`Erro ao enviar convite: ${e?.message || 'Tente novamente'}`);
+      toast.error(`Erro ao cadastrar usuário: ${e?.message || 'Tente novamente'}`);
     } finally {
       setInviting(false);
     }
@@ -132,7 +157,7 @@ export default function UsersManagement() {
               className="bg-[#6B3FA0] hover:bg-[#5a3388] text-white gap-2"
             >
               <UserPlus className="h-4 w-4" />
-              Convidar Usuário
+              Novo Usuário
             </Button>
           )}
         </CardHeader>
@@ -188,16 +213,24 @@ export default function UsersManagement() {
         </CardContent>
       </Card>
 
-      {/* Invite Dialog */}
+      {/* Novo Usuário Dialog */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-[#6B3FA0]" />
-              Convidar Novo Usuário
+              <UserPlus className="h-5 w-5 text-[#6B3FA0]" />
+              Novo Usuário
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome completo</Label>
+              <Input
+                placeholder="Nome do usuário"
+                value={inviteName}
+                onChange={(e) => setInviteName(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label>E-mail</Label>
               <Input
@@ -208,7 +241,7 @@ export default function UsersManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Papel</Label>
+              <Label>Perfil de acesso</Label>
               <Select value={inviteRole} onValueChange={setInviteRole}>
                 <SelectTrigger>
                   <SelectValue />
@@ -222,11 +255,14 @@ export default function UsersManagement() {
                 </SelectContent>
               </Select>
             </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              O perfil de acesso já fica definido neste cadastro. O usuário recebe por e-mail o link para criar a senha e entrar no sistema.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
-            <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="bg-[#6B3FA0] hover:bg-[#5a3388] text-white">
-              {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar Convite'}
+            <Button onClick={handleCreateUser} disabled={inviting || !inviteEmail.trim()} className="bg-[#6B3FA0] hover:bg-[#5a3388] text-white">
+              {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Cadastrar Usuário'}
             </Button>
           </DialogFooter>
         </DialogContent>
