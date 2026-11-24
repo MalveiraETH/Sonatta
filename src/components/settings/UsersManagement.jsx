@@ -20,6 +20,16 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -27,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { UserPlus, Shield, User, Loader2 } from 'lucide-react';
+import { UserPlus, Shield, User, Loader2, UserX, UserCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const roleLabels = {
@@ -58,6 +68,8 @@ export default function UsersManagement() {
   const [editUser, setEditUser] = useState(null);
   const [editRole, setEditRole] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteUser, setDeleteUser] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -135,6 +147,32 @@ export default function UsersManagement() {
     }
   };
 
+  const handleToggleAccess = async (u) => {
+    const next = u.access_status === 'inativo' ? 'ativo' : 'inativo';
+    try {
+      await base44.entities.User.update(u.id, { access_status: next });
+      toast.success(next === 'ativo' ? 'Acesso reativado' : 'Acesso inativado');
+      loadData();
+    } catch (e) {
+      toast.error(`Erro ao alterar acesso: ${e?.message || 'Tente novamente'}`);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    setDeleting(true);
+    try {
+      const response = await base44.functions.invoke('excluirUsuario', { user_id: deleteUser.id });
+      if (response.data?.error) throw new Error(response.data.error);
+      toast.success('Usuário excluído');
+      setDeleteUser(null);
+      loadData();
+    } catch (e) {
+      toast.error(`Erro ao excluir usuário: ${e?.message || 'Tente novamente'}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -185,6 +223,9 @@ export default function UsersManagement() {
                       {u.id === currentUser?.id && (
                         <Badge variant="outline" className="text-xs">Você</Badge>
                       )}
+                      {u.access_status === 'inativo' && (
+                        <Badge className="text-xs bg-red-100 text-red-700 hover:bg-red-100">Inativo</Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-slate-600">{u.email}</TableCell>
@@ -196,13 +237,35 @@ export default function UsersManagement() {
                   {currentUser?.role === 'admin' && (
                     <TableCell className="text-right">
                       {u.id !== currentUser?.id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { setEditUser(u); setEditRole(u.role || 'user'); }}
-                        >
-                          Alterar Papel
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => { setEditUser(u); setEditRole(u.role || 'user'); }}
+                          >
+                            Alterar Papel
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={u.access_status === 'inativo' ? 'Reativar acesso' : 'Inativar acesso'}
+                            onClick={() => handleToggleAccess(u)}
+                          >
+                            {u.access_status === 'inativo' ? (
+                              <UserCheck className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <UserX className="h-4 w-4 text-amber-600" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Excluir usuário"
+                            onClick={() => setDeleteUser(u)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   )}
@@ -300,6 +363,28 @@ export default function UsersManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Excluir Usuário */}
+      <AlertDialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleteUser?.full_name || deleteUser?.email}</strong>? A pessoa perde o acesso ao sistema imediatamente. Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteUser(); }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

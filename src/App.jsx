@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import AccessBlocked from '@/components/AccessBlocked';
 import { useState } from 'react';
 import SplashScreen from '@/components/SplashScreen';
 import VendasPerdidas from '@/pages/VendasPerdidas';
@@ -37,6 +38,8 @@ const AuthenticatedApp = () => {
   if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
+    } else if (authError.type === 'access_blocked') {
+      return <AccessBlocked />;
     } else if (authError.type === 'auth_required') {
       // Redirect to login automatically
       navigateToLogin();
