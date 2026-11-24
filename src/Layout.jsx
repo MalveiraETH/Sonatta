@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   LogOut,
+  KeyRound,
   ChevronDown,
   Bell,
   Ear,
@@ -35,6 +36,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
+import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 import { usePermissions } from '@/lib/usePermissions';
 
 const menuItems = [
@@ -69,6 +71,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const { canAccessPage, loading } = usePermissions(user);
   const location = useLocation();
 
@@ -185,6 +188,15 @@ export default function Layout({ children, currentPageName }) {
             <Button
               variant="ghost"
               size="icon"
+              title="Alterar senha"
+              onClick={() => setPasswordOpen(true)}
+              className="text-white/50 hover:text-white hover:bg-white/10"
+            >
+              <KeyRound className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => base44.auth.logout()}
               className="text-white/50 hover:text-white hover:bg-white/10"
             >
@@ -200,6 +212,7 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-slate-50">
       <AppVersionMonitor />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} user={user} />
 
 
 
@@ -255,6 +268,10 @@ export default function Layout({ children, currentPageName }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
+                  <KeyRound className="h-4 w-4 mr-2" />
+                  Alterar Senha
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => base44.auth.logout()}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Sair
