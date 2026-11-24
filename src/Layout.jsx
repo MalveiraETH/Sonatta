@@ -15,6 +15,7 @@ import {
   X,
   LogOut,
   KeyRound,
+  HelpCircle,
   ChevronDown,
   Bell,
   Ear,
@@ -37,6 +38,7 @@ import {
 import { cn } from '@/lib/utils';
 import AppVersionMonitor from '@/components/utils/AppVersionMonitor';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
+import HelpGuideDialog from '@/components/help/HelpGuideDialog';
 import { usePermissions } from '@/lib/usePermissions';
 
 const menuItems = [
@@ -72,6 +74,7 @@ export default function Layout({ children, currentPageName }) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const { canAccessPage, loading } = usePermissions(user);
   const location = useLocation();
 
@@ -188,6 +191,15 @@ export default function Layout({ children, currentPageName }) {
             <Button
               variant="ghost"
               size="icon"
+              title="Guia de ajuda"
+              onClick={() => setHelpOpen(true)}
+              className="text-white/50 hover:text-white hover:bg-white/10"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               title="Alterar senha"
               onClick={() => setPasswordOpen(true)}
               className="text-white/50 hover:text-white hover:bg-white/10"
@@ -213,6 +225,7 @@ export default function Layout({ children, currentPageName }) {
       <AppVersionMonitor />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
       <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} user={user} />
+      <HelpGuideDialog open={helpOpen} onOpenChange={setHelpOpen} />
 
 
 
@@ -268,6 +281,10 @@ export default function Layout({ children, currentPageName }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setHelpOpen(true)}>
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Guia de Ajuda
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
                   <KeyRound className="h-4 w-4 mr-2" />
                   Alterar Senha
