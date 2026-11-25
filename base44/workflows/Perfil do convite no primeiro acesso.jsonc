@@ -1,0 +1,112 @@
+{
+  "name": "Perfil do convite no primeiro acesso",
+  "trigger": {
+    "condition": "${ (.trigger.data.email // \"\") != \"\" }",
+    "config": {
+      "trigger_type": "hook",
+      "events": [],
+      "hook_type": "auth_before_admission"
+    }
+  },
+  "description": "Aplica o perfil de acesso escolhido no convite quando a pessoa entra no sistema pela primeira vez, e bloqueia convites cancelados",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "perfil_convite_primeiro_acesso",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "consultar_convite": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "aplicarPerfilConvite",
+            "args": {
+              "email": "${ .trigger.data.email }"
+            }
+          },
+          "then": "verificar_convite",
+          "x-base44": {
+            "title": "Consultar convite",
+            "description": "Busca o perfil definido no convite"
+          }
+        }
+      },
+      {
+        "verificar_convite": {
+          "switch": [
+            {
+              "when": "${ .consultar_convite.allow == false }",
+              "then": "bloquear_acesso",
+              "x-base44": {
+                "title": "Convite cancelado"
+              }
+            },
+            {
+              "when": "${ .consultar_convite.role != null }",
+              "then": "aplicar_perfil",
+              "x-base44": {
+                "title": "Convite com perfil definido"
+              }
+            },
+            {
+              "when": "${ true }",
+              "then": "liberar_sem_perfil"
+            }
+          ]
+        }
+      },
+      {
+        "bloquear_acesso": {
+          "call": "calculate_field",
+          "with": {
+            "field": "response",
+            "value": {
+              "allow": false,
+              "reason": "${ .consultar_convite.reason // \"Seu convite de acesso n\u00e3o est\u00e1 ativo. Fale com o administrador da Sonatta.\" }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Bloquear acesso"
+          }
+        }
+      },
+      {
+        "aplicar_perfil": {
+          "call": "calculate_field",
+          "with": {
+            "field": "response",
+            "value": {
+              "allow": true,
+              "app_user_fields": {
+                "role": "${ .consultar_convite.role }",
+                "access_status": "ativo"
+              }
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Aplicar perfil do convite"
+          }
+        }
+      },
+      {
+        "liberar_sem_perfil": {
+          "call": "calculate_field",
+          "with": {
+            "field": "response",
+            "value": {
+              "allow": true
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Liberar acesso padr\u00e3o"
+          }
+        }
+      }
+    ]
+  }
+}

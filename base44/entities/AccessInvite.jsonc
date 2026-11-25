@@ -1,0 +1,86 @@
+{
+  "name": "AccessInvite",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "E-mail convidado (sempre em min\u00fasculas)"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nome informado no convite"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "fonoaudiologo",
+        "comercial",
+        "recepcao",
+        "user"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "green",
+        "yellow",
+        "gray"
+      ],
+      "default": "user",
+      "description": "Perfil de acesso que ser\u00e1 aplicado no primeiro acesso"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "aceito",
+        "cancelado"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "red"
+      ],
+      "default": "pendente",
+      "description": "Situa\u00e7\u00e3o do convite"
+    },
+    "invited_at": {
+      "type": "string",
+      "description": "Data e hora do convite (ou do \u00faltimo reenvio)"
+    },
+    "accepted_at": {
+      "type": "string",
+      "description": "Data e hora em que a pessoa entrou no sistema"
+    },
+    "invited_by_name": {
+      "type": "string",
+      "description": "Usu\u00e1rio que criou o convite"
+    }
+  },
+  "required": [
+    "email",
+    "role"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
