@@ -12,6 +12,29 @@ const toNumber = (value) => {
 
 const round = (value, digits = 2) => Number(value.toFixed(digits));
 
+const SERIAL_LABEL = /(S\s*\/?\s*N|S[ÉE]RIES?|N[º°]\s*S[ÉE]RIE)\s*[:.\-º°]?\s*([^\n;]{3,})/gi;
+
+const extractSerials = (text, limit) => {
+  const found = [];
+  if (!text) return found;
+  const upper = text.toUpperCase();
+  SERIAL_LABEL.lastIndex = 0;
+  let match = SERIAL_LABEL.exec(upper);
+  while (match) {
+    const tokens = match[2].split(/[\s,;|/]+/);
+    for (const token of tokens) {
+      const value = token.replace(/[.,;:)\]]+$/, '');
+      if (value.length < 4) continue;
+      if (!/[0-9]/.test(value)) continue;
+      if (!/^[A-Z0-9][A-Z0-9\-.]*$/.test(value)) continue;
+      if (!found.includes(value)) found.push(value);
+      if (found.length >= limit) return found;
+    }
+    match = SERIAL_LABEL.exec(upper);
+  }
+  return found;
+};
+
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
@@ -40,6 +63,26 @@ export default async function (req) {
       const quantity = toNumber(tagValue(block, 'qCom')) || 1;
       const total = toNumber(tagValue(block, 'vProd'));
       const unitPrice = toNumber(tagValue(block, 'vUnCom')) || total / quantity;
+      const barcode = tagValue(block, 'cEAN');
+      const serialText = [
+        tagValue(block, 'infAdProd'),
+        tagValue(block, 'xProd'),
+        tagValue(block, 'infCpl'),
+        tagValue(block, 'obsCont'),
+        tagValue(block, 'obsFisco'),
+      ]
+        .filter(Boolean)
+        .join(' \n ');
+      const directSerials = [tagValue(block, 'nSerie'), tagValue(block, 'nLote')].filter(
+        (value) => value && /[0-9]/.test(value)
+      );
+      const serialNumbers = [
+        ...new Set([
+          ...directSerials.map((value) => value.toUpperCase()),
+          ...extractSerials(serialText, Math.max(1, Math.round(quantity))),
+        ]),
+      ];
+
       return {
         code: tagValue(block, 'cProd'),
         description: tagValue(block, 'xProd'),
@@ -49,6 +92,9 @@ export default async function (req) {
         total: round(total),
         icms: round(toNumber(tagValue(block, 'vICMS'))),
         ipi: round(toNumber(tagValue(block, 'vIPI'))),
+        barcode: barcode && barcode.toUpperCase() !== 'SEM GTIN' ? barcode : '',
+        serial_numbers: serialNumbers,
+        additional_info: tagValue(block, 'infAdProd'),
       };
     });
 

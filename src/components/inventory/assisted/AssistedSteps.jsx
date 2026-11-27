@@ -3,7 +3,6 @@ import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STEPS = [
-  { key: 'fotos', label: 'Fotos' },
   { key: 'nota', label: 'Nota fiscal' },
   { key: 'revisao', label: 'Revisão' },
   { key: 'concluido', label: 'Concluído' },

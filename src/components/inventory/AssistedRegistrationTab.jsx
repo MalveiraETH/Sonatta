@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
+  ImagePlus,
   Loader2,
   ScanLine,
   Sparkles,
@@ -16,8 +16,8 @@ import ImageUploadCard from './assisted/ImageUploadCard';
 import XmlUploadCard from './assisted/XmlUploadCard';
 import ProductReviewCard from './assisted/ProductReviewCard';
 import NewReferenceDialog from './assisted/NewReferenceDialog';
-import { buildProductPayload, computeCosts } from '@/lib/assistedPricing';
-import { findXmlMatch, xmlValues } from '@/lib/assistedMatching';
+import { buildProductPayload, priceOptions } from '@/lib/assistedPricing';
+import { findReferenceByCode, normalizeText } from '@/lib/assistedMatching';
 
 let sequence = 0;
 const nextId = () => `item-${(sequence += 1)}`;
@@ -27,26 +27,39 @@ const today = () => new Date().toISOString().split('T')[0];
 const BRL = (value) =>
   Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const PRICE_FIELDS = ['product_cost', 'icms', 'ipi', 'include_fixed_cost', 'markup_category'];
+
 export default function AssistedRegistrationTab({ onSaved }) {
-  const [step, setStep] = useState('fotos');
-  const [images, setImages] = useState([]);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [items, setItems] = useState([]);
+  const [step, setStep] = useState('nota');
   const [nota, setNota] = useState(null);
   const [parsingXml, setParsingXml] = useState(false);
+  const [items, setItems] = useState([]);
+  const [references, setReferences] = useState([]);
+  const [billingCfg, setBillingCfg] = useState(null);
+  const [duplicates, setDuplicates] = useState({});
   const [saving, setSaving] = useState(false);
   const [savedProducts, setSavedProducts] = useState([]);
-  const [duplicates, setDuplicates] = useState({});
-  const [billingCfg, setBillingCfg] = useState(null);
   const [referenceTarget, setReferenceTarget] = useState(null);
+  const [showPhotos, setShowPhotos] = useState(false);
+  const [images, setImages] = useState([]);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const ensureBase = async () => {
+    if (billingCfg && references.length) return { cfg: billingCfg, refs: references };
+    const [settings, refs] = await Promise.all([
+      base44.entities.AppSettings.list(),
+      base44.entities.ReferenceProduct.list(),
+    ]);
+    const record = settings.find((row) => row.setting_key === 'billing_config');
+    const cfg = record?.setting_value || null;
+    setBillingCfg(cfg);
+    setReferences(refs);
+    return { cfg, refs };
+  };
 
   useEffect(() => {
-    const loadSettings = async () => {
-      const settings = await base44.entities.AppSettings.list();
-      const record = settings.find((row) => row.setting_key === 'billing_config');
-      if (record?.setting_value) setBillingCfg(record.setting_value);
-    };
-    loadSettings().catch(() => {});
+    ensureBase().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const serialKey = items.map((item) => item.serial_number || '').join('|');
@@ -72,33 +85,115 @@ export default function AssistedRegistrationTab({ onSaved }) {
 
   const xmlItems = nota?.items || [];
 
-  const toItem = (product) => {
-    const reference = product.matched_reference || null;
-    return {
-      id: nextId(),
-      selected: true,
-      expanded: !reference || !product.serial_number,
-      product_name: product.product_name || reference?.name || '',
-      reference: product.reference || reference?.reference || '',
-      serial_number: product.serial_number || '',
-      brand: product.brand || reference?.brand || '',
-      model: product.model || '',
-      barcode: product.barcode || '',
-      qr_code: product.qr_code || '',
-      matched_reference: reference,
-      category: 'aparelho_auditivo',
-      markup_category: reference?.category || '',
-      warranty_years: reference?.warranty_years ?? 2,
-      power_type: reference?.power_type || 'bateria_recarregavel',
-      include_fixed_cost: reference?.include_fixed_cost !== false,
-      product_cost: Number(reference?.cost || 0),
-      icms: 0,
-      ipi: 0,
-      sale_price: 0,
-      nota_fiscal_entrada: '',
-      entry_date: today(),
-      xml_index: null,
-    };
+  const withPrice = (item, reference, cfg) => {
+    const options = priceOptions(item, reference ?? item.matched_reference, cfg);
+    return { ...item, sale_price: options.best ?? item.sale_price };
+  };
+
+  const buildItemsFromNota = (notaData, refs, cfg) => {
+    const built = [];
+    notaData.items.forEach((xml, xmlIndex) => {
+      const reference = findReferenceByCode(refs, xml.code, xml.description);
+      const units = Math.max(1, Math.round(Number(xml.quantity) || 1));
+      const serials = Array.isArray(xml.serial_numbers) ? xml.serial_numbers : [];
+      const unitCost = Number((Number(xml.total || 0) / units).toFixed(2));
+      const unitIcms = Number((Number(xml.icms || 0) / units).toFixed(2));
+      const unitIpi = Number((Number(xml.ipi || 0) / units).toFixed(2));
+
+      for (let unit = 0; unit < units; unit += 1) {
+        const base = {
+          id: nextId(),
+          selected: true,
+          expanded: !reference || !serials[unit],
+          product_name: reference?.name || xml.description || '',
+          reference: xml.code || reference?.reference || '',
+          serial_number: serials[unit] || '',
+          brand: reference?.brand || '',
+          model: '',
+          barcode: xml.barcode || '',
+          qr_code: '',
+          matched_reference: reference,
+          category: 'aparelho_auditivo',
+          markup_category: reference?.category || '',
+          warranty_years: reference?.warranty_years ?? 2,
+          power_type: reference?.power_type || 'bateria_recarregavel',
+          include_fixed_cost: reference?.include_fixed_cost !== false,
+          product_cost: unitCost,
+          icms: unitIcms,
+          ipi: unitIpi,
+          sale_price: 0,
+          nota_fiscal_entrada: notaData.number || '',
+          entry_date: notaData.issue_date ? notaData.issue_date.slice(0, 10) : today(),
+          xml_index: xmlIndex,
+        };
+        built.push(withPrice(base, reference, cfg));
+      }
+    });
+    return built;
+  };
+
+  const handleXml = async (text, fileName) => {
+    setParsingXml(true);
+    try {
+      const response = await base44.functions.invoke('extrairXmlNfe', { xml: text });
+      const data = response.data;
+      if (!data?.items?.length) {
+        toast.error('Não foi possível ler a nota fiscal');
+        return;
+      }
+      const { cfg, refs } = await ensureBase();
+      const notaData = { ...data, file_name: fileName };
+      setNota(notaData);
+      setItems(buildItemsFromNota(notaData, refs, cfg));
+      setStep('revisao');
+      toast.success(`Nota ${data.number || ''} lida: ${data.items.length} item(ns)`);
+    } catch (error) {
+      toast.error('Erro ao ler o XML da nota');
+    } finally {
+      setParsingXml(false);
+    }
+  };
+
+  const handleClearNota = () => {
+    setNota(null);
+    setItems([]);
+    setSavedProducts([]);
+    setStep('nota');
+  };
+
+  const handleChangeItem = (id, patch) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const next = { ...item, ...patch };
+        if (!PRICE_FIELDS.some((field) => field in patch)) return next;
+        return withPrice(next, next.matched_reference, billingCfg);
+      })
+    );
+  };
+
+  const handleReferenceCreated = (reference) => {
+    if (!referenceTarget) return;
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== referenceTarget.id) return item;
+        const next = {
+          ...item,
+          matched_reference: reference,
+          reference: reference.reference,
+          product_cost: Number(item.product_cost) || Number(reference.cost || 0),
+          product_name: item.product_name || reference.name,
+          brand: item.brand || reference.brand || '',
+          markup_category: reference.category || item.markup_category,
+          warranty_years: reference.warranty_years ?? item.warranty_years,
+          power_type: reference.power_type || item.power_type,
+          include_fixed_cost: reference.include_fixed_cost !== false,
+        };
+        return withPrice(next, reference, billingCfg);
+      })
+    );
+    setReferences((prev) => [...prev, reference]);
+    setReferenceTarget(null);
   };
 
   const handleAddImages = (files) => {
@@ -116,7 +211,7 @@ export default function AssistedRegistrationTab({ onSaved }) {
     });
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyzePhotos = async () => {
     if (!images.length) return;
     setAnalyzing(true);
     try {
@@ -128,99 +223,53 @@ export default function AssistedRegistrationTab({ onSaved }) {
       const response = await base44.functions.invoke('analisarImagemProdutos', { image_uris: uris });
       const found = response.data?.products || [];
       if (!found.length) {
-        toast.error('Nenhum produto identificado nas imagens');
+        toast.error('Nenhum produto identificado nas fotos');
         return;
       }
-      setItems(found.map(toItem));
-      setStep('nota');
-      toast.success(`${found.length} produto(s) identificado(s)`);
+
+      let filled = 0;
+      setItems((prev) => {
+        const next = prev.map((item) => ({ ...item }));
+        found.forEach((product) => {
+          const serial = (product.serial_number || '').trim();
+          const reference = normalizeText(product.reference);
+          const target = next.find(
+            (item) =>
+              !item.serial_number &&
+              reference &&
+              normalizeText(item.reference) === reference
+          );
+          if (target && serial) {
+            target.serial_number = serial;
+            target.model = target.model || product.model || '';
+            filled += 1;
+          }
+        });
+        return next;
+      });
+
+      if (filled) {
+        toast.success(`${filled} nº(s) de série preenchido(s) pelas fotos`);
+      } else {
+        toast.info('As fotos não trouxeram séries novas para os itens da nota');
+      }
+      setImages([]);
     } catch (error) {
-      toast.error('Não foi possível analisar as imagens');
+      toast.error('Não foi possível analisar as fotos');
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const applyNota = (item, notaData, allItems) => {
-    const used = new Set(
-      allItems
-        .filter((other) => other.id !== item.id)
-        .map((other) => other.xml_index)
-        .filter((value) => value !== null && value !== undefined)
-    );
-    const matchIndex = findXmlMatch(item, notaData.items, used);
-    const entryDate = notaData.issue_date ? notaData.issue_date.slice(0, 10) : item.entry_date;
-    if (matchIndex === null) {
-      return { ...item, nota_fiscal_entrada: notaData.number || '', entry_date: entryDate };
-    }
-    return {
-      ...item,
-      xml_index: matchIndex,
-      ...xmlValues(notaData.items[matchIndex]),
-      nota_fiscal_entrada: notaData.number || '',
-      entry_date: entryDate,
-    };
-  };
-
-  const handleXml = async (text, fileName) => {
-    setParsingXml(true);
-    try {
-      const response = await base44.functions.invoke('extrairXmlNfe', { xml: text });
-      const data = response.data;
-      if (!data?.items?.length) {
-        toast.error('Não foi possível ler a nota fiscal');
-        return;
-      }
-      const notaData = { ...data, file_name: fileName };
-      setNota(notaData);
-      setItems((prev) => prev.map((item) => applyNota(item, notaData, prev)));
-      toast.success(`Nota ${data.number || ''} lida com ${data.items.length} item(ns)`);
-    } catch (error) {
-      toast.error('Erro ao ler o XML da nota');
-    } finally {
-      setParsingXml(false);
-    }
-  };
-
-  const handleClearNota = () => {
-    setNota(null);
-    setItems((prev) =>
-      prev.map((item) => ({ ...item, xml_index: null, nota_fiscal_entrada: '' }))
-    );
-  };
-
-  const handleChangeItem = (id, patch) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-  };
-
-  const handleReferenceCreated = (reference) => {
-    if (!referenceTarget) return;
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === referenceTarget.id
-          ? {
-              ...item,
-              matched_reference: reference,
-              reference: reference.reference,
-              product_cost: Number(item.product_cost) || Number(reference.cost || 0),
-              product_name: item.product_name || reference.name,
-              brand: item.brand || reference.brand || '',
-              markup_category: reference.category || item.markup_category,
-              warranty_years: reference.warranty_years ?? item.warranty_years,
-              power_type: reference.power_type || item.power_type,
-              include_fixed_cost: reference.include_fixed_cost !== false,
-            }
-          : item
-      )
-    );
-    setReferenceTarget(null);
-  };
-
   const selectedItems = items.filter((item) => item.selected);
   const totals = useMemo(() => {
-    const sale = selectedItems.reduce((sum, item) => sum + Number(item.sale_price || 0), 0);
+    const sale = selectedItems.reduce(
+      (sum, item) =>
+        sum + Number(item.sale_price || priceOptions(item, item.matched_reference, billingCfg).best || 0),
+      0
+    );
     const cost = selectedItems.reduce(
-      (sum, item) => sum + computeCosts(item, billingCfg?.fixed_cost).total,
+      (sum, item) => sum + priceOptions(item, item.matched_reference, billingCfg).total,
       0
     );
     return { sale, cost };
@@ -236,6 +285,17 @@ export default function AssistedRegistrationTab({ onSaved }) {
     );
     if (incomplete) {
       toast.error('Informe nome e número de série de todos os produtos selecionados');
+      return;
+    }
+    const missingPrice = selectedItems.find(
+      (item) =>
+        !(Number(item.sale_price) > 0) &&
+        priceOptions(item, item.matched_reference, billingCfg).best === null
+    );
+    if (missingPrice) {
+      toast.error(
+        `Defina o nível de tecnologia de ${missingPrice.product_name || 'um produto'} para calcular a venda`
+      );
       return;
     }
     const duplicated = selectedItems.find((item) => duplicates[item.serial_number.trim()]);
@@ -262,7 +322,6 @@ export default function AssistedRegistrationTab({ onSaved }) {
       );
       setSavedProducts(created);
       setItems((prev) => prev.filter((item) => !item.selected));
-      setImages([]);
       setStep('concluido');
       toast.success(`${created.length} produto(s) cadastrado(s)`);
       if (onSaved) onSaved();
@@ -276,7 +335,10 @@ export default function AssistedRegistrationTab({ onSaved }) {
   const handleRestart = () => {
     setSavedProducts([]);
     setNota(null);
-    setStep('fotos');
+    setItems([]);
+    setImages([]);
+    setShowPhotos(false);
+    setStep('nota');
   };
 
   return (
@@ -287,25 +349,15 @@ export default function AssistedRegistrationTab({ onSaved }) {
             <ScanLine className="h-5 w-5 text-[#6B3FA0]" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-900">Cadastro assistido por imagem</h2>
+            <h2 className="font-semibold text-slate-900">Cadastro assistido pela nota fiscal</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              A IA lê as caixas, confronta com os produtos de referência e usa o XML da nota para os
-              valores de compra, ICMS e IPI.
+              A nota abre um produto serializado por unidade: a referência carrega os dados do
+              cadastro de referência e o preço de venda fica no maior valor.
             </p>
           </div>
         </div>
         <AssistedSteps current={step} />
       </Card>
-
-      {step === 'fotos' && (
-        <ImageUploadCard
-          images={images}
-          onAdd={handleAddImages}
-          onRemove={handleRemoveImage}
-          onAnalyze={handleAnalyze}
-          analyzing={analyzing}
-        />
-      )}
 
       {step === 'nota' && (
         <div className="space-y-4">
@@ -315,19 +367,12 @@ export default function AssistedRegistrationTab({ onSaved }) {
             onXml={handleXml}
             onClear={handleClearNota}
           />
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setStep('fotos')} className="sm:w-auto">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar às fotos
-            </Button>
-            <Button
-              onClick={() => setStep('revisao')}
-              className="flex-1 bg-[#6B3FA0] hover:bg-[#834CB8]"
-            >
-              {nota ? 'Revisar produtos' : 'Continuar sem nota fiscal'}
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
+          <Card className="p-4 bg-slate-50 border-dashed">
+            <p className="text-xs text-slate-500">
+              O XML traz código de referência, séries, quantidade, valores, ICMS e IPI. Cada unidade
+              da nota vira um produto serializado para revisão.
+            </p>
+          </Card>
         </div>
       )}
 
@@ -336,16 +381,16 @@ export default function AssistedRegistrationTab({ onSaved }) {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <p className="text-sm font-semibold text-slate-900">
-                {selectedItems.length} de {items.length} selecionado(s)
+                NF {nota?.number || '—'} • {selectedItems.length} de {items.length} selecionado(s)
               </p>
               <p className="text-xs text-slate-500">
                 Custo {BRL(totals.cost)} • Venda prevista {BRL(totals.sale)}
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setStep('nota')}>
+              <Button variant="outline" size="sm" onClick={handleClearNota}>
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
-                Nota
+                Trocar nota
               </Button>
               <Button
                 size="sm"
@@ -362,6 +407,26 @@ export default function AssistedRegistrationTab({ onSaved }) {
               </Button>
             </div>
           </div>
+
+          {!showPhotos ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-slate-600"
+              onClick={() => setShowPhotos(true)}
+            >
+              <ImagePlus className="h-4 w-4 mr-2" />
+              Conferir séries com fotos das caixas (opcional)
+            </Button>
+          ) : (
+            <ImageUploadCard
+              images={images}
+              onAdd={handleAddImages}
+              onRemove={handleRemoveImage}
+              onAnalyze={handleAnalyzePhotos}
+              analyzing={analyzing}
+            />
+          )}
 
           <div className="space-y-3">
             {items.map((item, index) => (
@@ -425,7 +490,7 @@ export default function AssistedRegistrationTab({ onSaved }) {
           </div>
           <Button onClick={handleRestart} className="bg-[#6B3FA0] hover:bg-[#834CB8]">
             <Sparkles className="h-4 w-4 mr-2" />
-            Cadastrar mais produtos
+            Cadastrar outra nota
           </Button>
         </Card>
       )}

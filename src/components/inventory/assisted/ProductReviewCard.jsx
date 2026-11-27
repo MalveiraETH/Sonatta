@@ -21,7 +21,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { computeCosts, markupPctFor, suggestedSale } from '@/lib/assistedPricing';
+import { markupPctFor, priceOptions } from '@/lib/assistedPricing';
 
 const NIVEIS = ['90', '70', '50', '30', '10', '5'];
 const BRL = (value) =>
@@ -50,11 +50,11 @@ export default function ProductReviewCard({
   onChange,
   onRequestReference,
 }) {
-  const cost = computeCosts(item, billingCfg?.fixed_cost);
+  const options = priceOptions(item, item.matched_reference, billingCfg);
   const pct = markupPctFor(billingCfg, item.markup_category);
-  const suggested = suggestedSale(cost.total, pct);
   const set = (patch) => onChange(item.id, patch);
-  const xmlItem = item.xml_index !== null && item.xml_index !== undefined ? xmlItems[item.xml_index] : null;
+  const xmlItem =
+    item.xml_index !== null && item.xml_index !== undefined ? xmlItems[item.xml_index] : null;
 
   return (
     <Card className={cn('overflow-hidden transition-opacity', !item.selected && 'opacity-60')}>
@@ -84,19 +84,20 @@ export default function ProductReviewCard({
           </p>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {item.matched_reference ? (
-              <Chip tone="green">Referência encontrada</Chip>
+              <Chip tone="green">Referência carregada</Chip>
             ) : (
               <Chip tone="amber">Sem referência</Chip>
             )}
             {duplicateSerial && <Chip tone="red">NS já cadastrado</Chip>}
-            {xmlItem && <Chip tone="blue">NF vinculada</Chip>}
+            {!item.serial_number && <Chip tone="red">Sem nº de série</Chip>}
+            {xmlItem && <Chip tone="blue">Item da NF</Chip>}
           </div>
         </div>
 
         <div className="text-right flex-shrink-0">
           <p className="text-[10px] text-slate-400">Venda</p>
           <p className="text-sm font-bold text-emerald-700">
-            {BRL(Number(item.sale_price) > 0 ? item.sale_price : suggested || 0)}
+            {BRL(Number(item.sale_price) > 0 ? item.sale_price : options.best || 0)}
           </p>
         </div>
 
@@ -143,14 +144,14 @@ export default function ProductReviewCard({
             <Input
               value={item.reference}
               onChange={(e) => set({ reference: e.target.value })}
-              placeholder="Ex: 012-3456"
+              placeholder="Código do produto na nota"
             />
             {item.matched_reference ? (
               <div className="flex items-center gap-1.5 text-[11px] text-emerald-700">
                 <BookOpen className="h-3 w-3" />
                 <span className="truncate">
                   {item.matched_reference.reference} — {item.matched_reference.name} • Nível{' '}
-                  {item.matched_reference.category}
+                  {item.matched_reference.category} • Custo {BRL(item.matched_reference.cost)}
                 </span>
               </div>
             ) : (
@@ -200,7 +201,7 @@ export default function ProductReviewCard({
             <div>
               <p className="text-xs font-medium text-slate-700">Custo operacional</p>
               <p className="text-[11px] text-slate-500">
-                {BRL(billingCfg?.fixed_cost || 0)} • Total {BRL(cost.total)}
+                {BRL(billingCfg?.fixed_cost || 0)} • Custo total {BRL(options.total)}
               </p>
             </div>
             <Switch
@@ -210,52 +211,81 @@ export default function ProductReviewCard({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nível de tecnologia</Label>
-              <Select
-                value={item.markup_category || ''}
-                onValueChange={(value) => {
-                  const newPct = markupPctFor(billingCfg, value);
-                  const newSale = suggestedSale(cost.total, newPct);
-                  set({
-                    markup_category: value,
-                    sale_price: newSale !== null ? newSale : item.sale_price,
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {NIVEIS.map((nivel) => {
-                    const nivelPct = markupPctFor(billingCfg, nivel);
-                    return (
-                      <SelectItem key={nivel} value={nivel}>
-                        Nível {nivel}
-                        {nivelPct !== null ? ` — ${nivelPct}%` : ''}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Nível de tecnologia</Label>
+            <Select
+              value={item.markup_category || ''}
+              onValueChange={(value) => set({ markup_category: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {NIVEIS.map((nivel) => {
+                  const nivelPct = markupPctFor(billingCfg, nivel);
+                  return (
+                    <SelectItem key={nivel} value={nivel}>
+                      Nível {nivel}
+                      {nivelPct !== null ? ` — ${nivelPct}%` : ''}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(options.calculated !== null || options.table !== null) && (
+            <div className="rounded-lg bg-white border border-slate-200 p-3 space-y-2">
+              <p className="text-[11px] font-semibold text-slate-600">
+                Preço de venda aplicado (maior valor)
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div
+                  className={cn(
+                    'rounded-md border px-2 py-1.5',
+                    options.source === 'calculado'
+                      ? 'border-emerald-300 bg-emerald-50'
+                      : 'border-slate-200'
+                  )}
+                >
+                  <p className="text-[10px] text-slate-500">
+                    Custo + markup{pct !== null ? ` (${pct}%)` : ''}
+                  </p>
+                  <p className="text-xs font-bold text-slate-800">
+                    {options.calculated !== null ? BRL(options.calculated) : '—'}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    'rounded-md border px-2 py-1.5',
+                    options.source === 'referencia'
+                      ? 'border-emerald-300 bg-emerald-50'
+                      : 'border-slate-200'
+                  )}
+                >
+                  <p className="text-[10px] text-slate-500">Tabela de referência</p>
+                  <p className="text-xs font-bold text-slate-800">
+                    {options.table !== null ? BRL(options.table) : '—'}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Preço de venda</Label>
-              <CurrencyInput
-                value={item.sale_price}
-                onChange={(value) => set({ sale_price: value })}
-              />
-              {suggested !== null && (
+          )}
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Preço de venda final</Label>
+              {options.best !== null && Number(item.sale_price) !== options.best && (
                 <button
                   type="button"
                   className="text-[11px] text-blue-600 underline"
-                  onClick={() => set({ sale_price: suggested })}
+                  onClick={() => set({ sale_price: options.best })}
                 >
-                  Usar calculado {BRL(suggested)}
+                  Aplicar maior valor {BRL(options.best)}
                 </button>
               )}
             </div>
+            <CurrencyInput value={item.sale_price} onChange={(value) => set({ sale_price: value })} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -269,9 +299,9 @@ export default function ProductReviewCard({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4].map((ano) => (
+                  {[0, 1, 2, 3, 4].map((ano) => (
                     <SelectItem key={ano} value={String(ano)}>
-                      {ano} ano{ano > 1 ? 's' : ''}
+                      {ano === 0 ? 'Sem garantia' : `${ano} ano${ano > 1 ? 's' : ''}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -295,11 +325,19 @@ export default function ProductReviewCard({
             </div>
           </div>
 
-          {xmlItems.length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Item da nota fiscal</Label>
+              <Label className="text-xs">Nota fiscal</Label>
+              <Input value={item.nota_fiscal_entrada} readOnly className="bg-slate-100" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Item da nota</Label>
               <Select
-                value={item.xml_index === null || item.xml_index === undefined ? 'none' : String(item.xml_index)}
+                value={
+                  item.xml_index === null || item.xml_index === undefined
+                    ? 'none'
+                    : String(item.xml_index)
+                }
                 onValueChange={(value) => {
                   if (value === 'none') {
                     set({ xml_index: null });
@@ -327,12 +365,8 @@ export default function ProductReviewCard({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-slate-500">
-                NF {item.nota_fiscal_entrada || '—'}
-                {xmlItem ? ` • ${xmlItem.quantity} un na nota` : ''}
-              </p>
             </div>
-          )}
+          </div>
         </div>
       )}
     </Card>

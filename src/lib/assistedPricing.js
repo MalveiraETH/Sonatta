@@ -27,11 +27,32 @@ export function referenceSalePrice(reference, billingCfg) {
   return Number((cost + cost * (pct / 100)).toFixed(2));
 }
 
-export function buildProductPayload(item, billingCfg) {
+// Compara o preço calculado (custo da nota + markup) com o da tabela de referência
+// e devolve sempre o maior valor como escolhido.
+export function priceOptions(item, reference, billingCfg) {
   const { total } = computeCosts(item, billingCfg?.fixed_cost);
   const pct = markupPctFor(billingCfg, item.markup_category);
-  const suggested = suggestedSale(total, pct);
-  const sale = Number(item.sale_price) > 0 ? Number(item.sale_price) : suggested ?? total;
+  const calculated = suggestedSale(total, pct);
+  const table = referenceSalePrice(reference, billingCfg);
+
+  if (calculated === null && table === null) {
+    return { calculated: null, table: null, best: null, source: null, total };
+  }
+  if (calculated === null) {
+    return { calculated: null, table, best: table, source: 'referencia', total };
+  }
+  if (table === null) {
+    return { calculated, table: null, best: calculated, source: 'calculado', total };
+  }
+  return calculated >= table
+    ? { calculated, table, best: calculated, source: 'calculado', total }
+    : { calculated, table, best: table, source: 'referencia', total };
+}
+
+export function buildProductPayload(item, billingCfg) {
+  const options = priceOptions(item, item.matched_reference, billingCfg);
+  const { total } = computeCosts(item, billingCfg?.fixed_cost);
+  const sale = Number(item.sale_price) > 0 ? Number(item.sale_price) : options.best ?? total;
 
   const payload = {
     stock_type: 'serializado',
