@@ -47,6 +47,7 @@ import StockByNameCard from '@/components/inventory/StockByNameCard';
 import NonSerializedProductForm from '@/components/inventory/NonSerializedProductForm';
 import TrialProductForm from '@/components/inventory/TrialProductForm';
 import ServicesTab from '@/components/inventory/ServicesTab';
+import AssistedRegistrationTab from '@/components/inventory/AssistedRegistrationTab';
 import DiscardsTab from '@/components/inventory/DiscardsTab';
 import DiscardProductDialog from '@/components/inventory/DiscardProductDialog';
 import AssociateProductDialog from '@/components/inventory/AssociateProductDialog';
@@ -440,13 +441,14 @@ export default function Inventory() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-7 h-auto">
+        <TabsList className={`w-full grid grid-cols-2 ${currentUser?.role === 'admin' ? 'sm:grid-cols-8' : 'sm:grid-cols-7'} h-auto`}>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="serialized">Produto (A)</TabsTrigger>
           <TabsTrigger value="trial">Trial</TabsTrigger>
           <TabsTrigger value="non-serialized">Produto (B)</TabsTrigger>
           <TabsTrigger value="services">Serviços</TabsTrigger>
           <TabsTrigger value="discards">Baixas</TabsTrigger>
+          {currentUser?.role === 'admin' && <TabsTrigger value="assisted">Cadastro IA</TabsTrigger>}
           <TabsTrigger value="movements">Movim.</TabsTrigger>
         </TabsList>
 
@@ -1290,6 +1292,13 @@ export default function Inventory() {
             onDelete={(product) => { setSelectedProduct(product); setDeleteOpen(true); }}
           />
         </TabsContent>
+
+        {/* CADASTRO ASSISTIDO POR IMAGEM */}
+        {currentUser?.role === 'admin' && (
+          <TabsContent value="assisted" className="space-y-4">
+            <AssistedRegistrationTab onSaved={loadData} />
+          </TabsContent>
+        )}
 
         {/* MOVIMENTAÇÕES */}
         <TabsContent value="movements" className="space-y-4">
