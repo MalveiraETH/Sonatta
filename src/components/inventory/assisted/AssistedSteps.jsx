@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 const STEPS = [
   { key: 'nota', label: 'Nota fiscal' },
+  { key: 'fotos', label: 'Fotos e séries' },
   { key: 'revisao', label: 'Revisão' },
   { key: 'concluido', label: 'Concluído' },
 ];

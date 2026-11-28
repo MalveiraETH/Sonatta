@@ -15,9 +15,10 @@ export default function ImageUploadCard({ images, onAdd, onRemove, onAnalyze, an
   return (
     <Card className="p-4 sm:p-6 space-y-4">
       <div>
-        <h3 className="font-semibold text-slate-900">Fotos das caixas</h3>
+        <h3 className="font-semibold text-slate-900">Fotos dos produtos</h3>
         <p className="text-xs text-slate-500 mt-0.5">
-          Envie uma ou várias fotos. A IA lê cada caixa, o código de barras e o QR.
+          Envie uma ou várias fotos das etiquetas. O agente lê nome, REF e nº de série (SN) de cada
+          caixa e vincula a série ao item da nota.
         </p>
       </div>
 

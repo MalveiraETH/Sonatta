@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   CheckCircle2,
+  ChevronRight,
   ImagePlus,
   Loader2,
   ScanLine,
@@ -17,7 +18,7 @@ import XmlUploadCard from './assisted/XmlUploadCard';
 import ProductReviewCard from './assisted/ProductReviewCard';
 import NewReferenceDialog from './assisted/NewReferenceDialog';
 import { buildProductPayload, priceOptions } from '@/lib/assistedPricing';
-import { findReferenceByCode, normalizeText } from '@/lib/assistedMatching';
+import { associatePhotoSerials, findReferenceByCode } from '@/lib/assistedMatching';
 
 let sequence = 0;
 const nextId = () => `item-${(sequence += 1)}`;
@@ -40,9 +41,9 @@ export default function AssistedRegistrationTab({ onSaved }) {
   const [saving, setSaving] = useState(false);
   const [savedProducts, setSavedProducts] = useState([]);
   const [referenceTarget, setReferenceTarget] = useState(null);
-  const [showPhotos, setShowPhotos] = useState(false);
   const [images, setImages] = useState([]);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
 
   const ensureBase = async () => {
     if (billingCfg && references.length) return { cfg: billingCfg, refs: references };
@@ -145,7 +146,8 @@ export default function AssistedRegistrationTab({ onSaved }) {
       const notaData = { ...data, file_name: fileName };
       setNota(notaData);
       setItems(buildItemsFromNota(notaData, refs, cfg));
-      setStep('revisao');
+      setAnalysis(null);
+      setStep('fotos');
       toast.success(`Nota ${data.number || ''} lida: ${data.items.length} item(ns)`);
     } catch (error) {
       toast.error('Erro ao ler o XML da nota');
@@ -158,6 +160,8 @@ export default function AssistedRegistrationTab({ onSaved }) {
     setNota(null);
     setItems([]);
     setSavedProducts([]);
+    setAnalysis(null);
+    setImages([]);
     setStep('nota');
   };
 
@@ -227,33 +231,15 @@ export default function AssistedRegistrationTab({ onSaved }) {
         return;
       }
 
-      let filled = 0;
-      setItems((prev) => {
-        const next = prev.map((item) => ({ ...item }));
-        found.forEach((product) => {
-          const serial = (product.serial_number || '').trim();
-          const reference = normalizeText(product.reference);
-          const target = next.find(
-            (item) =>
-              !item.serial_number &&
-              reference &&
-              normalizeText(item.reference) === reference
-          );
-          if (target && serial) {
-            target.serial_number = serial;
-            target.model = target.model || product.model || '';
-            filled += 1;
-          }
-        });
-        return next;
-      });
+      const result = associatePhotoSerials(items, found);
+      setItems(result.items);
+      setAnalysis({ filled: result.filled, found: found.length, unmatched: result.unmatched });
 
-      if (filled) {
-        toast.success(`${filled} nº(s) de série preenchido(s) pelas fotos`);
+      if (result.filled) {
+        toast.success(`${result.filled} nº(s) de série vinculado(s) pelas fotos`);
       } else {
         toast.info('As fotos não trouxeram séries novas para os itens da nota');
       }
-      setImages([]);
     } catch (error) {
       toast.error('Não foi possível analisar as fotos');
     } finally {
@@ -337,7 +323,7 @@ export default function AssistedRegistrationTab({ onSaved }) {
     setNota(null);
     setItems([]);
     setImages([]);
-    setShowPhotos(false);
+    setAnalysis(null);
     setStep('nota');
   };
 
@@ -351,8 +337,8 @@ export default function AssistedRegistrationTab({ onSaved }) {
           <div>
             <h2 className="font-semibold text-slate-900">Cadastro assistido pela nota fiscal</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              A nota abre um produto serializado por unidade: a referência carrega os dados do
-              cadastro de referência e o preço de venda fica no maior valor.
+              A nota abre um produto serializado por unidade, as fotos das caixas vinculam o número
+              de série de cada aparelho e a referência define o preço de venda no maior valor.
             </p>
           </div>
         </div>
@@ -376,6 +362,69 @@ export default function AssistedRegistrationTab({ onSaved }) {
         </div>
       )}
 
+      {step === 'fotos' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                NF {nota?.number || '—'} • {items.length} item(ns) na nota
+              </p>
+              <p className="text-xs text-slate-500">
+                {items.filter((item) => item.serial_number).length} de {items.length} com número de
+                série
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleClearNota}>
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
+              Trocar nota
+            </Button>
+          </div>
+
+          <ImageUploadCard
+            images={images}
+            onAdd={handleAddImages}
+            onRemove={handleRemoveImage}
+            onAnalyze={handleAnalyzePhotos}
+            analyzing={analyzing}
+          />
+
+          {analysis && (
+            <Card className="p-4 space-y-1.5">
+              <p className="text-xs font-semibold text-slate-700">
+                {analysis.filled} série(s) vinculada(s) • {analysis.found} produto(s) lido(s) nas
+                fotos
+              </p>
+              {items.some((item) => !item.serial_number) && (
+                <p className="text-[11px] text-amber-700">
+                  Sem série:{' '}
+                  {items
+                    .filter((item) => !item.serial_number)
+                    .map((item) => item.reference || item.product_name)
+                    .join(', ')}
+                </p>
+              )}
+              {analysis.unmatched.length > 0 && (
+                <p className="text-[11px] text-slate-500">
+                  Lidas nas fotos sem item na nota:{' '}
+                  {analysis.unmatched
+                    .map((product) => `${product.reference || product.product_name} (${product.serial_number})`)
+                    .join(', ')}
+                </p>
+              )}
+            </Card>
+          )}
+
+          <Button
+            onClick={() => setStep('revisao')}
+            disabled={!images.length && !analysis}
+            className="w-full bg-[#2f7d4f] hover:bg-[#276a43]"
+          >
+            Continuar para revisão
+            <ChevronRight className="h-4 w-4 ml-1.5" />
+          </Button>
+        </div>
+      )}
+
       {step === 'revisao' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -388,6 +437,10 @@ export default function AssistedRegistrationTab({ onSaved }) {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setStep('fotos')}>
+                <ImagePlus className="h-4 w-4 mr-1.5" />
+                Fotos
+              </Button>
               <Button variant="outline" size="sm" onClick={handleClearNota}>
                 <ArrowLeft className="h-4 w-4 mr-1.5" />
                 Trocar nota
@@ -407,26 +460,6 @@ export default function AssistedRegistrationTab({ onSaved }) {
               </Button>
             </div>
           </div>
-
-          {!showPhotos ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full text-slate-600"
-              onClick={() => setShowPhotos(true)}
-            >
-              <ImagePlus className="h-4 w-4 mr-2" />
-              Conferir séries com fotos das caixas (opcional)
-            </Button>
-          ) : (
-            <ImageUploadCard
-              images={images}
-              onAdd={handleAddImages}
-              onRemove={handleRemoveImage}
-              onAnalyze={handleAnalyzePhotos}
-              analyzing={analyzing}
-            />
-          )}
 
           <div className="space-y-3">
             {items.map((item, index) => (
